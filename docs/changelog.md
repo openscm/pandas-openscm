@@ -20,3 +20,7 @@ from the examples given in that link.
 -->
 
 <!-- towncrier release notes start -->
+
+## Pandas-OpenSCM v0.1.0 (2025-02-09)
+
+No significant changes.
