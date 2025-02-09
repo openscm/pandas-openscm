@@ -13,35 +13,56 @@ import pandas as pd
 import pandas_indexing as pix
 import pytest
 
+from pandas_openscm.db import OpenSCMDB, OpenSCMDBFormat
 from pandas_openscm.testing import create_test_df, get_parametrized_db_formats
 
 db_formats = get_parametrized_db_formats()
 
 
 @pytest.mark.parametrize(
-    "n_scenarios, n_variables, n_runs",
+    "n_scenarios, variables, n_runs",
     (
-        pytest.param(2, 3, 4, id="small"),
-        pytest.param(20, 15, 60, id="medium"),
-        pytest.param(20, 15, 600, id="large"),
-        # Blows some integer limit
-        # pytest.param(100, 15, 600, id="x-large"),
+        pytest.param(2, [("a", "kg"), ("b", "kg"), ("c", "kg")], 4, id="small"),
+        pytest.param(
+            20,
+            [("a", "g"), ("b", "m"), ("c", "s")],
+            60,
+            id="medium",
+            marks=pytest.mark.slow,
+        ),
+        pytest.param(
+            100,
+            [("a", "g"), ("b", "m"), ("c", "s")],
+            600,
+            id="large",
+            marks=pytest.mark.slow,
+        ),
+        # # Blows some integer limit, to turn back on in future
+        # pytest.param(
+        #     1000,
+        #     [("a", "kg"), ("b", "W / m^2"), ("c", "yr")],
+        #     600,
+        #     id="x-arge",
+        #     marks=pytest.mark.slow,
+        # ),
     ),
 )
 @db_formats
-def test_save_and_load(n_scenarios, n_variables, n_runs, db_format, tmpdir):
-    if db_format == GCDBDataFormat.CSV and (n_scenarios * n_variables * n_runs) > 25000:
+def test_save_and_load(n_scenarios, variables, n_runs, db_format, tmpdir):
+    if (
+        db_format == OpenSCMDBFormat.CSV
+        and (n_scenarios * len(variables) * n_runs) > 25000
+    ):
         pytest.skip("Too slow")
 
     start = create_test_df(
         n_scenarios=n_scenarios,
-        n_variables=n_variables,
+        variables=variables,
         n_runs=n_runs,
         timepoints=np.arange(1750, 2100),
-        units="Mt",
     )
 
-    db = GCDB(tmpdir, format=db_format)
+    db = OpenSCMDB.from_format(tmpdir, format=db_format)
 
     db.save(start)
 

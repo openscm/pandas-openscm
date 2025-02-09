@@ -292,6 +292,10 @@ formats = "ipynb,py:percent"
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib",
+    "--strict-markers",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 
 [tool.ruff]
