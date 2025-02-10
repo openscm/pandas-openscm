@@ -90,7 +90,7 @@ def multi_index_match(
     >>> multi_index_match(base, loc_first_level)
     array([False, False, False,  True])
     """
-    idx_reordered = idx.reorder_levels(
+    idx_reordered: pd.MultiIndex = idx.reorder_levels(  # type: ignore # reorder_levels untyped
         [*locator.names, *(set(idx.names) - {*locator.names})]
     )
 
@@ -146,4 +146,12 @@ def multi_index_lookup(df: pd.DataFrame, locator: pd.MultiIndex) -> pd.DataFrame
     ma    sa       1      0     1
     mb    sb       3      6     7
     """
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is a `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
     return df.loc[multi_index_match(df.index, locator)]

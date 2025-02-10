@@ -9,38 +9,50 @@ Also see here: https://docs.pytest.org/en/stable/explanation/pythonpath.html#pyt
 from __future__ import annotations
 
 import itertools
-from collections.abc import Iterable
+from collections.abc import Collection
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from pandas_openscm.db import OpenSCMDBFormat
+from pandas_openscm.db import CSVBackend, FeatherBackend
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
     import pytest
 
 
-def get_parametrized_db_formats() -> pytest.MarkDecorator:
+def get_parametrized_db_backends() -> pytest.MarkDecorator:
     try:
         import pytest
     except ImportError as exc:
         raise MissingOptionalDependencyError(
-            "get_parametrized_db_formats", requirement="pytest"
+            "get_parametrized_db_backends", requirement="pytest"
         ) from exc
 
     return pytest.mark.parametrize(
-        "db_format",
+        "db_backend",
         tuple(
-            pytest.param(db_format, id=str(db_format)) for db_format in OpenSCMDBFormat
+            pytest.param(db_format, id=str(db_format))
+            for db_format in (
+                CSVBackend,
+                FeatherBackend,
+                # netCDFBackend,
+                # Other back-end options to consider:
+                #
+                # pretty netCDF, where we try and save the data with dimensions
+                # where possible
+                #
+                # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
+                # HDF5 = auto()
+            )
         ),
     )
 
 
 def create_test_df(
     *,
-    variables: Iterable[tuple[str, str]],
+    variables: Collection[tuple[str, str]],
     n_scenarios: int,
     n_runs: int,
     timepoints: np.typing.NDArray[np.floating],

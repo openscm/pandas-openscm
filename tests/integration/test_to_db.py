@@ -13,10 +13,10 @@ import pandas as pd
 import pandas_indexing as pix
 import pytest
 
-from pandas_openscm.db import OpenSCMDB, OpenSCMDBFormat
-from pandas_openscm.testing import create_test_df, get_parametrized_db_formats
+from pandas_openscm.db import AlreadyInDBError, CSVBackend, OpenSCMDB
+from pandas_openscm.testing import create_test_df, get_parametrized_db_backends
 
-db_formats = get_parametrized_db_formats()
+db_backends = get_parametrized_db_backends()
 
 
 @pytest.mark.parametrize(
@@ -47,12 +47,9 @@ db_formats = get_parametrized_db_formats()
         # ),
     ),
 )
-@db_formats
-def test_save_and_load(n_scenarios, variables, n_runs, db_format, tmpdir):
-    if (
-        db_format == OpenSCMDBFormat.CSV
-        and (n_scenarios * len(variables) * n_runs) > 25000
-    ):
+@db_backends
+def test_save_and_load(n_scenarios, variables, n_runs, db_backend, tmpdir):
+    if db_backend == CSVBackend and (n_scenarios * len(variables) * n_runs) > 25000:
         pytest.skip("Too slow")
 
     start = create_test_df(
@@ -62,8 +59,9 @@ def test_save_and_load(n_scenarios, variables, n_runs, db_format, tmpdir):
         timepoints=np.arange(1750, 2100),
     )
 
-    db = OpenSCMDB.from_format(tmpdir, format=db_format)
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
+    # start.openscm.to_db(db)
     db.save(start)
 
     db_metadata = db.load_metadata()
@@ -77,18 +75,21 @@ def test_save_and_load(n_scenarios, variables, n_runs, db_format, tmpdir):
     pd.testing.assert_frame_equal(start, loaded)
 
 
-@db_formats
-def test_save_multiple_and_load(tmpdir, db_format):
-    db = GCDB(tmpdir, format=db_format)
+@db_backends
+def test_save_multiple_and_load(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     all_saved_l = []
-    for units in ["Mt", "Gt", "Tt"]:
+    for variable in [
+        ("Emissions", "Gt"),
+        ("Concentrations", "ppm"),
+        ("Forcing", "W/m^2"),
+    ]:
         to_save = create_test_df(
             n_scenarios=10,
-            n_variables=1,
+            variables=variable,
             n_runs=3,
             timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-            units=units,
         )
 
         db.save(to_save)
@@ -107,22 +108,21 @@ def test_save_multiple_and_load(tmpdir, db_format):
     pd.testing.assert_frame_equal(all_saved, loaded)
 
 
-@db_formats
-def test_save_overwrite_error(tmpdir, db_format):
-    db = GCDB(tmpdir, format=db_format)
+@db_backends
+def test_save_overwrite_error(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     cdf = partial(
         create_test_df,
         n_scenarios=10,
-        n_variables=1,
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
 
-    dup = cdf(units="m")
+    dup = cdf(variables=[("Emissions", "t")])
     db.save(dup)
 
-    to_save = pix.concat([dup, cdf(units="km")])
+    to_save = pix.concat([dup, cdf(variables=[("Weight", "kg")])])
 
     error_msg = re.escape(
         "The following rows are already in the database:\n"
@@ -132,19 +132,18 @@ def test_save_overwrite_error(tmpdir, db_format):
         db.save(to_save)
 
 
-@db_formats
-def test_save_overwrite_force(tmpdir, db_format):
-    db = GCDB(Path(tmpdir), format=db_format)
+@db_backends
+def test_save_overwrite_force(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     cdf = partial(
         create_test_df,
         n_scenarios=10,
-        n_variables=1,
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
 
-    original = cdf(units="m")
+    original = cdf(variables=[("Emissions", "t")])
     db.save(original)
 
     # Make sure that our data saved correctly
@@ -158,8 +157,8 @@ def test_save_overwrite_force(tmpdir, db_format):
 
     pd.testing.assert_frame_equal(original, loaded)
 
-    original_overwrite = cdf(units="m")
-    updated = pix.concat([original_overwrite, cdf(units="km")])
+    original_overwrite = cdf(variables=[("Emissions", "t")])
+    updated = pix.concat([original_overwrite, cdf(variables=[("Height", "m")])])
 
     # With force, we can overwrite
     db.save(updated, allow_overwrite=True)
@@ -167,9 +166,9 @@ def test_save_overwrite_force(tmpdir, db_format):
     # As a helper, check we've got the number of files we expect.
     # This is testing implementation, so could be removed in future.
     # Expect to have the index file plus the new file, but not the original file.
-    db_files = list(db.db_dir.glob(f"*.{db_format}"))
+    db_files = list(db.db_dir.glob(f"*{db.backend.ext}"))
     assert set([f.name for f in db_files]) == set(
-        f"{prefix}.{db_format}" for prefix in ["1", "index", "filemap"]
+        f"{prefix}{db.backend.ext}" for prefix in ["1", "index", "filemap"]
     )
 
     # Check that the data was overwritten with new data
@@ -194,16 +193,15 @@ def test_save_overwrite_force(tmpdir, db_format):
     pd.testing.assert_frame_equal(updated, loaded)
 
 
-@db_formats
-def test_save_overwrite_force_half_overlap(tmpdir, db_format):
-    db = GCDB(Path(tmpdir), format=db_format)
+@db_backends
+def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     cdf = partial(
         create_test_df,
-        n_variables=5,
+        variables=[(f"v_{i}", "m") for i in range(5)],
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-        units="m",
     )
 
     original = cdf(n_scenarios=6)
@@ -212,9 +210,9 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_format):
     # As a helper, check we've got the number of files we expect.
     # This is testing implementation, so could be removed in future.
     # Expect to have the index file plus the file map file plus written file.
-    db_files = list(db.db_dir.glob(f"*.{db_format}"))
+    db_files = list(db.db_dir.glob(f"*{db.backend.ext}"))
     assert set([f.name for f in db_files]) == set(
-        f"{prefix}.{db_format}" for prefix in ["0", "index", "filemap"]
+        f"{prefix}{db.backend.ext}" for prefix in ["0", "index", "filemap"]
     )
 
     # Make sure that our data saved correctly
@@ -239,9 +237,9 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_format):
     # plus the re-written data file
     # (to handle the need to split the original data so we can keep only what we need),
     # but not the original file.
-    db_files = list(db.db_dir.glob(f"*.{db_format}"))
+    db_files = list(db.db_dir.glob(f"*{db.backend.ext}"))
     assert set([f.name for f in db_files]) == set(
-        f"{prefix}.{db_format}" for prefix in ["1", "2", "index", "filemap"]
+        f"{prefix}{db.backend.ext}" for prefix in ["1", "2", "index", "filemap"]
     )
 
     # Check that the data was overwritten with new data

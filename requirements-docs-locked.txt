@@ -26,6 +26,7 @@ defusedxml==0.7.1
 exceptiongroup==1.2.2 ; python_full_version < '3.11'
 executing==2.1.0
 fastjsonschema==2.21.1
+filelock==3.16.1
 fonttools==4.56.0
 fqdn==1.5.1
 ghp-import==2.1.0
@@ -102,6 +103,7 @@ prompt-toolkit==3.0.48
 psutil==6.1.1
 ptyprocess==0.7.0 ; (python_full_version < '3.10' and sys_platform == 'emscripten') or os_name != 'nt' or (sys_platform != 'emscripten' and sys_platform != 'win32')
 pure-eval==0.2.3
+pyarrow==19.0.0
 pycparser==2.22
 pygments==2.19.1
 pymdown-extensions==10.13
@@ -131,6 +133,7 @@ terminado==0.18.1
 tinycss2==1.4.0
 tomli==2.2.1 ; python_full_version < '3.11'
 tornado==6.4.2
+tqdm==4.67.1
 traitlets==5.14.3
 types-python-dateutil==2.9.0.20241206
 typing-extensions==4.12.2 ; python_full_version < '3.13'

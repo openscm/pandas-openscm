@@ -9,11 +9,14 @@ from pathlib import Path
 
 import filelock
 import numpy as np
+import pandas as pd
+import pandas_indexing as pix
 import pytest
 
-from pandas_openscm.testing import create_test_df, get_parametrized_db_formats
+from pandas_openscm.db import EmptyDBError, OpenSCMDB
+from pandas_openscm.testing import create_test_df, get_parametrized_db_backends
 
-db_formats = get_parametrized_db_formats()
+db_backends = get_parametrized_db_backends()
 
 
 @pytest.mark.parametrize(
@@ -36,18 +39,17 @@ db_formats = get_parametrized_db_formats()
         ),
     ),
 )
-@db_formats
-def test_locking(tmpdir, meth, args, db_format):
-    db = GCDB(Path(tmpdir), format=db_format)
+@db_backends
+def test_locking(tmpdir, meth, args, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     # Put some data in the db so there's something to lock
     db.save(
         create_test_df(
             n_scenarios=1,
-            n_variables=1,
+            variables=[("a", "K")],
             n_runs=1,
-            timepoints=np.array([10.0]),
-            units="Mt",
+            timepoints=np.array([10.0, 15.0]),
         )
     )
 
@@ -72,16 +74,15 @@ def test_locking(tmpdir, meth, args, db_format):
         getattr(db, meth)(lock_context_manager=nullcontext(), *args)
 
 
-@db_formats
-def test_load_with_loc(tmpdir, db_format):
-    db = GCDB(tmpdir, format=db_format)
+@db_backends
+def test_load_with_loc(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     full_db = create_test_df(
         n_scenarios=10,
-        n_variables=3,
+        variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-        units="Mt",
     )
 
     for _, pdf in full_db.groupby(["scenario"]):
@@ -102,16 +103,15 @@ def test_load_with_loc(tmpdir, db_format):
         pd.testing.assert_frame_equal(loaded, exp)
 
 
-@db_formats
-def test_load_with_index_all(tmpdir, db_format):
-    db = GCDB(tmpdir, format=db_format)
+@db_backends
+def test_load_with_index_all(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     full_db = create_test_df(
         n_scenarios=10,
-        n_variables=3,
+        variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-        units="Mt",
     )
 
     for _, pdf in full_db.groupby(["scenario"]):
@@ -129,16 +129,15 @@ def test_load_with_index_all(tmpdir, db_format):
     "slice",
     (slice(None, None, None), slice(None, 3, None), slice(2, 4, None), slice(1, 15, 2)),
 )
-@db_formats
-def test_load_with_index_slice(tmpdir, slice, db_format):
-    db = GCDB(tmpdir, format=db_format)
+@db_backends
+def test_load_with_index_slice(tmpdir, slice, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     full_db = create_test_df(
         n_scenarios=10,
-        n_variables=3,
+        variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-        units="Mt",
     )
 
     for _, pdf in full_db.groupby(["scenario"]):
@@ -163,16 +162,15 @@ def test_load_with_index_slice(tmpdir, slice, db_format):
         pytest.param(["run", "variable"], id="multi_level_out_of_order_not_first"),
     ),
 )
-@db_formats
-def test_load_with_pix_unique_levels(tmpdir, levels, db_format):
-    db = GCDB(tmpdir, format=db_format)
+@db_backends
+def test_load_with_pix_unique_levels(tmpdir, levels, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     full_db = create_test_df(
         n_scenarios=10,
-        n_variables=3,
+        variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-        units="Mt",
     )
 
     for _, pdf in full_db.groupby(["scenario"]):
@@ -193,17 +191,16 @@ def test_load_with_pix_unique_levels(tmpdir, levels, db_format):
     pd.testing.assert_frame_equal(loaded, exp)
 
 
-@db_formats
-def test_deletion(tmpdir, db_format):
-    db = GCDB(Path(tmpdir), format=db_format)
+@db_backends
+def test_deletion(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     db.save(
         create_test_df(
             n_scenarios=10,
-            n_variables=3,
+            variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
             n_runs=3,
             timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-            units="Mt",
         )
     )
 
@@ -218,23 +215,22 @@ def test_deletion(tmpdir, db_format):
         db.load()
 
 
-@db_formats
-def test_regroup(tmpdir, db_format):
-    db = GCDB(Path(tmpdir), format=db_format)
+@db_backends
+def test_regroup(tmpdir, db_backend):
+    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
 
     all_dat = create_test_df(
         n_scenarios=10,
-        n_variables=3,
+        variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
         n_runs=3,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-        units="Mt",
     )
 
     db.save(all_dat)
 
     pd.testing.assert_frame_equal(db.load(out_columns_type=float), all_dat)
     # Testing implementation but ok as a helper for now
-    assert len(list(db.db_dir.glob(f"*.{db_format}"))) == 3
+    assert len(list(db.db_dir.glob(f"*{db.backend.ext}"))) == 3
 
     for new_grouping in (
         ["scenario"],
@@ -249,6 +245,6 @@ def test_regroup(tmpdir, db_format):
         )
         # Testing implementation but ok as a helper for now
         assert (
-            len(list(db.db_dir.glob(f"*.{db_format}")))
+            len(list(db.db_dir.glob(f"*{db.backend.ext}")))
             == 2 + all_dat.pix.unique(new_grouping).shape[0]
         )

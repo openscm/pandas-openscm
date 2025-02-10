@@ -6,33 +6,23 @@ from __future__ import annotations
 
 import contextlib
 import os
-from contextlib import nullcontext
-from enum import StrEnum, auto
+from collections.abc import Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
+import filelock
 import pandas as pd
 from attrs import define
 
+from pandas_openscm.db.csv import CSVBackend
+from pandas_openscm.db.feather import FeatherBackend
 from pandas_openscm.exceptions import MissingOptionalDependencyError
+from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
 
 if TYPE_CHECKING:
-    import pandas_indexing as pix
-
-
-class OpenSCMDBFormat(StrEnum):
-    """Supported database formats"""
-
-    CSV = auto()
-    Feather = auto()
-    netCDF = auto()
-    # Other options to consider:
-    #
-    # pretty netCDF, where we try and save the data with dimensions
-    # where possible
-    #
-    # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-    # HDF5 = auto()
+    import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
+    import tqdm.asyncio
+    from pandas.core.groupby import DataFrameGroupBy
 
 
 class AlreadyInDBError(ValueError):
@@ -76,26 +66,216 @@ class EmptyDBError(ValueError):
 
 class OpenSCMDBBackend(Protocol):
     """
-    Back-end that can be used with [`OpenSCMDB`][(m)]
+    Backend that can be used with [`OpenSCMDB`][(m)]
     """
+
+    ext: str
+    """
+    Extension to use with files saved by this backend.
+    """
+
+    @staticmethod
+    def load_data_file(data_file: Path) -> pd.DataFrame:
+        """
+        Load a data file
+
+        This is a low-level method
+        that just handles the specifics of serialising the data to disk.
+        Working out the path in which to save the data
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        data_file
+            File from which to load the data
+
+        Returns
+        -------
+        :
+            Loaded data
+        """
+
+    @staticmethod
+    def load_file_map(file_map_file: Path) -> pd.DataFrame:
+        """
+        Load the database's file map
+
+        This is a low-level method
+        that just handles the specifics of serialising the index to disk.
+        Working out the path in which to save the file map
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        file_map_file
+            File from which to load the file map
+
+        Returns
+        -------
+        :
+            Loaded file map
+        """
+
+    @staticmethod
+    def load_index(index_file: Path) -> pd.DataFrame:
+        """
+        Load the database's index
+
+        This is a low-level method
+        that just handles the specifics of serialising the index to disk.
+        Working out the path in which to save the index
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        index_file
+            File from which to load the index
+
+        Returns
+        -------
+        :
+            Loaded index
+        """
+
+    @staticmethod
+    def save_data(
+        data: pd.DataFrame,
+        data_file: Path,
+    ) -> None:
+        """
+        Save an individual data file to the database
+
+        This is a low-level method
+        that just handles the specifics of serialising the data to disk.
+
+        Parameters
+        ----------
+        data
+            Data to save
+
+        data_file
+            File in which to save the data
+        """
+
+    def save_database(  # noqa: PLR0913
+        self,
+        index: pd.DataFrame,
+        index_file: Path,
+        file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
+        file_map_file: Path,
+        data: pd.DataFrame,
+        data_file: Path,
+    ) -> None:
+        """
+        Save the database
+
+        This is a low-level method
+        that just handles the specifics of serialising
+        the database components to the disk.
+        Working out what data to save and in what path
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        index
+            Index file to save
+
+        index_file
+            File in which to save the index
+
+        file_map
+            File map to save
+
+        file_map_file
+            File in which to save the file map
+
+        data
+            Data to save
+
+        data_file
+            File in which to save the data
+        """
 
 
 @define
 class OpenSCMDB:
     """
     Database for storing OpenSCM-style data
+
+    This class is focussed on backends that use files as their storage.
+    If you had a different database backend,
+    you might make different choices.
+    We haven't thought through those use cases
+    hence aren't sure how much effort
+    would be required to make something truly backend agnostic.
     """
 
     backend: OpenSCMDBBackend
     """
-    The back-end of the database
+    The backend of the database
     """
+
+    db_dir: Path
+    """
+    Path in which the database is stored
+
+    Both the index and the data files will be written in this directory.
+    """
+
+    @property
+    def file_map_file(self) -> Path:
+        """
+        The file in which the file map is stored
+
+        The file map stores the mapping from file_id
+        to file path.
+
+        Returns
+        -------
+        :
+            Path to the file map file
+        """
+        return self.db_dir / f"filemap{self.backend.ext}"
+
+    @property
+    def index_file(self) -> Path:
+        """
+        The file in which the database's index is stored
+
+        Returns
+        -------
+        :
+            Path to the index file
+        """
+        return self.db_dir / f"index{self.backend.ext}"
+
+    @property
+    def index_file_lock(self) -> filelock.SoftFileLock:
+        """Lock for the back-end's index file"""
+        return filelock.FileLock(self.index_file_lock_path)
+
+    @property
+    def index_file_lock_path(self) -> Path:
+        """Path to the lock file for the back-end's index file"""
+        return self.index_file.parent / f"{self.index_file.name}.lock"
+
+    @property
+    def is_empty(self) -> bool:
+        """
+        Whether the database is empty or not
+
+        Returns
+        -------
+        :
+            `True` if the database is empty, `False` otherwise
+        """
+        return not self.index_file.exists()
 
     def delete(
         self,
         *,
         progress: bool = False,
-        lock_context_manager: contextlib.AbstractContextManager | None = None,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
     ) -> None:
         """
         Delete all data in the database
@@ -106,16 +286,18 @@ class OpenSCMDB:
             Show a progress bar of the deletion's progress
 
         lock_context_manager
-            Context manager to use to acquire the backend's lock file.
+            Context manager to use to acquire the lock file.
 
             If not supplied, we use
-            `self.backend.index_file_lock.acquire`.
+            [`self.index_file_lock.acquire`][(c)].
         """
         if lock_context_manager is None:
-            lock_context_manager = self.backend.index_file_lock.acquire()
+            lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            to_remove = self.backend.get_all_files()
+            to_remove: Generator[Path] | tqdm.asyncio.tqdm[Path] = self.db_dir.glob(
+                f"*{self.backend.ext}"
+            )
 
             if progress:
                 try:
@@ -149,18 +331,18 @@ class OpenSCMDB:
         FileExistsError
             A file already exists for the given `file_id`
         """
-        file_path = self.backend.get_new_data_file_path(file_id)
+        file_path = self.db_dir / f"{file_id}{self.backend.ext}"
 
         if file_path.exists():
             raise FileExistsError(file_path)
 
         return file_path
 
-    def load(
+    def load(  # type: ignore[no-any-unimported] # pix issues
         self,
-        selector: pd.Index | pd.MultiIndex | pix.selectors.Selector | None = None,
+        selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
         *,
-        lock_context_manager: contextlib.AbstractContextManager | None = None,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
         progress: bool = False,
         out_columns_type: type | None = None,
     ) -> pd.DataFrame:
@@ -173,10 +355,10 @@ class OpenSCMDB:
             Selector to use to choose the data to load
 
         lock_context_manager
-            Context manager to use to acquire the backend's lock file.
+            Context manager to use to acquire the lock file.
 
             If not supplied, we use
-            `self.backend.index_file_lock.acquire`.
+            [`self.index_file_lock.acquire`][(c)].
 
         progress
             Should we use a progress bar to track the loading?
@@ -191,13 +373,18 @@ class OpenSCMDB:
         :
             Loaded data
         """
-        if self.backend.is_empty:
+        if self.is_empty:
             raise EmptyDBError(self)
 
         if lock_context_manager is None:
-            lock_context_manager = self.backend.index_file_lock.acquire()
+            lock_context_manager = self.index_file_lock.acquire()
 
-        def idx_obj(inobj):
+        def idx_obj(inobj: pd.DataFrame) -> pd.DataFrame:
+            """
+            Do the indexing here
+
+            Return something sensible no matter what the indexer is
+            """
             if selector is None:
                 res = inobj
 
@@ -213,8 +400,9 @@ class OpenSCMDB:
             return res
 
         with lock_context_manager:
-            index_raw = self.backend.load_index(lock_context_manager=nullcontext())
-            file_map = self.backend.load_file_map(lock_context_manager=nullcontext())
+            index_raw = self.backend.load_index(self.index_file)
+            file_map_raw = self.backend.load_file_map(self.file_map_file)
+            file_map = file_map_raw.set_index("file_id")["file_path"]
 
             # Don't need to copy as index_raw is only used internally.
             # The different name is just to help understand the order of operations.
@@ -222,7 +410,9 @@ class OpenSCMDB:
             index.index = pd.MultiIndex.from_frame(index_raw)
 
             index_to_load = idx_obj(index)
-            files_to_load = file_map[index_to_load["file_id"].unique()].map(Path)
+            files_to_load: Generator[Path] | tqdm.asyncio.tqdm[Path] = (
+                Path(v) for v in file_map[index_to_load["file_id"].unique()]
+            )
 
             if progress:
                 try:
@@ -234,9 +424,9 @@ class OpenSCMDB:
 
                 files_to_load = tqdm.auto.tqdm(files_to_load, desc="Files to load")
 
-            data_l = [self.backend.load_data(f) for f in files_to_load]
+            data_l = [self.backend.load_data_file(f) for f in files_to_load]
 
-        loaded = pix.concat(data_l).set_index(index.index.droplevel("file_id").names)
+        loaded = pd.concat(data_l).set_index(index.index.droplevel("file_id").names)
 
         # Look up the indexes we want
         # just in case the data we loaded had more than we asked for.
@@ -245,3 +435,284 @@ class OpenSCMDB:
             res.columns = res.columns.astype(out_columns_type)
 
         return res
+
+    def load_metadata(
+        self,
+        *,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+    ) -> pd.MultiIndex:
+        """
+        Load the database's metadata
+
+        Parameters
+        ----------
+        lock_context_manager
+            Context manager to use to acquire the lock file.
+
+            If not supplied, we use
+            [`self.index_file_lock.acquire`][(c)].
+
+        Returns
+        -------
+        :
+            Loaded metadata
+        """
+        if not self.index_file.exists():
+            raise EmptyDBError(self)
+
+        if lock_context_manager is None:
+            lock_context_manager = self.index_file_lock.acquire()
+
+        with lock_context_manager:
+            db_index = self.backend.load_index(self.index_file)
+
+        res: pd.MultiIndex = pd.MultiIndex.from_frame(db_index).droplevel("file_id")
+
+        return res
+
+    def prepare_for_overwrite(
+        self,
+        file_ids_db: pd.Series[int],
+        data_overwrite: pd.DataFrame,
+        file_map: pd.Series[Path],  # type: ignore # pandas confused about ability to support Path
+    ) -> tuple[pd.DataFrame, pd.Series[Path]]:  # type: ignore # pandas confused about ability to support Path
+        """
+        Prepare to overwrite data that is already in the database.
+
+        The data that is being overwritten will also be cleared from the database,
+        so `data_overwrite` can be written after calling this method without issue.
+
+        Unless you really know what you're doing,
+        you probably shouldn't be using this directly.
+
+        Parameters
+        ----------
+        file_ids_db
+            File IDs that are already in the database
+
+        data_overwrite
+            Data that will overwrite data that is already in the database.
+
+        file_map
+            Existing map from file IDs to files.
+
+        Returns
+        -------
+        index_out  :
+            Updated index to use.
+
+        file_map_out :
+            Updated file map to use.
+        """
+        overwrite_loc = multi_index_match(file_ids_db.index, data_overwrite.index)  # type: ignore # pandas confused about index type
+        file_ids_remove = set(file_ids_db[overwrite_loc])
+        file_ids_keep = set(file_ids_db[~overwrite_loc])
+        file_ids_overlap = file_ids_remove.intersection(file_ids_keep)
+
+        file_map_out = file_map.copy()
+
+        if not file_ids_overlap:
+            # Nice and simple, just remove the old files that we're going to overwrite
+            index_out = file_ids_db[~overwrite_loc].reset_index()
+            for rfid in file_ids_remove:
+                os.remove(file_map_out.pop(rfid))
+
+        else:
+            # More complicated: for some files,
+            # some of the data needs to be removed
+            # while other parts need to be kept.
+            # Hence we have to re-write that data into files
+            # that are separate from the data we want to keep
+            # before we can continue.
+            file_ids_out = file_ids_db.copy()
+            for overlap_fid in file_ids_overlap:
+                overlap_file = file_map_out.pop(overlap_fid)
+
+                overlap_file_data_raw = self.backend.load_data_file(overlap_file)
+                overlap_file_data = overlap_file_data_raw.set_index(
+                    file_ids_db.index.names
+                )
+
+                data_not_being_overwritten = overlap_file_data.loc[
+                    ~multi_index_match(overlap_file_data.index, data_overwrite.index)  # type: ignore # pandas confused about index type
+                ]
+
+                # Ensure we use a file ID we haven't already used
+                data_not_being_overwritten_file_id = (
+                    max(file_map_out.index.max(), file_map.index.max()) + 1
+                )
+                data_not_being_overwritten_file_path = self.get_new_data_file_path(
+                    file_id=data_not_being_overwritten_file_id
+                )
+
+                # Re-write the data we want to keep
+                self.backend.save_data(
+                    data_not_being_overwritten, data_not_being_overwritten_file_path
+                )
+
+                # Update the file map (already popped the old file above)
+                file_map_out[data_not_being_overwritten_file_id] = (
+                    data_not_being_overwritten_file_path
+                )
+
+                # Update the file ids of the data we're keeping
+                file_ids_out.loc[
+                    multi_index_match(
+                        file_ids_out.index,  # type: ignore # pandas confused about index type
+                        data_not_being_overwritten.index,  # type: ignore # pandas confused about index type
+                    )
+                ] = data_not_being_overwritten_file_id
+
+                # Remove the rows that still refer to the data we're dropping
+                file_ids_out = file_ids_out.loc[file_ids_out != overlap_fid]
+
+                # Remove the file that contained the data
+                os.remove(overlap_file)
+
+            index_out = file_ids_out.reset_index()
+
+        return index_out, file_map_out
+
+    def regroup(
+        self,
+        new_groups: list[str],
+        *,
+        progress: bool = False,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+    ) -> None:
+        """
+        Re-group the data in the database
+
+        This can be helpful if you realise that you need to access the data
+        in a different way to the way it was originally saved.
+
+        Parameters
+        ----------
+        new_groups
+            The metadata columns to use to create the new groups
+
+        progress
+            Should a progress bar be shown of the progress?
+
+        lock_context_manager
+            Context manager to use to acquire the lock file.
+
+            If not supplied, we use
+            [`self.index_file_lock.acquire`][(c)].
+        """
+        if lock_context_manager is None:
+            lock_context_manager = self.index_file_lock.acquire()
+
+        with lock_context_manager:
+            all_dat = self.load(
+                progress=progress, lock_context_manager=contextlib.nullcontext()
+            )
+
+            self.delete(
+                lock_context_manager=contextlib.nullcontext(), progress=progress
+            )
+
+            grouper: (
+                # Not the world's most helpful type hint, but ok
+                DataFrameGroupBy[tuple[Any, ...], Literal[True]]
+                | tqdm.asyncio.tqdm[tuple[tuple[Any, ...], pd.DataFrame]]
+            ) = all_dat.groupby(new_groups)
+            if progress:
+                import tqdm.auto
+
+                grouper = tqdm.auto.tqdm(grouper)
+
+            for _, df in grouper:
+                self.save(df, lock_context_manager=contextlib.nullcontext())
+
+    def save(
+        self,
+        data: pd.DataFrame,
+        *,
+        allow_overwrite: bool = False,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+    ) -> None:
+        """
+        Save data into the database
+
+        This saves all of the data in a single file.
+        If you want to put the data into different files,
+        group `data` before calling [save][(c)].
+
+        Parameters
+        ----------
+        data
+            Data to add to the database
+
+        allow_overwrite
+            Should overwrites of data that is already in the database be allowed?
+
+        lock_context_manager
+            Context manager to use to acquire the lock file.
+
+            If not supplied, we use
+            [`self.index_file_lock.acquire`][(c)].
+        """
+        if lock_context_manager is None:
+            lock_context_manager = self.index_file_lock.acquire()
+
+        with lock_context_manager:
+            if self.is_empty:
+                file_id = 0
+                data_file = self.get_new_data_file_path(file_id=file_id)
+                index_db = data.index.to_frame(index=False)
+                index_db["file_id"] = file_id
+                file_map_db = pd.Series({file_id: data_file}, name="file_path")
+                file_map_db.index.name = "file_id"
+
+            else:
+                index_db = self.backend.load_index(self.index_file)
+                file_map_db = self.backend.load_file_map(self.file_map_file).set_index(
+                    "file_id"
+                )["file_path"]
+                metadata_db = pd.MultiIndex.from_frame(index_db).droplevel("file_id")
+
+                file_id = index_db["file_id"].max() + 1
+                data_file = self.get_new_data_file_path(file_id=file_id)
+
+                file_map_db[file_id] = data_file
+                data_index = data.index.to_frame(index=False)
+                data_index["file_id"] = file_id
+
+                data_to_write_already_in_db = multi_index_lookup(data, metadata_db)
+                if data_to_write_already_in_db.empty:
+                    # No clashes, so we can simply concatenate
+                    index_db = pd.concat([index_db, data_index])
+
+                else:
+                    if not allow_overwrite:
+                        raise AlreadyInDBError(
+                            already_in_db=data_to_write_already_in_db
+                        )
+
+                    index_db_keep, file_map_db = self.prepare_for_overwrite(
+                        file_ids_db=index_db.set_index(metadata_db.names)["file_id"],
+                        data_overwrite=data_to_write_already_in_db,
+                        file_map=file_map_db,
+                    )
+
+                    index_db = pd.concat([index_db_keep, data_index])
+
+            self.backend.save_database(
+                index=index_db,
+                index_file=self.index_file,
+                file_map=file_map_db,
+                file_map_file=self.file_map_file,
+                data=data,
+                data_file=data_file,
+            )
+
+
+__all__ = [
+    "AlreadyInDBError",
+    "CSVBackend",
+    "EmptyDBError",
+    "FeatherBackend",
+    "OpenSCMDB",
+    "OpenSCMDBBackend",
+]

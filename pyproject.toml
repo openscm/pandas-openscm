@@ -40,11 +40,23 @@ Issues = "https://github.com/openscm/pandas-openscm/issues"
 
 
 [project.optional-dependencies]
+db = [
+    "filelock>=3.0.0",
+]
+db-full = [
+    "pandas-openscm[db]",
+    "pyarrow>=19.0.0",
+]
 plots = [
     "matplotlib>=3.7.1",
 ]
+progress = [
+    "tqdm>=4.0.0",
+]
 full = [
+    "pandas-openscm[db]",
     "pandas-openscm[plots]",
+    "pandas-openscm[progress]",
 ]
 
 [dependency-groups]
@@ -84,6 +96,8 @@ dev = [
     "toml==0.10.2",
     "typing-extensions==4.12.2",
     "virtualenv==20.28.1",
+    "pandas-stubs>=2.2.2.240807",
+    "types-tqdm>=4.67.0.20241221",
 ]
 docs = [
     # Key dependencies
