@@ -294,6 +294,9 @@ addopts = [
     "--import-mode=importlib",
     "--strict-markers",
 ]
+doctest_optionflags = [
+    "NORMALIZE_WHITESPACE",  # treat whitespace sanely
+]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
