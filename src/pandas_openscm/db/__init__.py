@@ -4,6 +4,7 @@ Database definition
 
 from __future__ import annotations
 
+import concurrent.futures
 import contextlib
 import os
 from collections.abc import Generator
@@ -19,6 +20,11 @@ from pandas_openscm.db.feather import FeatherBackend
 from pandas_openscm.db.netcdf import netCDFBackend
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
+from pandas_openscm.parallelisation import (
+    ProgressLike,
+    apply_op_parallel_progress,
+    figure_out_progress_bars,
+)
 
 if TYPE_CHECKING:
     import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
@@ -274,43 +280,69 @@ class OpenSCMDB:
     def delete(
         self,
         *,
-        progress: bool = False,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        progress_results: bool | ProgressLike[Any] | None = None,
+        executor: int | concurrent.futures.Executor | None = None,
+        progress_parallel_submission: bool | ProgressLike[Any] | None = None,
     ) -> None:
         """
         Delete all data in the database
 
         Parameters
         ----------
-        progress
-            Show a progress bar of the deletion's progress
-
         lock_context_manager
             Context manager to use to acquire the lock file.
 
             If not supplied, we use
             [`self.index_file_lock.acquire`][(c)].
+
+        progress_results
+            Progress bar to use to display the results of the deletion's progress.
+
+            If `True`, we simply create a default progress bar.
+
+        executor
+            Executor to use for parallel processing.
+
+            If an `int` is supplied, we create an instance of
+            [concurrent.futures.ThreadPoolExecutor] with the provided number of workers.
+
+            If not supplied, we do not use parallel processing.
+
+        progress_parallel_submission
+            Progress bar to use to display the submission of files to be deleted.
+
+            This only applies when the files are deleted in parallel,
+            i.e. `executor` is not `None`.
+
+            If `True`, we simply create a default progress bar.
         """
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
 
-        with lock_context_manager:
-            to_remove: Generator[Path] | tqdm.asyncio.tqdm[Path] = self.db_dir.glob(
-                f"*{self.backend.ext}"
+        if isinstance(executor, int):
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=executor)
+
+        progress_results_use, progress_parallel_submission_use = (
+            figure_out_progress_bars(
+                progress_results=progress_results,
+                progress_results_default_kwargs=dict(desc="File deletion"),
+                executor=executor,
+                progress_parallel_submission=progress_parallel_submission,
+                progress_parallel_submission_default_kwargs=dict(
+                    desc="Submitting files to be deleted"
+                ),
             )
+        )
 
-            if progress:
-                try:
-                    import tqdm.auto
-                except ImportError as exc:
-                    raise MissingOptionalDependencyError(  # noqa: TRY003
-                        "delete(..., progress=True, ...)", requirement="tqdm"
-                    ) from exc
-
-                to_remove = tqdm.auto.tqdm(to_remove, desc="Backend files")
-
-            for f in to_remove:
-                os.remove(f)
+        with lock_context_manager:
+            apply_op_parallel_progress(
+                func_to_call=os.remove,
+                iterable_input=self.db_dir.glob(f"*{self.backend.ext}"),
+                progress_results=progress_results_use,
+                progress_parallel_submission=progress_parallel_submission_use,
+                executor=executor,
+            )
 
     def get_new_data_file_path(self, file_id: int) -> Path:
         """
@@ -428,9 +460,12 @@ class OpenSCMDB:
 
         loaded = pd.concat(data_l).set_index(index.index.droplevel("file_id").names)
 
-        # Look up the indexes we want
-        # just in case the data we loaded had more than we asked for.
+        # Look up only the indexes we want
+        # just in case the data we loaded had more than we asked for
+        # (because the files aren't saved with exactly the right granularity
+        # for the query that has been requested).
         res = idx_obj(loaded)
+
         if out_columns_type is not None:
             res.columns = res.columns.astype(out_columns_type)
 
@@ -601,6 +636,7 @@ class OpenSCMDB:
             If not supplied, we use
             [`self.index_file_lock.acquire`][(c)].
         """
+        # TODO: add check that data has no duplicates in its index
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
 
