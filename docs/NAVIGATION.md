@@ -9,5 +9,6 @@ See https://oprypin.github.io/mkdocs-literate-nav/
 - [Tutorials](tutorials/index.md)
 - [Further background](further-background/index.md)
 - [Development](development.md)
+- [Pandas accessors](pandas-accessors.md)
 - [API reference](api/pandas_openscm/)
 - [Changelog](changelog.md)

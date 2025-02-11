@@ -1891,6 +1891,18 @@ wheels = [
 ]
 
 [[package]]
+name = "mkdocstrings-python-accessors"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mkdocstrings-python-xref" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/eb/96/581e46a4c732f62d81cd5632ec9ee1dcc7ed8543fdc09be01a9a9e8eb277/mkdocstrings_python_accessors-0.1.2.tar.gz", hash = "sha256:5d00d04fe16d2b71f0f0b6c70fb6a9053389e75cdacd313494e574fc702eb964", size = 5641 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e8/03/12c701405b6a27a352222f70cf812828be6bdf832a8fb52d082b95ed3404/mkdocstrings_python_accessors-0.1.2-py3-none-any.whl", hash = "sha256:7136fd0a84d07f9148569f6cb78a432b6d3ebbe10096687b8ce26a632d848abe", size = 5984 },
+]
+
+[[package]]
 name = "mkdocstrings-python-xref"
 version = "1.6.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2410,6 +2422,7 @@ all-dev = [
     { name = "mkdocs-section-index" },
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
+    { name = "mkdocstrings-python-accessors" },
     { name = "mkdocstrings-python-xref" },
     { name = "mypy" },
     { name = "mypy-extensions" },
@@ -2574,6 +2587,7 @@ docs = [
     { name = "mkdocs-section-index" },
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
+    { name = "mkdocstrings-python-accessors" },
     { name = "mkdocstrings-python-xref" },
     { name = "nbclient" },
     { name = "nbconvert" },
@@ -2739,6 +2753,7 @@ all-dev = [
     { name = "mkdocs-section-index", specifier = "==0.3.9" },
     { name = "mkdocstrings", specifier = "==0.27.0" },
     { name = "mkdocstrings-python", specifier = "==1.13.0" },
+    { name = "mkdocstrings-python-accessors", specifier = ">=0.1.1" },
     { name = "mkdocstrings-python-xref", specifier = "==1.6.2" },
     { name = "mypy", specifier = "==1.14.0" },
     { name = "mypy-extensions", specifier = "==1.0.0" },
@@ -2901,6 +2916,7 @@ docs = [
     { name = "mkdocs-section-index", specifier = "==0.3.9" },
     { name = "mkdocstrings", specifier = "==0.27.0" },
     { name = "mkdocstrings-python", specifier = "==1.13.0" },
+    { name = "mkdocstrings-python-accessors", specifier = ">=0.1.1" },
     { name = "mkdocstrings-python-xref", specifier = "==1.6.2" },
     { name = "nbclient", specifier = "==0.10.2" },
     { name = "nbconvert", specifier = "==7.16.4" },

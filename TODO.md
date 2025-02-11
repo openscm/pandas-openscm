@@ -1,4 +1,6 @@
 - accessor
     - tests
     - docs
-- regroup demo in docs (not in core API so we don't take responsibility for deletion)
+- parallel ops (use database as checker, both with threading and processing)
+- database docs
+    - regroup demo in docs (not in core API so we don't take responsibility for deletion)

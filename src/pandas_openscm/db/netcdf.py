@@ -250,7 +250,7 @@ def metadata_df_to_xr(
     Raises
     ------
     MissingOptionalDependencyError
-        [`xarray`][] is not installed.
+        [xarray][] is not installed.
 
     AssertionError
         `timeseries_id_coord` is `None`
@@ -307,14 +307,11 @@ def metadata_df_to_xr(
 
 
 def metadata_xr_to_df(
-    # TODO: add accessor to help category handling from loaded data
-    # TODO: add docs on accessor
-    # TODO: add docs on database
     metadata: xr.Dataset,
     category_index: bool = False,
 ) -> pd.DataFrame:
     """
-    Convert metadata in [`xarray`][] form to [`pandas`][]
+    Convert metadata in [xarray][] form to [pandas][]
 
     Parameters
     ----------
@@ -327,7 +324,7 @@ def metadata_xr_to_df(
     Returns
     -------
     :
-        [`pandas`][] form of the metadata
+        [pandas][] form of the metadata
 
     See Also
     --------

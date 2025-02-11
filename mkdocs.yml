@@ -68,7 +68,7 @@ plugins:
       default_handler: python_xref
       enable_inventory: true
       handlers:
-        python_xref:
+        python_xref: &pythonhandleroptions
           paths: [src]
           import:
             # Cross-ref helpers (lots included here, remove what you don't want)
@@ -102,6 +102,7 @@ plugins:
               classes: true
               functions: true
               modules: true
+        python_accessors: *pythonhandleroptions
   # https://squidfunk.github.io/mkdocs-material/plugins/search/
   - search
   # Add clickable sections to the sidebar
