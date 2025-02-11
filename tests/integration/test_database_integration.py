@@ -274,7 +274,6 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
         ("delete", []),
         ("load", []),
         ("load_metadata", []),
-        ("regroup", [["scenarios"]]),
         (
             "save",
             [
@@ -462,38 +461,3 @@ def test_deletion(tmpdir, db_backend):
 
     with pytest.raises(EmptyDBError):
         db.load()
-
-
-@db_backends
-def test_regroup(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
-
-    all_dat = create_test_df(
-        n_scenarios=10,
-        variables=[("variable_1", "kg"), ("variable_2", "Mt"), ("variable_3", "m")],
-        n_runs=3,
-        timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-    )
-
-    db.save(all_dat)
-
-    pd.testing.assert_frame_equal(db.load(out_columns_type=float), all_dat)
-    # Testing implementation but ok as a helper for now
-    assert len(list(db.db_dir.glob(f"*{db.backend.ext}"))) == 3
-
-    for new_grouping in (
-        ["scenario"],
-        ["scenario", "variable"],
-        ["variable", "run"],
-    ):
-        db.regroup(new_grouping, progress=True)
-
-        # Make sure data unchanged
-        pd.testing.assert_frame_equal(
-            db.load(out_columns_type=float), all_dat, check_like=True
-        )
-        # Testing implementation but ok as a helper for now
-        assert (
-            len(list(db.db_dir.glob(f"*{db.backend.ext}")))
-            == 2 + all_dat.pix.unique(new_grouping).shape[0]
-        )

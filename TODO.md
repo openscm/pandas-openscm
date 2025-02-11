@@ -1,5 +1,4 @@
 - accessor
     - tests
     - docs
-- remove regroup
-    - demo in docs instead (so we don't take responsibility for deletion)
+- regroup demo in docs (not in core API so we don't take responsibility for deletion)

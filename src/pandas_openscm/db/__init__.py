@@ -8,7 +8,7 @@ import contextlib
 import os
 from collections.abc import Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import filelock
 import pandas as pd
@@ -23,7 +23,6 @@ from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
 if TYPE_CHECKING:
     import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
     import tqdm.asyncio
-    from pandas.core.groupby import DataFrameGroupBy
 
 
 class AlreadyInDBError(ValueError):
@@ -573,58 +572,6 @@ class OpenSCMDB:
             index_out = file_ids_out.reset_index()
 
         return index_out, file_map_out
-
-    def regroup(
-        self,
-        new_groups: list[str],
-        *,
-        progress: bool = False,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
-    ) -> None:
-        """
-        Re-group the data in the database
-
-        This can be helpful if you realise that you need to access the data
-        in a different way to the way it was originally saved.
-
-        Parameters
-        ----------
-        new_groups
-            The metadata columns to use to create the new groups
-
-        progress
-            Should a progress bar be shown of the progress?
-
-        lock_context_manager
-            Context manager to use to acquire the lock file.
-
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
-        """
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
-
-        with lock_context_manager:
-            all_dat = self.load(
-                progress=progress, lock_context_manager=contextlib.nullcontext()
-            )
-
-            self.delete(
-                lock_context_manager=contextlib.nullcontext(), progress=progress
-            )
-
-            grouper: (
-                # Not the world's most helpful type hint, but ok
-                DataFrameGroupBy[tuple[Any, ...], Literal[True]]
-                | tqdm.asyncio.tqdm[tuple[tuple[Any, ...], pd.DataFrame]]
-            ) = all_dat.groupby(new_groups)
-            if progress:
-                import tqdm.auto
-
-                grouper = tqdm.auto.tqdm(grouper)
-
-            for _, df in grouper:
-                self.save(df, lock_context_manager=contextlib.nullcontext())
 
     def save(
         self,
