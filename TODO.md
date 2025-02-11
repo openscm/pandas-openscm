@@ -1,0 +1,5 @@
+- accessor
+    - tests
+    - docs
+- remove regroup
+    - demo in docs instead (so we don't take responsibility for deletion)

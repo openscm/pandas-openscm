@@ -44,8 +44,10 @@ db = [
     "filelock>=3.0.0",
 ]
 db-full = [
+    "netcdf4>=1.7.2",
     "pandas-openscm[db]",
     "pyarrow>=19.0.0",
+    "xarray>=2024.7.0",
 ]
 plots = [
     "matplotlib>=3.7.1",

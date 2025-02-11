@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from pandas_openscm.db import CSVBackend, FeatherBackend
+from pandas_openscm.db import CSVBackend, FeatherBackend, netCDFBackend
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ def get_parametrized_db_backends() -> pytest.MarkDecorator:
             for db_format in (
                 CSVBackend,
                 FeatherBackend,
-                # netCDFBackend,
+                netCDFBackend,
                 # Other back-end options to consider:
                 #
                 # pretty netCDF, where we try and save the data with dimensions

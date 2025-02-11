@@ -16,6 +16,7 @@ from attrs import define
 
 from pandas_openscm.db.csv import CSVBackend
 from pandas_openscm.db.feather import FeatherBackend
+from pandas_openscm.db.netcdf import netCDFBackend
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
 
@@ -672,7 +673,7 @@ class OpenSCMDB:
                 )["file_path"]
                 metadata_db = pd.MultiIndex.from_frame(index_db).droplevel("file_id")
 
-                file_id = index_db["file_id"].max() + 1
+                file_id = index_db["file_id"].astype(int).max() + 1
                 data_file = self.get_new_data_file_path(file_id=file_id)
 
                 file_map_db[file_id] = data_file
@@ -715,4 +716,5 @@ __all__ = [
     "FeatherBackend",
     "OpenSCMDB",
     "OpenSCMDBBackend",
+    "netCDFBackend",
 ]
