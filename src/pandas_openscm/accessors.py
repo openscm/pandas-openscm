@@ -19,9 +19,15 @@ almost always goes wrong so I would stay away from this as long as we can.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import pandas as pd
 
 from pandas_openscm.index_manipulation import convert_index_to_category_index
+from pandas_openscm.indexing import mi_loc
+
+if TYPE_CHECKING:
+    import pandas_indexing as pix
 
 
 class DataFramePandasOpenSCMAccessor:
@@ -44,6 +50,31 @@ class DataFramePandasOpenSCMAccessor:
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
+
+    def mi_loc(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues
+        self,
+        locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
+    ) -> pd.DataFrame:
+        """
+        Select data, being slightly smarter than the default [pandas.DataFrame.loc][].
+
+        Parameters
+        ----------
+        locator
+            Locator to apply
+
+            If this is a multi-index, we use
+            [`multi_index_lookup`][(m).] to ensure correct alignment.
+
+            If this is an index that has a name,
+            we use the name to ensure correct alignment.
+
+        Returns
+        -------
+        :
+            Selected data
+        """
+        return mi_loc(self._df, locator)
 
     def to_category_index(
         self,

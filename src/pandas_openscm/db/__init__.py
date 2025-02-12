@@ -17,7 +17,7 @@ from attrs import define
 from pandas_openscm.db.csv import CSVBackend
 from pandas_openscm.db.feather import FeatherBackend
 from pandas_openscm.db.netcdf import netCDFBackend
-from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
+from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import (
     ProgressLike,
     apply_op_parallel_progress,
@@ -461,18 +461,9 @@ class OpenSCMDB:
             Return something sensible no matter what the indexer is
             """
             if selector is None:
-                res = inobj
+                return inobj
 
-            elif isinstance(selector, pd.MultiIndex):
-                res = multi_index_lookup(inobj, selector)
-
-            elif isinstance(selector, pd.Index):
-                res = inobj[inobj.index.isin(selector.values, level=selector.name)]
-
-            else:
-                res = inobj.loc[selector]
-
-            return res
+            return mi_loc(inobj, selector)
 
         with lock_context_manager:
             index_raw = self.backend.load_index(self.index_file)
@@ -702,7 +693,7 @@ class OpenSCMDB:
                 data_index = data.index.to_frame(index=False)
                 data_index["file_id"] = file_id
 
-                data_to_write_already_in_db = multi_index_lookup(data, metadata_db)
+                data_to_write_already_in_db = mi_loc(data, metadata_db)
                 if data_to_write_already_in_db.empty:
                     # No clashes, so we can simply concatenate
                     index_db = pd.concat([index_db, data_index])

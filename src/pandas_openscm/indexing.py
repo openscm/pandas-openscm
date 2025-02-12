@@ -9,8 +9,14 @@ long-term, but they're ok here for now.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, TypeVar
+
 import numpy as np
 import pandas as pd
+
+if TYPE_CHECKING:
+    P = TypeVar("P", bound=pd.DataFrame | pd.Series[Any])
+    import pandas_indexing as pix
 
 
 def multi_index_match(
@@ -97,7 +103,7 @@ def multi_index_match(
     return idx_reordered.isin(locator)
 
 
-def multi_index_lookup(df: pd.DataFrame, locator: pd.MultiIndex) -> pd.DataFrame:
+def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> pd.DataFrame:
     """
     Perform a multi-index look up
 
@@ -105,8 +111,8 @@ def multi_index_lookup(df: pd.DataFrame, locator: pd.MultiIndex) -> pd.DataFrame
 
     Parameters
     ----------
-    df
-        [`pd.DataFrame`][pandas.DataFrame] in which to find matches
+    pandas_obj
+        Pandas object in which to find matches
 
     locator
         Locator to use for finding matches
@@ -114,7 +120,7 @@ def multi_index_lookup(df: pd.DataFrame, locator: pd.MultiIndex) -> pd.DataFrame
     Returns
     -------
     :
-        Rows of `df` that are in `locator`.
+        Rows of `pandas_obj` that are in `locator`.
 
     Examples
     --------
@@ -146,12 +152,50 @@ def multi_index_lookup(df: pd.DataFrame, locator: pd.MultiIndex) -> pd.DataFrame
     ma    sa       1      0     1
     mb    sb       3      6     7
     """
-    if not isinstance(df.index, pd.MultiIndex):
+    if not isinstance(pandas_obj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
             "when `df`'s index is a `MultiIndex`. "
-            f"Received {type(df.index)=}"
+            f"Received {type(pandas_obj.index)=}"
         )
         raise TypeError(msg)
 
-    return df.loc[multi_index_match(df.index, locator)]
+    return pandas_obj.loc[multi_index_match(pandas_obj.index, locator)]
+
+
+def mi_loc(
+    pandas_obj: P,
+    locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
+) -> P:
+    """
+    Select data, being slightly smarter than the default [pandas.DataFrame.loc][].
+
+    Parameters
+    ----------
+    pandas_obj
+        Pandas object on which to do the `.loc` operation
+
+    locator
+        Locator to apply
+
+        If this is a multi-index, we use
+        [`multi_index_lookup`][(m).] to ensure correct alignment.
+
+        If this is an index that has a name,
+        we use the name to ensure correct alignment.
+
+    Returns
+    -------
+    :
+        Selected data
+    """
+    if isinstance(locator, pd.MultiIndex):
+        res = multi_index_lookup(pandas_obj, locator)
+
+    elif isinstance(locator, pd.Index) and locator.name is not None:
+        res = pandas_obj[pandas_obj.index.isin(locator.values, level=locator.name)]
+
+    else:
+        res = pandas_obj.loc[locator]
+
+    return res

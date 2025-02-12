@@ -1,14 +1,17 @@
 """
-Tests of `pandas_openscm.pandas_helpers`
+Tests of `pandas_openscm.indexing` and `pd.DataFrame.openscm.mi_loc`
 """
 
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pandas_indexing as pix
 import pytest
 
-from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
+from pandas_openscm.accessors import register_pandas_accessor
+from pandas_openscm.indexing import multi_index_lookup, multi_index_match
+from pandas_openscm.testing import create_test_df
 
 
 @pytest.mark.parametrize(
@@ -155,3 +158,33 @@ def test_multi_index_lookup():
     res = multi_index_lookup(start, locator)
 
     pd.testing.assert_frame_equal(res, exp)
+
+
+@pytest.mark.parametrize(
+    "locator",
+    (
+        pytest.param(pix.isin(scenario=["scenario_1", "scenario_3"]), id="pix_isin"),
+        pytest.param(
+            pix.ismatch(
+                scenario=[
+                    "*1",
+                ]
+            ),
+            id="pix_ismatch",
+        ),
+    ),
+)
+def test_mi_loc_same_as_pandas(locator):
+    register_pandas_accessor()
+
+    start = create_test_df(
+        variables=[(f"variable_{i}", "Mt") for i in range(5)],
+        n_scenarios=3,
+        n_runs=6,
+        timepoints=np.arange(1990.0, 2010.0 + 1.0),
+    )
+
+    pd.testing.assert_frame_equal(
+        start.loc[locator],
+        start.openscm.mi_loc(locator),
+    )
