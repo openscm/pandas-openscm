@@ -454,17 +454,6 @@ class OpenSCMDB:
             )
         )
 
-        def idx_obj(inobj: pd.DataFrame) -> pd.DataFrame:
-            """
-            Do the indexing here
-
-            Return something sensible no matter what the indexer is
-            """
-            if selector is None:
-                return inobj
-
-            return mi_loc(inobj, selector)
-
         with lock_context_manager:
             index_raw = self.backend.load_index(self.index_file)
             file_map_raw = self.backend.load_file_map(self.file_map_file)
@@ -475,7 +464,10 @@ class OpenSCMDB:
             index = index_raw
             index.index = pd.MultiIndex.from_frame(index_raw)
 
-            index_to_load = idx_obj(index)
+            index_to_load = index
+            if selector is not None:
+                index_to_load = mi_loc(index_to_load, selector)
+
             files_to_load = (
                 Path(v) for v in file_map[index_to_load["file_id"].unique()]
             )
@@ -494,7 +486,9 @@ class OpenSCMDB:
         # just in case the data we loaded had more than we asked for
         # (because the files aren't saved with exactly the right granularity
         # for the query that has been requested).
-        res = idx_obj(loaded)
+        res = loaded
+        if selector is not None:
+            res = mi_loc(res, selector)
 
         if out_columns_type is not None:
             res.columns = res.columns.astype(out_columns_type)

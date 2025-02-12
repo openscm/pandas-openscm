@@ -15,8 +15,9 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    P = TypeVar("P", bound=pd.DataFrame | pd.Series[Any])
-    import pandas_indexing as pix
+    P = TypeVar("P", pd.DataFrame, pd.Series[Any])
+
+    import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
 
 
 def multi_index_match(
@@ -103,7 +104,7 @@ def multi_index_match(
     return idx_reordered.isin(locator)
 
 
-def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> pd.DataFrame:
+def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> P:
     """
     Perform a multi-index look up
 
@@ -160,10 +161,109 @@ def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> pd.DataFrame:
         )
         raise TypeError(msg)
 
-    return pandas_obj.loc[multi_index_match(pandas_obj.index, locator)]
+    res = pandas_obj.loc[multi_index_match(pandas_obj.index, locator)]
+
+    return res
 
 
-def mi_loc(
+def index_name_aware_match(
+    idx: pd.MultiIndex, locator: pd.Index[Any]
+) -> np.typing.NDArray[np.bool]:
+    """
+    Perform a match with an index, being aware of the index's name.
+
+    This works, even if the index being looked up is not the first index.
+
+    Parameters
+    ----------
+    idx
+        Index in which to find matches
+
+    locator
+        Locator to use for finding matches
+
+    Returns
+    -------
+    :
+        Location of the rows in `idx` which are in `locator`, given `locator.name`.
+
+    Examples
+    --------
+    >>> base = pd.MultiIndex.from_tuples(
+    ...     (
+    ...         ("ma", "sa", 1),
+    ...         ("ma", "sb", 2),
+    ...         ("mb", "sa", 1),
+    ...         ("mb", "sb", 3),
+    ...     ),
+    ...     names=["model", "scenario", "id"],
+    ... )
+    >>>
+    >>> # A locator that lines up with the third level only
+    >>> loc = pd.Index([1, 3], name="id")
+    >>> index_name_aware_match(base, loc)
+    array([ True, False,  True,  True])
+    """
+    res = idx.isin(locator.values, level=locator.name)
+
+    return res
+
+
+def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
+    """
+    Perform a look up with an index, being aware of the index's name.
+
+    For the problem this is solving, see [`index_name_aware_match`][(m)].
+
+    Parameters
+    ----------
+    pandas_obj
+        Pandas object in which to find matches
+
+    locator
+        Locator to use for finding matches
+
+    Returns
+    -------
+    :
+        Rows of `pandas_obj` that are in `locator`, given `locator.name`.
+
+    Examples
+    --------
+    >>> base = pd.DataFrame(
+    ...     data=np.arange(8).reshape((4, 2)),
+    ...     columns=[2000, 2020],
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         (
+    ...             ("ma", "sa", 1),
+    ...             ("ma", "sb", 2),
+    ...             ("mb", "sa", 4),
+    ...             ("mb", "sb", 3),
+    ...         ),
+    ...         names=["model", "scenario", "id"],
+    ...     ),
+    ... )
+    >>>
+    >>> # A locator that lines up with the third level only
+    >>> loc = pd.Index([1, 3], name="id")
+    >>> index_name_aware_lookup(base, loc)
+                       2000  2020
+    model scenario id
+    ma    sa       1      0     1
+    mb    sb       3      6     7
+    """
+    if not isinstance(pandas_obj.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is a `MultiIndex`. "
+            f"Received {type(pandas_obj.index)=}"
+        )
+        raise TypeError(msg)
+
+    return pandas_obj.loc[index_name_aware_match(pandas_obj.index, locator)]
+
+
+def mi_loc(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues
     pandas_obj: P,
     locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
 ) -> P:
@@ -190,12 +290,12 @@ def mi_loc(
         Selected data
     """
     if isinstance(locator, pd.MultiIndex):
-        res = multi_index_lookup(pandas_obj, locator)
+        res: P = multi_index_lookup(pandas_obj, locator)
 
     elif isinstance(locator, pd.Index) and locator.name is not None:
-        res = pandas_obj[pandas_obj.index.isin(locator.values, level=locator.name)]
+        res = index_name_aware_lookup(pandas_obj, locator)
 
     else:
-        res = pandas_obj.loc[locator]
+        res = pandas_obj.loc[locator]  # type: ignore
 
     return res

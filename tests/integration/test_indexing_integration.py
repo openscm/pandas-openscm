@@ -9,8 +9,12 @@ import pandas as pd
 import pandas_indexing as pix
 import pytest
 
-from pandas_openscm.accessors import register_pandas_accessor
-from pandas_openscm.indexing import multi_index_lookup, multi_index_match
+from pandas_openscm.indexing import (
+    index_name_aware_lookup,
+    index_name_aware_match,
+    multi_index_lookup,
+    multi_index_match,
+)
 from pandas_openscm.testing import create_test_df
 
 
@@ -161,8 +165,104 @@ def test_multi_index_lookup():
 
 
 @pytest.mark.parametrize(
+    "start, locator, exp",
+    (
+        pytest.param(
+            pd.MultiIndex.from_tuples(
+                (
+                    ("ma", "sa", 1),
+                    ("ma", "sb", 2),
+                    ("mb", "sc", 3),
+                    ("mb", "sb", 4),
+                ),
+                names=["model", "scenario", "id"],
+            ),
+            pd.Index(["ma", "mb"], name="model"),
+            [True, True, True, True],
+            id="first-level",
+        ),
+        pytest.param(
+            pd.MultiIndex.from_tuples(
+                (
+                    ("ma", "sa", 1),
+                    ("ma", "sb", 2),
+                    ("mb", "sc", 3),
+                    ("mb", "sb", 4),
+                ),
+                names=["model", "scenario", "id"],
+            ),
+            pd.Index(["sa", "sb"], name="scenario"),
+            [True, True, False, True],
+            id="second-level",
+        ),
+        pytest.param(
+            pd.MultiIndex.from_tuples(
+                (
+                    ("ma", "sa", 1),
+                    ("ma", "sb", 2),
+                    ("mb", "sc", 3),
+                    ("mb", "sb", 4),
+                ),
+                names=["model", "scenario", "id"],
+            ),
+            pd.Index(["sa", "sb"], name="scenario"),
+            [True, True, False, True],
+            id="third-level",
+        ),
+    ),
+)
+def test_index_name_aware_match(start, locator, exp):
+    res = index_name_aware_match(start, locator)
+    # # # If you want to see what fails with plain pandas, use the below
+    # res = start.isin(locator)
+    np.testing.assert_equal(res, exp)
+
+
+def test_index_name_aware_lookup():
+    # Most of the tests are in test_index_name_aware_match.
+    # Hence why there is only one here.
+    start = pd.DataFrame(
+        np.arange(8).reshape((4, 2)),
+        columns=[2010, 2020],
+        index=pd.MultiIndex.from_tuples(
+            (
+                ("ma", "sa", 1),
+                ("ma", "sb", 2),
+                ("mb", "sa", 3),
+                ("mb", "sb", 4),
+            ),
+            names=["model", "scenario", "id"],
+        ),
+    )
+
+    locator = pd.Index((2, 4), name="id")
+
+    exp = start.iloc[[1, 3], :]
+
+    res = index_name_aware_lookup(start, locator)
+
+    pd.testing.assert_frame_equal(res, exp)
+
+
+@pytest.mark.parametrize(
     "locator",
     (
+        pytest.param(["scenario_2", "scenario_1"], id="list"),
+        pytest.param(pd.Index(["scenario_2", "scenario_1"]), id="index-no-name"),
+        pytest.param(
+            ["variable_2", "variable_3"],
+            id="list-second-level",
+            marks=pytest.mark.xfail(
+                reason="Looks up the first level rather than variables"
+            ),
+        ),
+        pytest.param(
+            pd.Index(["variable_2", "variable_3"]),
+            id="index-no-name-second-level",
+            marks=pytest.mark.xfail(
+                reason="Looks up the first level rather than variables"
+            ),
+        ),
         pytest.param(pix.isin(scenario=["scenario_1", "scenario_3"]), id="pix_isin"),
         pytest.param(
             pix.ismatch(
@@ -174,9 +274,14 @@ def test_multi_index_lookup():
         ),
     ),
 )
-def test_mi_loc_same_as_pandas(locator):
-    register_pandas_accessor()
+def test_mi_loc_same_as_pandas(locator, setup_pandas_accessor):
+    """
+    Test pass through in the cases where pass through should happen
 
+    For the cases where there shouldn't be pass through,
+    see `test_multi_index_match`
+    and `test_index_name_aware_match`.
+    """
     start = create_test_df(
         variables=[(f"variable_{i}", "Mt") for i in range(5)],
         n_scenarios=3,

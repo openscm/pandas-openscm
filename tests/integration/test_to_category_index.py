@@ -6,13 +6,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas_openscm.accessors import register_pandas_accessor
 from pandas_openscm.testing import create_test_df
 
 
-def test_to_category_index():
-    register_pandas_accessor()
-
+def test_to_category_index(setup_pandas_accessor):
     units = ["Mt", "kg", "W"]
 
     # Biggish DataFrame

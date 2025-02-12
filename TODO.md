@@ -1,3 +1,8 @@
+- push --doctest-report ndiff upstream in Makefile
+- push dependency pinning and testing section in docs' navigation upstream
+- push footnotes extension upstream
+- push fixes to dependency pinning text upstream
+- push tqdm lack of intersphinx upstream
 - parallel ops
     - [ ] tests of and docstrings for layers created `figure_out_progress_bars`, `apply_op_parallel_progress`
     - [ ] tests that code doesn't explode with key combos of things
@@ -21,9 +26,3 @@
     - regroup demo in docs (not in core API so we don't take responsibility for deletion)
     - parallel tricks
     - progress tricks
-- rename `pandas_helpers` to `indexing` and add an accessor
-- push --doctest-report ndiff upstream in Makefile
-- push dependency pinning and testing section in docs' navigation upstream
-- push footnotes extension upstream
-- push fixes to dependency pinning text upstream
-- push tqdm lack of intersphinx upstream

@@ -27,7 +27,7 @@ from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
 
 if TYPE_CHECKING:
-    import pandas_indexing as pix
+    import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
 
 
 class DataFramePandasOpenSCMAccessor:

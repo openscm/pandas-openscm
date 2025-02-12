@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import pandas as pd
 
 if TYPE_CHECKING:
-    P = TypeVar("P", bound=pd.DataFrame | pd.Series[Any])
+    P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
 
 def convert_index_to_category_index(pandas_obj: P) -> P:
@@ -37,7 +37,7 @@ def convert_index_to_category_index(pandas_obj: P) -> P:
     )
 
     if hasattr(pandas_obj, "columns"):
-        return type(pandas_obj)(
+        return type(pandas_obj)(  # type: ignore # confusing mypy here
             pandas_obj.values,
             index=new_index,
             columns=pandas_obj.columns,
