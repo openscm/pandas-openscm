@@ -21,6 +21,7 @@
     - regroup demo in docs (not in core API so we don't take responsibility for deletion)
     - parallel tricks
     - progress tricks
+- rename `pandas_helpers` to `indexing` and add an accessor
 - push --doctest-report ndiff upstream in Makefile
 - push dependency pinning and testing section in docs' navigation upstream
 - push footnotes extension upstream
