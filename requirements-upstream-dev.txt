@@ -3,3 +3,7 @@
 # <package-name>@git+<git-repo-url>
 # e.g.
 # pandas@git+https://github.com/pandas-dev/pandas
+#
+attrs@git+https://github.com/python-attrs/attrs
+numpy@git+https://github.com/numpy/numpy
+pandas@git+https://github.com/pandas-dev/pandas

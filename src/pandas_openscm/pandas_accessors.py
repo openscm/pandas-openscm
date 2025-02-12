@@ -29,8 +29,8 @@ class DataFramePandasOpenSCMAccessor:
         pandas_obj
             Pandas object to use via the accessor
         """
-        # TODO: consider adding validation
-        # validate_series(pandas_obj)
+        # It is possible to validate here.
+        # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
 
     def to_category_index(

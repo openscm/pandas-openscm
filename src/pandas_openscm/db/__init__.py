@@ -7,7 +7,6 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import os
-from collections.abc import Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -18,7 +17,6 @@ from attrs import define
 from pandas_openscm.db.csv import CSVBackend
 from pandas_openscm.db.feather import FeatherBackend
 from pandas_openscm.db.netcdf import netCDFBackend
-from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.pandas_helpers import multi_index_lookup, multi_index_match
 from pandas_openscm.parallelisation import (
     ProgressLike,
@@ -28,7 +26,6 @@ from pandas_openscm.parallelisation import (
 
 if TYPE_CHECKING:
     import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
-    import tqdm.asyncio
 
 
 class AlreadyInDBError(ValueError):
@@ -304,6 +301,9 @@ class OpenSCMDB:
         executor
             Executor to use for parallel processing.
 
+            If you are interested in parallel processing,
+            the docs in [parallelisation][(p).] might be worth reading first.
+
             If an `int` is supplied, we create an instance of
             [concurrent.futures.ThreadPoolExecutor] with the provided number of workers.
 
@@ -321,6 +321,7 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         if isinstance(executor, int):
+            # Threading by default as deletion is I/O bound
             executor = concurrent.futures.ThreadPoolExecutor(max_workers=executor)
 
         progress_results_use, progress_parallel_submission_use = (
@@ -370,13 +371,15 @@ class OpenSCMDB:
 
         return file_path
 
-    def load(  # type: ignore[no-any-unimported] # pix issues
+    def load(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues # noqa: PLR0913
         self,
         selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
-        progress: bool = False,
         out_columns_type: type | None = None,
+        progress_results: bool | ProgressLike[Any] | None = None,
+        executor: int | concurrent.futures.Executor | None = None,
+        progress_parallel_submission: bool | ProgressLike[Any] | None = None,
     ) -> pd.DataFrame:
         """
         Load data
@@ -392,13 +395,34 @@ class OpenSCMDB:
             If not supplied, we use
             [`self.index_file_lock.acquire`][(c)].
 
-        progress
-            Should we use a progress bar to track the loading?
-
         out_columns_type
             Type to set the output columns to.
 
             If not supplied, we don't set the output columns' type.
+
+        progress_results
+            Progress bar to use to display the results of the deletion's progress.
+
+            If `True`, we simply create a default progress bar.
+
+        executor
+            Executor to use for parallel processing.
+
+            If you are interested in parallel processing,
+            the docs in [parallelisation][(p).] might be worth reading first.
+
+            If an `int` is supplied, we create an instance of
+            [concurrent.futures.ThreadPoolExecutor] with the provided number of workers.
+
+            If not supplied, we do not use parallel processing.
+
+        progress_parallel_submission
+            Progress bar to use to display the submission of files to be deleted.
+
+            This only applies when the files are deleted in parallel,
+            i.e. `executor` is not `None`.
+
+            If `True`, we simply create a default progress bar.
 
         Returns
         -------
@@ -410,6 +434,25 @@ class OpenSCMDB:
 
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
+
+        if isinstance(executor, int):
+            # Threading by default as reading with most back-ends is done in C
+            # so we don't hit the GIL.
+            # If you had a back-end that didn't do this, you'd want to use
+            # a ProcessPoolExecutor instead (user can control this).
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=executor)
+
+        progress_results_use, progress_parallel_submission_use = (
+            figure_out_progress_bars(
+                progress_results=progress_results,
+                progress_results_default_kwargs=dict(desc="Files to load"),
+                executor=executor,
+                progress_parallel_submission=progress_parallel_submission,
+                progress_parallel_submission_default_kwargs=dict(
+                    desc="Submitting files to be loaded"
+                ),
+            )
+        )
 
         def idx_obj(inobj: pd.DataFrame) -> pd.DataFrame:
             """
@@ -442,21 +485,17 @@ class OpenSCMDB:
             index.index = pd.MultiIndex.from_frame(index_raw)
 
             index_to_load = idx_obj(index)
-            files_to_load: Generator[Path] | tqdm.asyncio.tqdm[Path] = (
+            files_to_load = (
                 Path(v) for v in file_map[index_to_load["file_id"].unique()]
             )
 
-            if progress:
-                try:
-                    import tqdm.auto
-                except ImportError as exc:
-                    raise MissingOptionalDependencyError(  # noqa: TRY003
-                        "delete(..., progress=True, ...)", requirement="tqdm"
-                    ) from exc
-
-                files_to_load = tqdm.auto.tqdm(files_to_load, desc="Files to load")
-
-            data_l = [self.backend.load_data_file(f) for f in files_to_load]
+            data_l = apply_op_parallel_progress(
+                func_to_call=self.backend.load_data_file,
+                iterable_input=files_to_load,
+                progress_results=progress_results_use,
+                progress_parallel_submission=progress_parallel_submission_use,
+                executor=executor,
+            )
 
         loaded = pd.concat(data_l).set_index(index.index.droplevel("file_id").names)
 

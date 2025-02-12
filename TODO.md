@@ -1,11 +1,9 @@
 - parallel ops
-    - delete
-        - [ ] tests of and docstrings for layers created `figure_out_progress_bars`, `apply_op_parallel_progress`
-        - [ ] tests that code doesn't explode with key combos of things
-            - parallel or not
-            - no progress bars, both progress bars via True, injecting both progress bars
-                - 12 tests (4 parallel options, 3 bar options), that's enough
-    - load
+    - [ ] tests of and docstrings for layers created `figure_out_progress_bars`, `apply_op_parallel_progress`
+    - [ ] tests that code doesn't explode with key combos of things
+        - parallel or not
+        - no progress bars, both progress bars via True, injecting both progress bars
+            - 12 tests (4 parallel options, 3 bar options), that's enough
     - save_grouped
         - implementation
             - create the index and file_map in the main process. Save them in the main process
@@ -16,10 +14,15 @@
         - parallel process
         - nested progress bars
     - prepare_for_overwrite
-        - don't do this, too hard to think through how to test
+        - don't do this in parallel, too hard to think through how to test
           that you're not accidentally removing something in one thread that you need in this one
             - i.e. don't offer any parallelisation to the prepare_for_overwrite interface
 - database docs
     - regroup demo in docs (not in core API so we don't take responsibility for deletion)
     - parallel tricks
     - progress tricks
+- push --doctest-report ndiff upstream in Makefile
+- push dependency pinning and testing section in docs' navigation upstream
+- push footnotes extension upstream
+- push fixes to dependency pinning text upstream
+- push tqdm lack of intersphinx upstream

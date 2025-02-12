@@ -13,7 +13,9 @@ have a look at some of these resources:
 If you want to understand why I've gone with
 [concurrent.futures][] as the default,
 have a look at
-[this excellent Stack Overflow answer](https://stackoverflow.com/a/60644649).
+[this excellent Stack Overflow answer](https://stackoverflow.com/a/60644649)
+(tl;dr - [concurrent.futures][] does enough,
+the added complexity of the lower-level interfaces isn't worth it).
 """
 
 from __future__ import annotations
@@ -37,9 +39,28 @@ ProgressLike: TypeAlias = Callable[[Iterable[V]], Iterator[V]]
 """A callable that acts like something which creates a progress bar"""
 
 
-def get_default_progress_bar(**kwargs: Any) -> ProgressLike[Any]:
-    # Very basic
-    # Abstraction is helpful for type hinting as well as just cleanliess
+def get_tqdm_auto(**kwargs: Any) -> ProgressLike[Any]:
+    """
+    Get a progress bar from [tqdm.auto](https://tqdm.github.io/docs/shortcuts/#tqdmauto).
+
+    Strictly speaking, we use `tqdm.auto.tqdm`.
+
+    Parameters
+    ----------
+    **kwargs
+        Passed to `tqdm.auto.tqdm`.
+
+    Returns
+    -------
+    :
+        Default progress bar.
+
+    Notes
+    -----
+    This abstraction isn't stricly necessary.
+    It's helpful for having this in one place
+    and also to only have to do the type hinting fix in one place.
+    """
     try:
         import tqdm.auto
     except ImportError as exc:
@@ -57,11 +78,56 @@ def figure_out_progress_bars(
     progress_parallel_submission: bool | ProgressLike[Any] | None,
     progress_parallel_submission_default_kwargs: dict[str, Any],
 ) -> tuple[ProgressLike[Any] | None, ProgressLike[Any] | None]:
+    """
+    Figure out which progress bars to use
+
+    This is just a helper to avoid having to repeat this logic everywhere.
+
+    Parameters
+    ----------
+    progress_results
+        Progress bar to use for the results.
+
+        If `True`, we use the default bar.
+
+        Otherwise, we use the supplied value
+        or `None` if the supplied value is falsey.
+
+    progress_results_default_kwargs
+        Keyword-arguments to pass to [`get_tqdm_auto`][(m).]
+        if we are using the default bar (i.e. `progress_results` is `True`).
+
+    executor
+        Parallel executor being used.
+
+        If this is `None`, we know that no parallelisation will occur
+        so we can safely return `None` for `progress_parallel_submission`.
+
+    progress_parallel_submission
+        Progress bar to use for submitting the iterable to the parallel pool.
+
+        If `True`, we use the default bar.
+
+        Otherwise, we use the supplied value
+        or `None` if the supplied value is falsey.
+
+    progress_parallel_submission_default_kwargs
+        Keyword-arguments to pass to [`get_tqdm_auto`][(m).]
+        if we are using the default bar (i.e. `progress_parallel_submission` is `True`).
+
+    Returns
+    -------
+    progress_results_use :
+        The progress bar (or lack thereof) to use for result retrieval
+
+    progress_parallel_submission_use :
+        The progress bar (or lack thereof) to use for submitting to the parallel pool
+    """
     if executor is not None:
         if progress_parallel_submission and isinstance(
             progress_parallel_submission, bool
         ):
-            progress_parallel_submission_use = get_default_progress_bar(
+            progress_parallel_submission_use = get_tqdm_auto(
                 **progress_parallel_submission_default_kwargs
             )
         elif not progress_parallel_submission:
@@ -72,9 +138,7 @@ def figure_out_progress_bars(
         progress_parallel_submission_use = None
 
     if progress_results and isinstance(progress_results, bool):
-        progress_results_use = get_default_progress_bar(
-            **progress_results_default_kwargs
-        )
+        progress_results_use = get_tqdm_auto(**progress_results_default_kwargs)
     elif not progress_results:
         progress_results_use = None
     else:
@@ -87,7 +151,6 @@ def apply_op_parallel_progress(
     func_to_call: Callable[Concatenate[U, P], T],
     iterable_input: Iterable[U],
     progress_results: ProgressLike[Any] | None = None,
-    progress_parallel_submission: ProgressLike[U] | None = None,
     # Note: I considered switching the executor for a Protocol here.
     # However, our parallelisation and progress bar display is tightly bound to
     # concurrent.futures' Future class.
@@ -95,28 +158,69 @@ def apply_op_parallel_progress(
     # they can and they will probably have other optimisations
     # they want to make too so I'm not going to try and make this too general now.
     executor: concurrent.futures.Executor | None = None,
+    progress_parallel_submission: ProgressLike[U] | None = None,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> tuple[T, ...]:
-    # Things this does do:
-    # - apply op in parallel
-    # - progress bar for overall progress
-    #
-    # Things this doesn't do:
-    # - nested progress bars in an obvious way.
-    #   However, they are possible,
-    #   just include the bar creation stuff in the input iterable,
-    #   i.e. do it in the layer above this function
-    #   and then the function can just create the bar in the right position
-    #   when it's called (this function doesn't need to know about
-    #   nested progress bars).
-    # - keep track of ordering/which outputs map to which inputs
-    #   (if you need this, either add the injection suggested below
-    #   or create apply_op_parallel_progress_output_tracker
-    #   (the latter is our first suggestion, only do the injection
-    #   if we find ourselves copying this lots as it could
-    #   become very hard to follow).
+    """
+    Apply an operation, potentially in parallel and potentially with progress bars
 
+    Parameters
+    ----------
+    func_to_call
+        Operation to apply to (i.e. the function to call on) `iterable_input`.
+
+    iterable_input
+        The input on which to perform `func_to_call`.
+
+        Each element of `iterable_input` is passed to `func_to_call`.
+
+    progress_results
+        Progress bar to use for retrieving the results of the operation.
+
+        If `None`, no progress bar is shown while retrieving the results.
+
+    executor
+        Parallel executor to which to submit the jobs.
+
+        If not supplied, the jobs are run serially.
+
+    progress_parallel_submission
+        Progress bar to use for submitting `iterable_input` to `executor`.
+
+        If `None`, no progress bar is shown while submitting to `executor`.
+
+        If `executor` is `None`, this is not used
+        (because there is no submission step).
+
+    *args
+        Passed to each call to `func_to_call`.
+
+    **kwargs
+        Passed to each call to `func_to_call`.
+
+    Returns
+    -------
+    :
+        Results of each call to `func_to_call`.
+
+    Notes
+    -----
+    This function does not handle nested progress bars in an obvious way.
+    They are possible, but you'll need to set the bar creation stuff up
+    appropriately in the layer above calling this function
+    (this function doesn't need to know about the location of the bars,
+    it just uses whatever bars it is given).
+
+    This function also doesn't handle keeping track of order
+    i.e. which outputs map to which inputs.
+    If you need this, either add the injection suggested in the code below
+    or create another function(
+    e.g. `create apply_op_parallel_progress_output_tracker`).
+    Our suggestion would be to do the latter first
+    and only switch to injection if we find we need more flexibility,
+    because the abstractions will likely become hard to follow.
+    """
     if executor is None:
         # Run serially
         if progress_results:
@@ -135,7 +239,9 @@ def apply_op_parallel_progress(
         # ]
         # return type becomes tuple[V, ...]
         #
-        # Honestly, I'm not sure it's a helpful abstraction...
+        # Honestly, I'm not sure it's a helpful abstraction
+        # so would just duplicate first
+        # and only abstract later if it was really obvious that it was needed.
         res_g = (func_to_call(v, *args, **kwargs) for v in iterable_input)
 
         return tuple(res_g)
@@ -157,6 +263,6 @@ def apply_op_parallel_progress(
     if progress_results:
         iterator_results = progress_results(iterator_results)
 
-    res_g = (ft.result() for ft in iterator_results)
+    res = tuple(ft.result() for ft in iterator_results)
 
-    return tuple(res_g)
+    return res

@@ -4,8 +4,6 @@ Tests of `pandas_openscm.OpenSCMDB`
 
 from __future__ import annotations
 
-import concurrent.futures
-import multiprocessing
 import re
 from contextlib import nullcontext
 from functools import partial
@@ -457,69 +455,6 @@ def test_deletion(tmpdir, db_backend):
     assert isinstance(db.load(), pd.DataFrame)
 
     db.delete()
-
-    with pytest.raises(EmptyDBError):
-        db.load_metadata()
-
-    with pytest.raises(EmptyDBError):
-        db.load()
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "executor_ctx_manager",
-    (
-        nullcontext(None),
-        nullcontext(2),
-        concurrent.futures.ThreadPoolExecutor(max_workers=4),
-        # If you use fork context here, pytest may hang.
-        # This is a gotcha of parallelism.
-        concurrent.futures.ProcessPoolExecutor(
-            max_workers=4, mp_context=multiprocessing.get_context("spawn")
-        ),
-    ),
-)
-def test_save_delete_parallel(tmpdir, executor_ctx_manager):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=CSVBackend())
-
-    # TODO: parallel save
-    df = create_test_df(
-        n_scenarios=15,
-        variables=[
-            ("variable_1", "kg"),
-            ("variable_2", "Mt"),
-            ("variable_3", "m"),
-        ],
-        n_runs=600,
-        timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
-    )
-    with executor_ctx_manager as executor:
-        for _, svdf in df.groupby(["scenario", "variable"]):
-            db.save(svdf)
-
-        # db.delete(executor=executor)
-        # db.delete(executor=executor, progress_results=True)
-        # db.delete(executor=executor, progress_parallel_submission=True)
-        from functools import partial
-
-        import tqdm.auto
-
-        # db.delete(
-        #     executor=executor, progress_results=partial(tqdm.auto.tqdm, desc="Custom")
-        # )
-        # db.delete(
-        #     executor=executor,
-        #     progress_parallel_submission=partial(tqdm.auto.tqdm, desc="Custom submit"),
-        # )
-        db.delete(
-            executor=executor,
-            progress_results=partial(tqdm.auto.tqdm, desc="Custom res"),
-            progress_parallel_submission=partial(
-                tqdm.auto.tqdm,
-                desc="Custom submit",
-                # leave=False
-            ),
-        )
 
     with pytest.raises(EmptyDBError):
         db.load_metadata()
