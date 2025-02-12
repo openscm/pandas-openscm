@@ -1,15 +1,27 @@
 """
 API for [`pandas`][pandas] accessors.
+
+As a general note to developers,
+we try and keep the accessors as a super-thin layer.
+This makes it easier to re-use functionality in a more functional way,
+which is beneficial
+(particularly if we one day need to switch to
+a different kind of dataframe e.g. dask).
+
+As a result, we effectively duplicate our API.
+This is fine, because this repo is not so big.
+Pandas and pandas-indexing use pandas' `pandas.util._decorators.docs` decorator
+(see https://github.com/pandas-dev/pandas/blob/05de25381f71657bd425d2c4045d81a46b2d3740/pandas/util/_decorators.py#L342)
+to avoid duplicating the docs.
+We could use the same pattern, but I have found that this magic
+almost always goes wrong so I would stay away from this as long as we can.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
-
 import pandas as pd
 
-if TYPE_CHECKING:
-    P = TypeVar("P", bound=pd.DataFrame | pd.Series[Any])
+from pandas_openscm.index_manipulation import convert_index_to_category_index
 
 
 class DataFramePandasOpenSCMAccessor:
@@ -50,15 +62,7 @@ class DataFramePandasOpenSCMAccessor:
             [`pd.DataFrame`][pandas.DataFrame] with all index columns
             converted to category type.
         """
-        new_index = pd.MultiIndex.from_frame(
-            self._df.index.to_frame(index=False).astype("category")
-        )
-
-        return pd.DataFrame(
-            self._df.values,
-            index=new_index,
-            columns=self._df.columns,
-        )
+        return convert_index_to_category_index(self._df)
 
 
 def register_pandas_accessor(namespace: str = "openscm") -> None:

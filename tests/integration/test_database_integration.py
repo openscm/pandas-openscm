@@ -71,7 +71,7 @@ def test_save_and_load(n_scenarios, variables, n_runs, db_backend, tmpdir):
         start.index, metadata_compare, exact="equiv", check_order=False
     )
 
-    loaded = db.load(out_columns_type=int, progress=True)
+    loaded = db.load(out_columns_type=int)
 
     pd.testing.assert_frame_equal(start, loaded)
 

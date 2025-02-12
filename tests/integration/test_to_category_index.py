@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas_openscm.pandas_accessors import register_pandas_accessor
+from pandas_openscm.accessors import register_pandas_accessor
 from pandas_openscm.testing import create_test_df
 
 
