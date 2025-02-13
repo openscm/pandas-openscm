@@ -49,15 +49,22 @@ from functools import partial
 db.load(progress_results=True)
 
 # %%
-with concurrent.futures.ThreadPoolExecutor() as executor:
+max_workers = 4
+
+# %%
+db.load(progress_results=True, progress_parallel_submission=True, executor=max_workers)
+
+# %%
+# Interestingly, loading seems CPU-bound.
+# So, even though spinning up the workers is slower,
+# processes are a good default here.
+with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+    db.load(progress_results=True, progress_parallel_submission=True, executor=executor)
+
+# %%
+with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
     db.load(
         progress_parallel_submission=partial(tqdman.tqdm, ncols=400),
         progress_results=partial(tqdman.tqdm, ncols=500),
         executor=executor,
     )
-
-# %%
-# Overhead of spinning up new processes is the killer here.
-# Hence threads are a good default.
-with concurrent.futures.ProcessPoolExecutor() as executor:
-    db.load(progress_results=True, progress_parallel_submission=True, executor=executor)

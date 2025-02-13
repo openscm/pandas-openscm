@@ -420,7 +420,13 @@ class OpenSCMDB:
             the docs in [parallelisation][(p).] might be worth reading first.
 
             If an `int` is supplied, we create an instance of
-            [concurrent.futures.ThreadPoolExecutor] with the provided number of workers.
+            [concurrent.futures.ProcessPoolExecutor]
+            with the provided number of workers.
+            A process pool seems to be the sensible default from our experimentation,
+            but it is not a universally better choice.
+            If you need something else because of how your database is set up,
+            simply pass an executor
+            rather than using the shortcut of passing an integer.
 
             If not supplied, we do not use parallel processing.
 
@@ -444,11 +450,10 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         if isinstance(executor, int):
-            # Threading by default as reading with most back-ends is done in C
-            # so we don't hit the GIL.
-            # If you had a back-end that didn't do this, you'd want to use
-            # a ProcessPoolExecutor instead (user can control this).
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=executor)
+            # Process pool by default as basic tests suggest
+            # that reading is CPU-bound.
+            # See the docs for nuance though.
+            executor = concurrent.futures.ProcessPoolExecutor(max_workers=executor)
 
         progress_results_use, progress_parallel_submission_use = (
             figure_out_progress_bars(
