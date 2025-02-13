@@ -32,11 +32,9 @@ big_df = create_test_df(
 big_df
 
 # %%
-assert False, "fixme: incorrect casting of temp dir to Path"
-db_dir = Path(str(tempfile.TemporaryDirectory()))
+db_dir = Path(tempfile.mkdtemp())
 db = OpenSCMDB(db_dir=db_dir, backend=FeatherBackend())
 
-# %%
 # %%
 import tqdm.autonotebook as tqdman
 
@@ -45,6 +43,7 @@ for _, svdf in tqdman.tqdm(big_df.groupby(["scenario", "variable"])):
 
 # %%
 import concurrent.futures
+from functools import partial
 
 # %%
 db.load(progress_results=True)
@@ -52,8 +51,8 @@ db.load(progress_results=True)
 # %%
 with concurrent.futures.ThreadPoolExecutor() as executor:
     db.load(
-        progress_results=True,
-        progress_parallel_submission=tqdman.tqdm,
+        progress_parallel_submission=partial(tqdman.tqdm, ncols=400),
+        progress_results=partial(tqdman.tqdm, ncols=500),
         executor=executor,
     )
 

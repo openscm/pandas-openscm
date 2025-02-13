@@ -7,6 +7,7 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import os
+from collections.abc import Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -278,9 +279,9 @@ class OpenSCMDB:
         self,
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
-        progress_results: bool | ProgressLike[Any] | None = None,
+        progress_results: bool | ProgressLike | None = None,
         executor: int | concurrent.futures.Executor | None = None,
-        progress_parallel_submission: bool | ProgressLike[Any] | None = None,
+        progress_parallel_submission: bool | ProgressLike | None = None,
     ) -> None:
         """
         Delete all data in the database
@@ -331,15 +332,22 @@ class OpenSCMDB:
                 executor=executor,
                 progress_parallel_submission=progress_parallel_submission,
                 progress_parallel_submission_default_kwargs=dict(
-                    desc="Submitting files to be deleted"
+                    desc="Submitting files to the parallel executor"
                 ),
             )
         )
 
+        iterable_input: Generator[Path] | list[Path] = self.db_dir.glob(
+            f"*{self.backend.ext}"
+        )
+        if progress_results_use is not None:
+            # Wrap in list to force the length to be available to any progress bar
+            iterable_input = list(iterable_input)
+
         with lock_context_manager:
             apply_op_parallel_progress(
                 func_to_call=os.remove,
-                iterable_input=self.db_dir.glob(f"*{self.backend.ext}"),
+                iterable_input=iterable_input,
                 progress_results=progress_results_use,
                 progress_parallel_submission=progress_parallel_submission_use,
                 executor=executor,
@@ -377,9 +385,9 @@ class OpenSCMDB:
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
         out_columns_type: type | None = None,
-        progress_results: bool | ProgressLike[Any] | None = None,
+        progress_results: bool | ProgressLike | None = None,
         executor: int | concurrent.futures.Executor | None = None,
-        progress_parallel_submission: bool | ProgressLike[Any] | None = None,
+        progress_parallel_submission: bool | ProgressLike | None = None,
     ) -> pd.DataFrame:
         """
         Load data
@@ -449,7 +457,7 @@ class OpenSCMDB:
                 executor=executor,
                 progress_parallel_submission=progress_parallel_submission,
                 progress_parallel_submission_default_kwargs=dict(
-                    desc="Submitting files to be loaded"
+                    desc="Submitting files to the parallel executor"
                 ),
             )
         )
@@ -468,9 +476,12 @@ class OpenSCMDB:
             if selector is not None:
                 index_to_load = mi_loc(index_to_load, selector)
 
-            files_to_load = (
+            files_to_load: Generator[Path] | list[Path] = (
                 Path(v) for v in file_map[index_to_load["file_id"].unique()]
             )
+            if progress_results_use is not None:
+                # Wrap in list to force the length to be available to any progress bar
+                files_to_load = list(files_to_load)
 
             data_l = apply_op_parallel_progress(
                 func_to_call=self.backend.load_data_file,

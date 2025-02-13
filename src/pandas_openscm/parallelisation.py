@@ -23,7 +23,7 @@ from __future__ import annotations
 import concurrent.futures
 from collections.abc import Iterable, Iterator
 from functools import partial
-from typing import Any, Callable, TypeAlias, TypeVar
+from typing import Any, Callable, Protocol, TypeVar
 
 from typing_extensions import Concatenate, ParamSpec
 
@@ -35,11 +35,27 @@ T_co = TypeVar("T_co", covariant=True)
 U = TypeVar("U")
 V = TypeVar("V")
 
-ProgressLike: TypeAlias = Callable[[Iterable[V]], Iterator[V]]
-"""A callable that acts like something which creates a progress bar"""
+
+class ProgressLike(Protocol):
+    """A callable that acts like something which creates a progress bar"""
+
+    def __call__(
+        self, iterable: Iterable[V], total: int | float | None = None
+    ) -> Iterator[V]:
+        """
+        Create the progress bar
+
+        Parameters
+        ----------
+        iterable
+            Iterable to wrap
+
+        total
+            Total number of iterations if known.
+        """
 
 
-def get_tqdm_auto(**kwargs: Any) -> ProgressLike[Any]:
+def get_tqdm_auto(**kwargs: Any) -> ProgressLike:
     """
     Get a progress bar from [tqdm.auto](https://tqdm.github.io/docs/shortcuts/#tqdmauto).
 
@@ -72,12 +88,12 @@ def get_tqdm_auto(**kwargs: Any) -> ProgressLike[Any]:
 
 
 def figure_out_progress_bars(
-    progress_results: bool | ProgressLike[Any] | None,
+    progress_results: bool | ProgressLike | None,
     progress_results_default_kwargs: dict[str, Any],
     executor: Any | None,
-    progress_parallel_submission: bool | ProgressLike[Any] | None,
+    progress_parallel_submission: bool | ProgressLike | None,
     progress_parallel_submission_default_kwargs: dict[str, Any],
-) -> tuple[ProgressLike[Any] | None, ProgressLike[Any] | None]:
+) -> tuple[ProgressLike | None, ProgressLike | None]:
     """
     Figure out which progress bars to use
 
@@ -150,7 +166,7 @@ def figure_out_progress_bars(
 def apply_op_parallel_progress(
     func_to_call: Callable[Concatenate[U, P], T],
     iterable_input: Iterable[U],
-    progress_results: ProgressLike[Any] | None = None,
+    progress_results: ProgressLike | None = None,
     # Note: I considered switching the executor for a Protocol here.
     # However, our parallelisation and progress bar display is tightly bound to
     # concurrent.futures' Future class.
@@ -158,7 +174,7 @@ def apply_op_parallel_progress(
     # they can and they will probably have other optimisations
     # they want to make too so I'm not going to try and make this too general now.
     executor: concurrent.futures.Executor | None = None,
-    progress_parallel_submission: ProgressLike[U] | None = None,
+    progress_parallel_submission: ProgressLike | None = None,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> tuple[T, ...]:
@@ -242,9 +258,9 @@ def apply_op_parallel_progress(
         # Honestly, I'm not sure it's a helpful abstraction
         # so would just duplicate first
         # and only abstract later if it was really obvious that it was needed.
-        res_g = (func_to_call(v, *args, **kwargs) for v in iterable_input)
+        res = tuple(func_to_call(v, *args, **kwargs) for v in iterable_input)
 
-        return tuple(res_g)
+        return res
 
     if progress_parallel_submission:
         iterable_input = progress_parallel_submission(iterable_input)
@@ -261,7 +277,7 @@ def apply_op_parallel_progress(
 
     iterator_results = concurrent.futures.as_completed(futures)
     if progress_results:
-        iterator_results = progress_results(iterator_results)
+        iterator_results = progress_results(iterator_results, total=len(futures))
 
     res = tuple(ft.result() for ft in iterator_results)
 

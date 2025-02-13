@@ -253,14 +253,14 @@ def test_index_name_aware_lookup():
             ["variable_2", "variable_3"],
             id="list-second-level",
             marks=pytest.mark.xfail(
-                reason="Looks up the first level rather than variables"
+                reason="pandas looks up the first level rather than variables"
             ),
         ),
         pytest.param(
             pd.Index(["variable_2", "variable_3"]),
             id="index-no-name-second-level",
             marks=pytest.mark.xfail(
-                reason="Looks up the first level rather than variables"
+                reason="pandas looks up the first level rather than variables"
             ),
         ),
         pytest.param(pix.isin(scenario=["scenario_1", "scenario_3"]), id="pix_isin"),
