@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 import filelock
+import numpy as np
 import pandas as pd
 from attrs import define
 
@@ -66,6 +67,37 @@ class EmptyDBError(ValueError):
         """
         error_msg = f"The database is empty: {db=}"
         super().__init__(error_msg)
+
+
+@define
+class ReWriteAction:
+    """Description of a re-write action"""
+
+    from_file: Path
+    """File from which to load the data"""
+
+    to_file: Path
+    """File in which to write the re-written data"""
+
+    locator: pd.MultiIndex
+    """Locator which specifies which data to re-write"""
+
+
+@define
+class MovePlan:
+    """Plan for how to move data to make way for an overwrite"""
+
+    moved_index: pd.DataFrame
+    """The index once all the data has been moved"""
+
+    moved_file_map: pd.Series[Path]  # type: ignore # pandas confused about ability to support Path
+    """The file map once all the data has been moved"""
+
+    rewrite_actions: tuple[ReWriteAction, ...] | None
+    """The re-write actions which need to be performed"""
+
+    delete_paths: tuple[Path, ...] | None
+    """Paths which can be deleted (after the data has been moved)"""
 
 
 class OpenSCMDBBackend(Protocol):
@@ -542,6 +574,144 @@ class OpenSCMDB:
             db_index = self.backend.load_index(self.index_file)
 
         res: pd.MultiIndex = pd.MultiIndex.from_frame(db_index).droplevel("file_id")
+
+        return res
+
+    def make_move_plan(
+        self,
+        index_start: pd.DataFrame,
+        file_map_start: pd.Series[Path],  # type: ignore # pandas confused about ability to support Path
+        data_to_write: pd.DataFrame,
+    ) -> MovePlan:
+        """
+        Make a plan for moving data around to make room for new data
+
+        Parameters
+        ----------
+        index_start
+            The starting index
+
+        file_map_start
+            The starting file map
+
+        data_to_write
+            Data that is going to be written in the database
+
+        Returns
+        -------
+        :
+            Plan for moving data to make room for the new data
+        """
+        index_start_mi = pd.MultiIndex.from_frame(index_start)
+        in_data_to_write = pd.Series(
+            multi_index_match(index_start_mi, data_to_write.index),
+            index=index_start_mi,
+        )
+
+        grouper = in_data_to_write.groupby("file_id")
+        no_overwrite = ~grouper.apply(np.any)
+        if no_overwrite.all():
+            # Can push this all into the layer above
+            # new_file_id = index_start["file_id"].max() + 1
+            #
+            # file_map_out = file_map_start.copy()
+            # file_map_out.loc[new_file_id] = self.get_new_data_file_path(new_file_id)
+            #
+            # index_data_to_write = data_to_write.index.to_frame(index=False)
+            # index_data_to_write["file_id"] = new_file_id
+            #
+            # moved_index = pd.concat([index_start, index_data_to_write])
+
+            return MovePlan(
+                moved_index=index_start,
+                moved_file_map=file_map_start,
+                rewrite_actions=None,
+                delete_paths=None,
+            )
+
+        full_overwrite = grouper.apply(np.all)
+        partial_overwrite = ~(full_overwrite | no_overwrite)
+        if not partial_overwrite.any():
+            # Only keep the bits of the index which won't be overwritten
+            delete_file_ids = full_overwrite.index[full_overwrite]
+            delete_paths = file_map_start.loc[delete_file_ids]
+            moved_index = index_start[~index_start["file_id"].isin(delete_file_ids)]
+            file_map_out = file_map_start.loc[moved_index["file_id"]]
+
+            return MovePlan(
+                moved_index=moved_index,
+                moved_file_map=file_map_out,
+                rewrite_actions=None,
+                delete_paths=tuple(delete_paths),
+            )
+
+        # # TODO: move this into the layer above,
+        # # where the re-write will actually happen
+        # if warn_on_partial_overwrite:
+        #     msg = (
+        #         "Overwriting the data will require re-writing. "
+        #         "This may be slow. "
+        #         "If that is an issue, the only way to solve it is to "
+        #         "update your workflow to ensure that you are not overwriting data "
+        #         "or are only overwriting entire files."
+        #     )
+        #     warnings.warn(msg)
+
+        to_rewrite = partial_overwrite & ~in_data_to_write
+
+        full_overwrite_file_ids = full_overwrite.index[full_overwrite]
+        file_ids_to_delete = np.union1d(
+            full_overwrite_file_ids,
+            partial_overwrite.index[partial_overwrite],
+        )
+        delete_paths = file_map_start.loc[file_ids_to_delete]
+
+        index_moved = in_data_to_write[
+            in_data_to_write
+            & ~in_data_to_write.index.get_level_values("file_id").isin(
+                full_overwrite_file_ids
+            )
+        ].index.to_frame(index=False)
+
+        file_id_map = {}
+        file_map_out = file_map_start[no_overwrite].copy()
+        max_file_id_start = file_map_start.index.max()
+        rewrite_actions_l = []
+        for increment, (file_id_old, fiddf) in enumerate(
+            to_rewrite.loc[to_rewrite].groupby("file_id")
+        ):
+            new_file_id = max_file_id_start + 1 + increment
+
+            file_map_out.loc[new_file_id] = self.get_new_data_file_path(new_file_id)
+
+            rewrite_actions_l.append(
+                ReWriteAction(
+                    from_file=file_map_start.loc[file_id_old],
+                    to_file=file_map_out.loc[new_file_id],
+                    locator=fiddf.index.droplevel("file_id"),
+                )
+            )
+            file_id_map[file_id_old] = new_file_id
+
+        index_moved["file_id"] = index_moved["file_id"].map(file_id_map)
+        if index_moved["file_id"].isnull().any():
+            # Something has gone wrong, everything should be remapped somewhere
+            raise AssertionError
+
+        moved_index = pd.concat(
+            [
+                # Bits of the index which won't be overwritten
+                index_start[~index_start["file_id"].isin(file_ids_to_delete)],
+                # Bits of the index which are being re-written
+                index_moved,
+            ]
+        )
+        res = MovePlan(
+            moved_index=moved_index,
+            moved_file_map=file_map_out,
+            rewrite_actions=tuple(rewrite_actions_l),
+            delete_paths=tuple(delete_paths),
+        )
 
         return res
 

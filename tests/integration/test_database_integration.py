@@ -15,7 +15,14 @@ import pandas as pd
 import pandas_indexing as pix
 import pytest
 
-from pandas_openscm.db import AlreadyInDBError, CSVBackend, EmptyDBError, OpenSCMDB
+from pandas_openscm.db import (
+    AlreadyInDBError,
+    CSVBackend,
+    EmptyDBError,
+    MovePlan,
+    OpenSCMDB,
+    ReWriteAction,
+)
 from pandas_openscm.testing import create_test_df, get_parametrized_db_backends
 
 db_backends = get_parametrized_db_backends()
@@ -466,7 +473,7 @@ def test_deletion(tmpdir, db_backend):
 # @pytest.mark.parametrize("idx_start, idx_to_add, exp")
 @db_backends
 def test_save_sorting(db_backend, tmpdir):
-    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend)
+    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
 
     index_start = pd.DataFrame(
         [
@@ -478,6 +485,10 @@ def test_save_sorting(db_backend, tmpdir):
             ("scenario_c", "variable_b", "Mt", 2),
         ],
         columns=["scenario", "variable", "unit", "file_id"],
+    )
+    file_map_start = pd.Series(
+        [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
+        index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
     index_data_to_write = pd.MultiIndex.from_frame(
@@ -530,26 +541,24 @@ def test_save_sorting(db_backend, tmpdir):
     exp = MovePlan(
         moved_index=exp_moved_index,
         moved_file_map=exp_moved_file_map,
-        move_actions=MoveActions(
-            to_rewrite=(
-                ReWriteAction(
-                    from_file=exp_moved_file_map.loc[2],
-                    locator=pd.MultiIndex.from_frame(
-                        pd.DataFrame(
-                            [
-                                ("scenario_c", "variable_a", "Mt"),
-                            ],
-                            columns=["scenario", "variable", "unit"],
-                        )
-                    ),
-                    to_file=exp_moved_file_map.loc[3],
+        rewrite_actions=(
+            ReWriteAction(
+                from_file=file_map_start.loc[2],
+                locator=pd.MultiIndex.from_frame(
+                    pd.DataFrame(
+                        [
+                            ("scenario_c", "variable_a", "Mt"),
+                        ],
+                        columns=["scenario", "variable", "unit"],
+                    )
                 ),
+                to_file=exp_moved_file_map.loc[3],
             ),
-            to_delete=(exp_moved_file_map.loc[1], exp_moved_file_map.loc[2]),
         ),
+        delete_paths=(file_map_start.loc[1], file_map_start.loc[2]),
     )
 
-    res = db.make_move_plan(index_start, data_to_write)
+    res = db.make_move_plan(index_start, file_map_start, data_to_write)
 
     assert_move_plan_equal(res, exp)
 
