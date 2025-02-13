@@ -461,3 +461,111 @@ def test_deletion(tmpdir, db_backend):
 
     with pytest.raises(EmptyDBError):
         db.load()
+
+
+# @pytest.mark.parametrize("idx_start, idx_to_add, exp")
+@db_backends
+def test_save_sorting(db_backend, tmpdir):
+    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend)
+
+    index_start = pd.DataFrame(
+        [
+            ("scenario_a", "variable_a", "Mt", 0),
+            ("scenario_a", "variable_b", "Mt", 0),
+            ("scenario_b", "variable_a", "Mt", 1),
+            ("scenario_b", "variable_b", "Mt", 1),
+            ("scenario_c", "variable_a", "Mt", 2),
+            ("scenario_c", "variable_b", "Mt", 2),
+        ],
+        columns=["scenario", "variable", "unit", "file_id"],
+    )
+
+    index_data_to_write = pd.MultiIndex.from_frame(
+        pd.DataFrame(
+            [
+                # File 0 should be left alone
+                # ("scenario_a", "variable_a", "Mt"),
+                # ("scenario_a", "variable_b", "Mt"),
+                # File 1 should be fully deleted to make room
+                # for this data
+                ("scenario_b", "variable_a", "Mt"),
+                ("scenario_b", "variable_b", "Mt"),
+                # File 2 should be partially re-written,
+                # keeping variable_a but not variable_b
+                # (which will be overwritten)
+                # ("scenario_c", "variable_a", "Mt"),
+                ("scenario_c", "variable_b", "Mt"),
+            ],
+            columns=["scenario", "variable", "unit"],
+        )
+    )
+    data_to_write = pd.DataFrame(
+        np.random.default_rng().random((index_data_to_write.shape[0], 3)),
+        index=index_data_to_write,
+        columns=np.arange(2020.0, 2023.0),
+    )
+
+    exp_moved_file_ids = [0, 3]  # 1 deleted, 2 re-written then deleted
+    exp_moved_file_map = pd.Series(
+        [db.get_new_data_file_path(file_id) for file_id in exp_moved_file_ids],
+        index=pd.Index(exp_moved_file_ids, name="file_id"),
+    )
+
+    exp_moved_index = pd.DataFrame(
+        [
+            # Unchanged
+            ("scenario_a", "variable_a", "Mt", 0),
+            ("scenario_a", "variable_b", "Mt", 0),
+            # # Overwritten
+            # ("scenario_b", "variable_a", "Mt", 1),
+            # ("scenario_b", "variable_b", "Mt", 1),
+            # Re-written to make space
+            ("scenario_c", "variable_a", "Mt", 3),
+            # # Overwritten
+            # ("scenario_c", "variable_b", "Mt", 2),
+        ],
+        columns=["scenario", "variable", "unit", "file_id"],
+    )
+
+    exp = MovePlan(
+        moved_index=exp_moved_index,
+        moved_file_map=exp_moved_file_map,
+        move_actions=MoveActions(
+            to_rewrite=(
+                ReWriteAction(
+                    from_file=exp_moved_file_map.loc[2],
+                    locator=pd.MultiIndex.from_frame(
+                        pd.DataFrame(
+                            [
+                                ("scenario_c", "variable_a", "Mt"),
+                            ],
+                            columns=["scenario", "variable", "unit"],
+                        )
+                    ),
+                    to_file=exp_moved_file_map.loc[3],
+                ),
+            ),
+            to_delete=(exp_moved_file_map.loc[1], exp_moved_file_map.loc[2]),
+        ),
+    )
+
+    res = db.make_move_plan(index_start, data_to_write)
+
+    assert_move_plan_equal(res, exp)
+
+    # For full integration, you then:
+    # - write the new data
+    #   (parallel/grouped as needed/desired,
+    #   starting with max file ID in moved_file_map + 1 to avoid overwriting)
+    #   - this gives you a new index and file map,
+    #     which you can just join with the move_* versions
+    #     (double checking that there are no overlaps along the way)
+    # - if needed, re-write the data that needs to be re-written
+    #   (warning by default as this is slow)
+    # - if needed, delete the files you need to delete
+    #   (so there is a chance you end up with duplicate data
+    #   if the operation fails halfway through.
+    #   Just note that risk in the docs and move on,
+    #   users have to opt in to overwriting so this won't happen by accident)
+
+    assert False
