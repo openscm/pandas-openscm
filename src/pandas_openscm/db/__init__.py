@@ -8,7 +8,7 @@ import concurrent.futures
 import contextlib
 import os
 import warnings
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -574,8 +574,11 @@ class OpenSCMDB:
             Plan for moving data to make room for the new data
         """
         index_start_mi = pd.MultiIndex.from_frame(index_start)
+        if not isinstance(data_to_write.index, pd.MultiIndex):
+            raise TypeError
+
         in_data_to_write = pd.Series(
-            multi_index_match(index_start_mi, data_to_write.index),
+            multi_index_match(index_start_mi, data_to_write.index),  # type: ignore # pandas confused
             index=index_start_mi,
         )
 
@@ -737,6 +740,10 @@ class OpenSCMDB:
             for the operation is `None`.
         """
         # TODO: add check that data has no duplicates in its index
+        if not isinstance(data.index, pd.MultiIndex):
+            msg = f"data must have a MultiIndex, received {type(data.index)=}"
+            raise TypeError(msg)
+
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
 
@@ -809,7 +816,7 @@ class OpenSCMDB:
                 new_file_id = file_map_out.index.max() + 1
 
             new_file_path = self.get_new_data_file_path(new_file_id)
-            file_map_out.loc[new_file_id] = new_file_path
+            file_map_out.loc[new_file_id] = new_file_path  # type: ignore # pandas confused
             self.backend.save_data(data, new_file_path)
 
             # Create the output index
@@ -873,13 +880,13 @@ def delete_files(
 
         Only used if `parallel_op_config` is `None`.
     """
-    iterable_input: Generator[Path] | list[Path] = files_to_delete
+    iterable_input: Iterable[Path] | list[Path] = files_to_delete
 
     # Stick the whole thing in a try finally block so we shutdown
     # the parallel pool, even if interrupted, if we created it.
     try:
         if parallel_op_config is None:
-            parallel_op_config = ParallelOpConfig.from_user_facing(
+            parallel_op_config_use = ParallelOpConfig.from_user_facing(
                 progress=progress,
                 progress_results_kwargs=dict(desc="File deletion"),
                 progress_parallel_submission_kwargs=dict(
@@ -888,8 +895,10 @@ def delete_files(
                 max_workers=max_workers,
                 parallel_pool_cls=concurrent.futures.ThreadPoolExecutor,
             )
+        else:
+            parallel_op_config_use = parallel_op_config
 
-        if parallel_op_config.progress_results is not None:
+        if parallel_op_config_use.progress_results is not None:
             # Wrap in list to force the length to be available to any progress bar.
             # This might be the wrong decision in a weird edge case,
             # but it's convenient enough that I'm willing to take that risk
@@ -898,12 +907,16 @@ def delete_files(
         apply_op_parallel_progress(
             func_to_call=os.remove,
             iterable_input=iterable_input,
-            parallel_op_config=parallel_op_config,
+            parallel_op_config=parallel_op_config_use,
         )
 
     finally:
-        if parallel_op_config.executor_created_in_class_method:
-            parallel_op_config.executor.shutdown()
+        if parallel_op_config_use.executor_created_in_class_method:
+            if parallel_op_config_use.executor is None:  # pragma: no cover
+                # Should be impossible to get here
+                raise AssertionError
+
+            parallel_op_config_use.executor.shutdown()
 
 
 def load_files(
@@ -912,7 +925,7 @@ def load_files(
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
-) -> tuple[pd.DataFrame]:
+) -> tuple[pd.DataFrame, ...]:
     """
     Load a number of files
 
@@ -950,13 +963,13 @@ def load_files(
 
         Only used if `parallel_op_config` is `None`.
     """
-    iterable_input: Generator[Path] | list[Path] = files_to_load
+    iterable_input: Iterable[Path] | list[Path] = files_to_load
 
     # Stick the whole thing in a try finally block so we shutdown
     # the parallel pool, even if interrupted, if we created it.
     try:
         if parallel_op_config is None:
-            parallel_op_config = ParallelOpConfig.from_user_facing(
+            parallel_op_config_use = ParallelOpConfig.from_user_facing(
                 progress=progress,
                 progress_results_kwargs=dict(desc="File loading"),
                 progress_parallel_submission_kwargs=dict(
@@ -968,8 +981,10 @@ def load_files(
                 # See the docs for nuance though.
                 parallel_pool_cls=concurrent.futures.ProcessPoolExecutor,
             )
+        else:
+            parallel_op_config_use = parallel_op_config
 
-        if parallel_op_config.progress_results is not None:
+        if parallel_op_config_use.progress_results is not None:
             # Wrap in list to force the length to be available to any progress bar.
             # This might be the wrong decision in a weird edge case,
             # but it's convenient enough that I'm willing to take that risk
@@ -978,12 +993,16 @@ def load_files(
         res = apply_op_parallel_progress(
             func_to_call=backend.load_data_file,
             iterable_input=iterable_input,
-            parallel_op_config=parallel_op_config,
+            parallel_op_config=parallel_op_config_use,
         )
 
     finally:
-        if parallel_op_config.executor_created_in_class_method:
-            parallel_op_config.executor.shutdown()
+        if parallel_op_config_use.executor_created_in_class_method:
+            if parallel_op_config_use.executor is None:  # pragma: no cover
+                # Should be impossible to get here
+                raise AssertionError
+
+            parallel_op_config_use.executor.shutdown()
 
     return res
 
@@ -1016,7 +1035,7 @@ def rewrite_files(
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
-) -> tuple[pd.DataFrame]:
+) -> None:
     """
     Re-write a number of files
 
@@ -1054,13 +1073,13 @@ def rewrite_files(
 
         Only used if `parallel_op_config` is `None`.
     """
-    iterable_input: Generator[ReWriteAction] | list[ReWriteAction] = rewrite_actions
+    iterable_input: Iterable[ReWriteAction] | list[ReWriteAction] = rewrite_actions
 
     # Stick the whole thing in a try finally block so we shutdown
     # the parallel pool, even if interrupted, if we created it.
     try:
         if parallel_op_config is None:
-            parallel_op_config = ParallelOpConfig.from_user_facing(
+            parallel_op_config_use = ParallelOpConfig.from_user_facing(
                 progress=progress,
                 progress_results_kwargs=dict(desc="File re-writing"),
                 progress_parallel_submission_kwargs=dict(
@@ -1072,25 +1091,29 @@ def rewrite_files(
                 # See the docs for nuance though.
                 parallel_pool_cls=concurrent.futures.ProcessPoolExecutor,
             )
+        else:
+            parallel_op_config_use = parallel_op_config
 
-        if parallel_op_config.progress_results is not None:
+        if parallel_op_config_use.progress_results is not None:
             # Wrap in list to force the length to be available to any progress bar.
             # This might be the wrong decision in a weird edge case,
             # but it's convenient enough that I'm willing to take that risk
             iterable_input = list(iterable_input)
 
-        res = apply_op_parallel_progress(
+        apply_op_parallel_progress(
             func_to_call=rewrite_file,
             iterable_input=iterable_input,
-            parallel_op_config=parallel_op_config,
+            parallel_op_config=parallel_op_config_use,
             backend=backend,
         )
 
     finally:
-        if parallel_op_config.executor_created_in_class_method:
-            parallel_op_config.executor.shutdown()
+        if parallel_op_config_use.executor_created_in_class_method:
+            if parallel_op_config_use.executor is None:  # pragma: no cover
+                # Should be impossible to get here
+                raise AssertionError
 
-    return res
+            parallel_op_config_use.executor.shutdown()
 
 
 __all__ = [

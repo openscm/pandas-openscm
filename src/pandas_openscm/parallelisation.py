@@ -212,10 +212,11 @@ class ParallelOpConfig:
         progress_results_kwargs: dict[str, Any] | None = None,
         progress_parallel_submission_kwargs: dict[str, Any] | None = None,
         max_workers: int | None = None,
-        parallel_pool_cls: type[
-            concurrent.futures.Executor
+        parallel_pool_cls: type[concurrent.futures.ProcessPoolExecutor]
+        | type[
+            concurrent.futures.ThreadPoolExecutor
         ] = concurrent.futures.ProcessPoolExecutor,
-    ):
+    ) -> ParallelOpConfig:
         """
         Initialise from more user-facing arguments
 
@@ -251,7 +252,9 @@ class ParallelOpConfig:
             if progress_results_kwargs is None:
                 progress_results_kwargs = {}
 
-            progress_results = get_tqdm_auto(**progress_results_kwargs)
+            progress_results: ProgressLike | None = get_tqdm_auto(
+                **progress_results_kwargs
+            )
 
             if max_workers is not None:
                 if progress_parallel_submission_kwargs is None:

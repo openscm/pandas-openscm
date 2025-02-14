@@ -153,6 +153,10 @@ def assert_move_plan_equal(a: MovePlan, b: MovePlan) -> None:
     if a.rewrite_actions is None:
         assert b.rewrite_actions is None
     else:
+        if b.rewrite_actions is None:
+            msg = f"{b.rewrite_actions=} while {a.rewrite_actions=}"
+            raise AssertionError(msg)
+
         assert len(a.rewrite_actions) == len(b.rewrite_actions)
         for ara in a.rewrite_actions:
             for bra in b.rewrite_actions:
@@ -168,4 +172,8 @@ def assert_move_plan_equal(a: MovePlan, b: MovePlan) -> None:
     if a.delete_paths is None:
         assert b.delete_paths is None
     else:
+        if b.delete_paths is None:
+            msg = f"{b.delete_paths=} while {a.delete_paths=}"
+            raise AssertionError(msg)
+
         assert set(a.delete_paths) == set(b.delete_paths)
