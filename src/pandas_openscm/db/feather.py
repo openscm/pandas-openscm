@@ -96,14 +96,12 @@ class FeatherBackend:
 
         data_write.to_feather(data_file)
 
-    def save_database(  # noqa: PLR0913
+    def save_index_and_file_map(
         self,
         index: pd.DataFrame,
         index_file: Path,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
-        data: pd.DataFrame,
-        data_file: Path,
     ) -> None:
         """
         Save the database
@@ -121,12 +119,6 @@ class FeatherBackend:
 
         file_map_file
             File in which to save the file map
-
-        data
-            Data to save
-
-        data_file
-            File in which to save the data
         """
         index.to_feather(index_file)
 
@@ -137,5 +129,3 @@ class FeatherBackend:
         # - writing non-native types (e.g. Path)
         file_map_write["file_path"] = file_map_write["file_path"].astype(str)
         file_map_write.to_feather(file_map_file)
-
-        self.save_data(data, data_file)

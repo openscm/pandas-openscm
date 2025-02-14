@@ -674,18 +674,3 @@ def test_make_move_plan_partial_overwrite(db_backend, tmpdir):
     res = db.make_move_plan(index_start, file_map_start, data_to_write)
 
     assert_move_plan_equal(res, exp)
-
-    # For full integration, you then:
-    # - write the new data
-    #   (parallel/grouped as needed/desired,
-    #   starting with max file ID in moved_file_map + 1 to avoid overwriting)
-    #   - this gives you a new index and file map,
-    #     which you can just join with the move_* versions
-    #     (double checking that there are no overlaps along the way)
-    # - if needed, re-write the data that needs to be re-written
-    #   (warning by default as this is slow)
-    # - if needed, delete the files you need to delete
-    #   (so there is a chance you end up with duplicate data
-    #   if the operation fails halfway through.
-    #   Just note that risk in the docs and move on,
-    #   users have to opt in to overwriting so this won't happen by accident)

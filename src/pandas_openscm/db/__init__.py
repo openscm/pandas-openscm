@@ -7,7 +7,8 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import os
-from collections.abc import Generator
+import warnings
+from collections.abc import Generator, Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -21,9 +22,8 @@ from pandas_openscm.db.feather import FeatherBackend
 from pandas_openscm.db.netcdf import netCDFBackend
 from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import (
-    ProgressLike,
+    ParallelOpConfig,
     apply_op_parallel_progress,
-    figure_out_progress_bars,
 )
 
 if TYPE_CHECKING:
@@ -193,21 +193,19 @@ class OpenSCMDBBackend(Protocol):
             File in which to save the data
         """
 
-    def save_database(  # noqa: PLR0913
+    def save_index_and_file_map(
         self,
         index: pd.DataFrame,
         index_file: Path,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
-        data: pd.DataFrame,
-        data_file: Path,
     ) -> None:
         """
-        Save the database
+        Save the index and file map
 
         This is a low-level method
         that just handles the specifics of serialising
-        the database components to the disk.
+        these components to the disk.
         Working out what data to save and in what path
         should happen in higher-level functions.
 
@@ -224,12 +222,6 @@ class OpenSCMDBBackend(Protocol):
 
         file_map_file
             File in which to save the file map
-
-        data
-            Data to save
-
-        data_file
-            File in which to save the data
         """
 
 
@@ -311,9 +303,9 @@ class OpenSCMDB:
         self,
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
-        progress_results: bool | ProgressLike | None = None,
-        executor: int | concurrent.futures.Executor | None = None,
-        progress_parallel_submission: bool | ProgressLike | None = None,
+        parallel_op_config: ParallelOpConfig | None = None,
+        progress: bool = False,
+        max_workers: int | None = None,
     ) -> None:
         """
         Delete all data in the database
@@ -326,63 +318,38 @@ class OpenSCMDB:
             If not supplied, we use
             [`self.index_file_lock.acquire`][(c)].
 
-        progress_results
-            Progress bar to use to display the results of the deletion's progress.
+        parallel_op_config
+            Configuration for executing the operation in parallel with progress bars
 
-            If `True`, we simply create a default progress bar.
+            If not supplied, we use the values of `executor` and `progress`.
 
-        executor
-            Executor to use for parallel processing.
+        progress
+            Should progress bar(s) be used to display the progress of the deletion?
 
-            If you are interested in parallel processing,
-            the docs in [parallelisation][(p).] might be worth reading first.
+            Only used if `parallel_op_config` is `None`.
 
-            If an `int` is supplied, we create an instance of
-            [concurrent.futures.ThreadPoolExecutor] with the provided number of workers.
+        max_workers
+            Maximum number of workers to use for parallel processing.
 
-            If not supplied, we do not use parallel processing.
+            If supplied, we create an instance of
+            [concurrent.futures.ThreadPoolExecutor][]
+            with the provided number of workers
+            (a thread pool makes sense as deletion is I/O-bound).
 
-        progress_parallel_submission
-            Progress bar to use to display the submission of files to be deleted.
+            If not supplied, the deletions are executed serially.
 
-            This only applies when the files are deleted in parallel,
-            i.e. `executor` is not `None`.
-
-            If `True`, we simply create a default progress bar.
+            Only used if `parallel_op_config` is `None`.
         """
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
 
-        if isinstance(executor, int):
-            # Threading by default as deletion is I/O bound
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=executor)
-
-        progress_results_use, progress_parallel_submission_use = (
-            figure_out_progress_bars(
-                progress_results=progress_results,
-                progress_results_default_kwargs=dict(desc="File deletion"),
-                executor=executor,
-                progress_parallel_submission=progress_parallel_submission,
-                progress_parallel_submission_default_kwargs=dict(
-                    desc="Submitting files to the parallel executor"
-                ),
-            )
-        )
-
-        iterable_input: Generator[Path] | list[Path] = self.db_dir.glob(
-            f"*{self.backend.ext}"
-        )
-        if progress_results_use is not None:
-            # Wrap in list to force the length to be available to any progress bar
-            iterable_input = list(iterable_input)
-
         with lock_context_manager:
-            apply_op_parallel_progress(
-                func_to_call=os.remove,
-                iterable_input=iterable_input,
-                progress_results=progress_results_use,
-                progress_parallel_submission=progress_parallel_submission_use,
-                executor=executor,
+            files_to_delete = self.db_dir.glob(f"*{self.backend.ext}")
+            delete_files(
+                files_to_delete=files_to_delete,
+                parallel_op_config=parallel_op_config,
+                progress=progress,
+                max_workers=max_workers,
             )
 
     def get_new_data_file_path(self, file_id: int) -> Path:
@@ -417,9 +384,9 @@ class OpenSCMDB:
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
         out_columns_type: type | None = None,
-        progress_results: bool | ProgressLike | None = None,
-        executor: int | concurrent.futures.Executor | None = None,
-        progress_parallel_submission: bool | ProgressLike | None = None,
+        parallel_op_config: ParallelOpConfig | None = None,
+        progress: bool = False,
+        max_workers: int | None = None,
     ) -> pd.DataFrame:
         """
         Load data
@@ -439,6 +406,32 @@ class OpenSCMDB:
             Type to set the output columns to.
 
             If not supplied, we don't set the output columns' type.
+
+        parallel_op_config
+            Configuration for executing the operation in parallel with progress bars
+
+            If not supplied, we use the values of `executor` and `progress`.
+
+        progress
+            Should progress bar(s) be used to display the progress of the deletion?
+
+            Only used if `parallel_op_config` is `None`.
+
+        max_workers
+            Maximum number of workers to use for parallel processing.
+
+            If supplied, we create an instance of
+            [concurrent.futures.ProcessPoolExecutor][]
+            with the provided number of workers.
+            A process pool seems to be the sensible default from our experimentation,
+            but it is not a universally better choice.
+            If you need something else because of how your database is set up,
+            simply pass `parallel_op_config`
+            rather than using the shortcut of passing `max_workers`.
+
+            If not supplied, the loading is executed serially.
+
+            Only used if `parallel_op_config` is `None`.
 
         progress_results
             Progress bar to use to display the results of the deletion's progress.
@@ -481,24 +474,6 @@ class OpenSCMDB:
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
 
-        if isinstance(executor, int):
-            # Process pool by default as basic tests suggest
-            # that reading is CPU-bound.
-            # See the docs for nuance though.
-            executor = concurrent.futures.ProcessPoolExecutor(max_workers=executor)
-
-        progress_results_use, progress_parallel_submission_use = (
-            figure_out_progress_bars(
-                progress_results=progress_results,
-                progress_results_default_kwargs=dict(desc="Files to load"),
-                executor=executor,
-                progress_parallel_submission=progress_parallel_submission,
-                progress_parallel_submission_default_kwargs=dict(
-                    desc="Submitting files to the parallel executor"
-                ),
-            )
-        )
-
         with lock_context_manager:
             index_raw = self.backend.load_index(self.index_file)
             file_map_raw = self.backend.load_file_map(self.file_map_file)
@@ -513,22 +488,18 @@ class OpenSCMDB:
             if selector is not None:
                 index_to_load = mi_loc(index_to_load, selector)
 
-            files_to_load: Generator[Path] | list[Path] = (
+            files_to_load = (
                 Path(v) for v in file_map[index_to_load["file_id"].unique()]
             )
-            if progress_results_use is not None:
-                # Wrap in list to force the length to be available to any progress bar
-                files_to_load = list(files_to_load)
-
-            data_l = apply_op_parallel_progress(
-                func_to_call=self.backend.load_data_file,
-                iterable_input=files_to_load,
-                progress_results=progress_results_use,
-                progress_parallel_submission=progress_parallel_submission_use,
-                executor=executor,
+            loaded_l = load_files(
+                files_to_load=files_to_load,
+                backend=self.backend,
+                parallel_op_config=parallel_op_config,
+                progress=progress,
+                max_workers=max_workers,
             )
 
-        loaded = pd.concat(data_l).set_index(index.index.droplevel("file_id").names)
+        loaded = pd.concat(loaded_l).set_index(index.index.droplevel("file_id").names)
 
         # Look up only the indexes we want
         # just in case the data we loaded had more than we asked for
@@ -611,17 +582,6 @@ class OpenSCMDB:
         grouper = in_data_to_write.groupby("file_id")
         no_overwrite = ~grouper.apply(np.any)
         if no_overwrite.all():
-            # Can push this all into the layer above
-            # new_file_id = index_start["file_id"].max() + 1
-            #
-            # file_map_out = file_map_start.copy()
-            # file_map_out.loc[new_file_id] = self.get_new_data_file_path(new_file_id)
-            #
-            # index_data_to_write = data_to_write.index.to_frame(index=False)
-            # index_data_to_write["file_id"] = new_file_id
-            #
-            # moved_index = pd.concat([index_start, index_data_to_write])
-
             return MovePlan(
                 moved_index=index_start,
                 moved_file_map=file_map_start,
@@ -644,18 +604,6 @@ class OpenSCMDB:
                 rewrite_actions=None,
                 delete_paths=tuple(delete_paths),
             )
-
-        # # TODO: move this into the layer above,
-        # # where the re-write will actually happen
-        # if warn_on_partial_overwrite:
-        #     msg = (
-        #         "Overwriting the data will require re-writing. "
-        #         "This may be slow. "
-        #         "If that is an issue, the only way to solve it is to "
-        #         "update your workflow to ensure that you are not overwriting data "
-        #         "or are only overwriting entire files."
-        #     )
-        #     warnings.warn(msg)
 
         to_rewrite = partial_overwrite & ~in_data_to_write
 
@@ -716,115 +664,17 @@ class OpenSCMDB:
 
         return res
 
-    def prepare_for_overwrite(
-        self,
-        file_ids_db: pd.Series[int],
-        data_overwrite: pd.DataFrame,
-        file_map: pd.Series[Path],  # type: ignore # pandas confused about ability to support Path
-    ) -> tuple[pd.DataFrame, pd.Series[Path]]:  # type: ignore # pandas confused about ability to support Path
-        """
-        Prepare to overwrite data that is already in the database.
-
-        The data that is being overwritten will also be cleared from the database,
-        so `data_overwrite` can be written after calling this method without issue.
-
-        Unless you really know what you're doing,
-        you probably shouldn't be using this directly.
-
-        Parameters
-        ----------
-        file_ids_db
-            File IDs that are already in the database
-
-        data_overwrite
-            Data that will overwrite data that is already in the database.
-
-        file_map
-            Existing map from file IDs to files.
-
-        Returns
-        -------
-        index_out  :
-            Updated index to use.
-
-        file_map_out :
-            Updated file map to use.
-        """
-        overwrite_loc = multi_index_match(file_ids_db.index, data_overwrite.index)  # type: ignore # pandas confused about index type
-        file_ids_remove = set(file_ids_db[overwrite_loc])
-        file_ids_keep = set(file_ids_db[~overwrite_loc])
-        file_ids_overlap = file_ids_remove.intersection(file_ids_keep)
-
-        file_map_out = file_map.copy()
-
-        if not file_ids_overlap:
-            # Nice and simple, just remove the old files that we're going to overwrite
-            index_out = file_ids_db[~overwrite_loc].reset_index()
-            for rfid in file_ids_remove:
-                os.remove(file_map_out.pop(rfid))
-
-        else:
-            # More complicated: for some files,
-            # some of the data needs to be removed
-            # while other parts need to be kept.
-            # Hence we have to re-write that data into files
-            # that are separate from the data we want to keep
-            # before we can continue.
-            file_ids_out = file_ids_db.copy()
-            for overlap_fid in file_ids_overlap:
-                overlap_file = file_map_out.pop(overlap_fid)
-
-                overlap_file_data_raw = self.backend.load_data_file(overlap_file)
-                overlap_file_data = overlap_file_data_raw.set_index(
-                    file_ids_db.index.names
-                )
-
-                data_not_being_overwritten = overlap_file_data.loc[
-                    ~multi_index_match(overlap_file_data.index, data_overwrite.index)  # type: ignore # pandas confused about index type
-                ]
-
-                # Ensure we use a file ID we haven't already used
-                data_not_being_overwritten_file_id = (
-                    max(file_map_out.index.max(), file_map.index.max()) + 1
-                )
-                data_not_being_overwritten_file_path = self.get_new_data_file_path(
-                    file_id=data_not_being_overwritten_file_id
-                )
-
-                # Re-write the data we want to keep
-                self.backend.save_data(
-                    data_not_being_overwritten, data_not_being_overwritten_file_path
-                )
-
-                # Update the file map (already popped the old file above)
-                file_map_out[data_not_being_overwritten_file_id] = (
-                    data_not_being_overwritten_file_path
-                )
-
-                # Update the file ids of the data we're keeping
-                file_ids_out.loc[
-                    multi_index_match(
-                        file_ids_out.index,  # type: ignore # pandas confused about index type
-                        data_not_being_overwritten.index,  # type: ignore # pandas confused about index type
-                    )
-                ] = data_not_being_overwritten_file_id
-
-                # Remove the rows that still refer to the data we're dropping
-                file_ids_out = file_ids_out.loc[file_ids_out != overlap_fid]
-
-                # Remove the file that contained the data
-                os.remove(overlap_file)
-
-            index_out = file_ids_out.reset_index()
-
-        return index_out, file_map_out
-
-    def save(
+    def save(  # noqa: PLR0913
         self,
         data: pd.DataFrame,
         *,
-        allow_overwrite: bool = False,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        allow_overwrite: bool = False,
+        warn_on_partial_overwrite: bool = True,
+        parallel_op_config_delete: ParallelOpConfig | None = None,
+        parallel_op_config_rewrite: ParallelOpConfig | None = None,
+        progress: bool = False,
+        max_workers: int | None = None,
     ) -> None:
         """
         Save data into the database
@@ -838,14 +688,53 @@ class OpenSCMDB:
         data
             Data to add to the database
 
-        allow_overwrite
-            Should overwrites of data that is already in the database be allowed?
-
         lock_context_manager
             Context manager to use to acquire the lock file.
 
             If not supplied, we use
             [`self.index_file_lock.acquire`][(c)].
+
+        allow_overwrite
+            Should overwrites of data that is already in the database be allowed?
+
+            If this is `True`, there is a risk that, if interrupted halfway through,
+            you can end up with duplicate data in your database
+            or some other odd broken state.
+
+        warn_on_partial_overwrite
+            Should a warning be raised if a partial overwrite will occur?
+
+            This is on by default so that users
+            are warned about the slow operation of re-writing.
+
+        parallel_op_config_delete
+            Parallel op configuration for executing any needed delete operations
+
+            If not supplied, we use the values of `executor` and `progress`.
+
+        parallel_op_config_rewrite
+            Parallel op configuration for executing any needed re-write operations
+
+            If not supplied, we use the values of `executor` and `progress`.
+
+        progress
+            Should progress bar(s) be used to display the progress of the various steps?
+
+            Only used if the corresponding `parallel_op_config_*` variable
+            for the operation is `None`.
+
+        max_workers
+            Maximum number of workers to use for parallel processing.
+
+            If supplied, we create instances of
+            [concurrent.futures.Executor][]
+            with the provided number of workers
+            (the exact kind of executor depends on the operation).
+
+            If not supplied, the operations are executed serially.
+
+            Only used if the corresponding `parallel_op_config_*` variable
+            for the operation is `None`.
         """
         # TODO: add check that data has no duplicates in its index
         if lock_context_manager is None:
@@ -853,54 +742,355 @@ class OpenSCMDB:
 
         with lock_context_manager:
             if self.is_empty:
-                file_id = 0
-                data_file = self.get_new_data_file_path(file_id=file_id)
-                index_db = data.index.to_frame(index=False)
-                index_db["file_id"] = file_id
-                file_map_db = pd.Series({file_id: data_file}, name="file_path")
-                file_map_db.index.name = "file_id"
+                # Fast path
+                new_file_id = 0
+                new_file_path = self.get_new_data_file_path(file_id=new_file_id)
+                index_out = data.index.to_frame(index=False)
+                index_out["file_id"] = new_file_id
+                file_map_out = pd.Series({new_file_id: new_file_path}, name="file_path")
+                file_map_out.index.name = "file_id"
 
-            else:
-                index_db = self.backend.load_index(self.index_file)
-                file_map_db = self.backend.load_file_map(self.file_map_file).set_index(
-                    "file_id"
-                )["file_path"]
-                metadata_db = pd.MultiIndex.from_frame(index_db).droplevel("file_id")
+                self.backend.save_index_and_file_map(
+                    index=index_out,
+                    index_file=self.index_file,
+                    file_map=file_map_out,
+                    file_map_file=self.file_map_file,
+                )
+                self.backend.save_data(data, new_file_path)
 
-                file_id = index_db["file_id"].astype(int).max() + 1
-                data_file = self.get_new_data_file_path(file_id=file_id)
+                return
 
-                file_map_db[file_id] = data_file
-                data_index = data.index.to_frame(index=False)
-                data_index["file_id"] = file_id
+            index_db = self.backend.load_index(self.index_file)
+            file_map_db = self.backend.load_file_map(self.file_map_file).set_index(
+                "file_id"
+            )["file_path"]
 
-                data_to_write_already_in_db = mi_loc(data, metadata_db)
-                if data_to_write_already_in_db.empty:
-                    # No clashes, so we can simply concatenate
-                    index_db = pd.concat([index_db, data_index])
+            if not allow_overwrite:
+                overwrite_required = multi_index_match(
+                    data.index,
+                    pd.MultiIndex.from_frame(index_db.drop("file_id", axis="columns")),
+                )
 
-                else:
-                    if not allow_overwrite:
-                        raise AlreadyInDBError(
-                            already_in_db=data_to_write_already_in_db
-                        )
+                if overwrite_required.any():
+                    data_to_write_already_in_db = data.loc[overwrite_required, :]
+                    raise AlreadyInDBError(already_in_db=data_to_write_already_in_db)
 
-                    index_db_keep, file_map_db = self.prepare_for_overwrite(
-                        file_ids_db=index_db.set_index(metadata_db.names)["file_id"],
-                        data_overwrite=data_to_write_already_in_db,
-                        file_map=file_map_db,
-                    )
-
-                    index_db = pd.concat([index_db_keep, data_index])
-
-            self.backend.save_database(
-                index=index_db,
-                index_file=self.index_file,
-                file_map=file_map_db,
-                file_map_file=self.file_map_file,
-                data=data,
-                data_file=data_file,
+            move_plan = self.make_move_plan(
+                index_start=index_db, file_map_start=file_map_db, data_to_write=data
             )
+
+            # As needed, re-write files without deleting the old files
+            if move_plan.rewrite_actions is not None:
+                if warn_on_partial_overwrite:
+                    msg = (
+                        "Overwriting the data will require re-writing. "
+                        "This may be slow. "
+                        "If that is an issue, the way to solve it "
+                        "is to update your workflow to ensure "
+                        "that you are not overwriting data "
+                        "or are only overwriting entire files."
+                    )
+                    warnings.warn(msg)
+
+                rewrite_files(
+                    move_plan.rewrite_actions,
+                    backend=self.backend,
+                    parallel_op_config=parallel_op_config_rewrite,
+                    progress=progress,
+                    max_workers=max_workers,
+                )
+
+            # Write the new data
+            file_map_out = move_plan.moved_file_map
+            if file_map_out.empty:
+                # All data is being overwritten
+                new_file_id = file_map_db.index.max() + 1
+            else:
+                new_file_id = file_map_out.index.max() + 1
+
+            new_file_path = self.get_new_data_file_path(new_file_id)
+            file_map_out.loc[new_file_id] = new_file_path
+            self.backend.save_data(data, new_file_path)
+
+            # Create the output index
+            index_data = data.index.to_frame(index=False)
+            index_data["file_id"] = new_file_id
+            index_out = pd.concat([move_plan.moved_index, index_data])
+
+            # Write the updated index and file map
+            self.backend.save_index_and_file_map(
+                index=index_out,
+                index_file=self.index_file,
+                file_map=file_map_out,
+                file_map_file=self.file_map_file,
+            )
+
+            # As needed, delete files.
+            # We delete files last to minimise the risk of losing data
+            # (might end up with double if we get interrupted here,
+            # but that is better than zero).
+            if move_plan.delete_paths is not None:
+                delete_files(
+                    files_to_delete=move_plan.delete_paths,
+                    parallel_op_config=parallel_op_config_delete,
+                    progress=progress,
+                    max_workers=max_workers,
+                )
+
+
+def delete_files(
+    files_to_delete: Iterable[Path],
+    parallel_op_config: ParallelOpConfig | None = None,
+    progress: bool = False,
+    max_workers: int | None = None,
+) -> None:
+    """
+    Delete a number of files
+
+    Parameters
+    ----------
+    files_to_delete
+        Files to delete
+
+    parallel_op_config
+        Configuration for executing the operation in parallel with progress bars
+
+        If not supplied, we use the values of `executor` and `progress`.
+
+    progress
+        Should progress bar(s) be used to display the progress of the deletion?
+
+        Only used if `parallel_op_config` is `None`.
+
+    max_workers
+        Maximum number of workers to use for parallel processing.
+
+        If supplied, we create an instance of
+        [concurrent.futures.ThreadPoolExecutor] with the provided number of workers
+        (a thread pool makes sense as deletion is I/O-bound).
+
+        If not supplied, the deletions are executed serially.
+
+        Only used if `parallel_op_config` is `None`.
+    """
+    iterable_input: Generator[Path] | list[Path] = files_to_delete
+
+    # Stick the whole thing in a try finally block so we shutdown
+    # the parallel pool, even if interrupted, if we created it.
+    try:
+        if parallel_op_config is None:
+            parallel_op_config = ParallelOpConfig.from_user_facing(
+                progress=progress,
+                progress_results_kwargs=dict(desc="File deletion"),
+                progress_parallel_submission_kwargs=dict(
+                    desc="Submitting files to the parallel executor"
+                ),
+                max_workers=max_workers,
+                parallel_pool_cls=concurrent.futures.ThreadPoolExecutor,
+            )
+
+        if parallel_op_config.progress_results is not None:
+            # Wrap in list to force the length to be available to any progress bar.
+            # This might be the wrong decision in a weird edge case,
+            # but it's convenient enough that I'm willing to take that risk
+            iterable_input = list(iterable_input)
+
+        apply_op_parallel_progress(
+            func_to_call=os.remove,
+            iterable_input=iterable_input,
+            parallel_op_config=parallel_op_config,
+        )
+
+    finally:
+        if parallel_op_config.executor_created_in_class_method:
+            parallel_op_config.executor.shutdown()
+
+
+def load_files(
+    files_to_load: Iterable[Path],
+    backend: OpenSCMDBBackend,
+    parallel_op_config: ParallelOpConfig | None = None,
+    progress: bool = False,
+    max_workers: int | None = None,
+) -> tuple[pd.DataFrame]:
+    """
+    Load a number of files
+
+    Parameters
+    ----------
+    files_to_load
+        Files to load
+
+    backend
+        Backend to use to load the files
+
+    parallel_op_config
+        Configuration for executing the operation in parallel with progress bars
+
+        If not supplied, we use the values of `executor` and `progress`.
+
+    progress
+        Should progress bar(s) be used to display the progress of the deletion?
+
+        Only used if `parallel_op_config` is `None`.
+
+    max_workers
+        Maximum number of workers to use for parallel processing.
+
+        If supplied, we create an instance of
+        [concurrent.futures.ProcessPoolExecutor][]
+        with the provided number of workers.
+        A process pool seems to be the sensible default from our experimentation,
+        but it is not a universally better choice.
+        If you need something else because of how your database is set up,
+        simply pass `parallel_op_config`
+        rather than using the shortcut of passing `max_workers`.
+
+        If not supplied, the loading is executed serially.
+
+        Only used if `parallel_op_config` is `None`.
+    """
+    iterable_input: Generator[Path] | list[Path] = files_to_load
+
+    # Stick the whole thing in a try finally block so we shutdown
+    # the parallel pool, even if interrupted, if we created it.
+    try:
+        if parallel_op_config is None:
+            parallel_op_config = ParallelOpConfig.from_user_facing(
+                progress=progress,
+                progress_results_kwargs=dict(desc="File loading"),
+                progress_parallel_submission_kwargs=dict(
+                    desc="Submitting files to the parallel executor"
+                ),
+                max_workers=max_workers,
+                # Process pool by default as basic tests suggest
+                # that reading is CPU-bound.
+                # See the docs for nuance though.
+                parallel_pool_cls=concurrent.futures.ProcessPoolExecutor,
+            )
+
+        if parallel_op_config.progress_results is not None:
+            # Wrap in list to force the length to be available to any progress bar.
+            # This might be the wrong decision in a weird edge case,
+            # but it's convenient enough that I'm willing to take that risk
+            iterable_input = list(iterable_input)
+
+        res = apply_op_parallel_progress(
+            func_to_call=backend.load_data_file,
+            iterable_input=iterable_input,
+            parallel_op_config=parallel_op_config,
+        )
+
+    finally:
+        if parallel_op_config.executor_created_in_class_method:
+            parallel_op_config.executor.shutdown()
+
+    return res
+
+
+def rewrite_file(
+    rewrite_action: ReWriteAction,
+    backend: OpenSCMDBBackend,
+) -> None:
+    """
+    Re-write a file
+
+    Parameters
+    ----------
+    rewrite_action
+        Re-write action to perform
+
+    backend
+        Back-end to use for reading and writing data
+    """
+    data_all = backend.load_data_file(rewrite_action.from_file).set_index(
+        rewrite_action.locator.names
+    )
+    data_rewrite = mi_loc(data_all, rewrite_action.locator)
+    backend.save_data(data_rewrite, rewrite_action.to_file)
+
+
+def rewrite_files(
+    rewrite_actions: Iterable[ReWriteAction],
+    backend: OpenSCMDBBackend,
+    parallel_op_config: ParallelOpConfig | None = None,
+    progress: bool = False,
+    max_workers: int | None = None,
+) -> tuple[pd.DataFrame]:
+    """
+    Re-write a number of files
+
+    Parameters
+    ----------
+    rewrite_actions
+        Re-write actions to perform
+
+    backend
+        Backend to use to load and write the files
+
+    parallel_op_config
+        Configuration for executing the operation in parallel with progress bars
+
+        If not supplied, we use the values of `executor` and `progress`.
+
+    progress
+        Should progress bar(s) be used to display the progress of the deletion?
+
+        Only used if `parallel_op_config` is `None`.
+
+    max_workers
+        Maximum number of workers to use for parallel processing.
+
+        If supplied, we create an instance of
+        [concurrent.futures.ProcessPoolExecutor][]
+        with the provided number of workers.
+        A process pool seems to be the sensible default from our experimentation,
+        but it is not a universally better choice.
+        If you need something else because of how your database is set up,
+        simply pass `parallel_op_config`
+        rather than using the shortcut of passing `max_workers`.
+
+        If not supplied, the loading is executed serially.
+
+        Only used if `parallel_op_config` is `None`.
+    """
+    iterable_input: Generator[ReWriteAction] | list[ReWriteAction] = rewrite_actions
+
+    # Stick the whole thing in a try finally block so we shutdown
+    # the parallel pool, even if interrupted, if we created it.
+    try:
+        if parallel_op_config is None:
+            parallel_op_config = ParallelOpConfig.from_user_facing(
+                progress=progress,
+                progress_results_kwargs=dict(desc="File re-writing"),
+                progress_parallel_submission_kwargs=dict(
+                    desc="Submitting files to the parallel executor"
+                ),
+                max_workers=max_workers,
+                # Process pool by default as basic tests suggest
+                # that reading, therefore re-writing, is CPU-bound.
+                # See the docs for nuance though.
+                parallel_pool_cls=concurrent.futures.ProcessPoolExecutor,
+            )
+
+        if parallel_op_config.progress_results is not None:
+            # Wrap in list to force the length to be available to any progress bar.
+            # This might be the wrong decision in a weird edge case,
+            # but it's convenient enough that I'm willing to take that risk
+            iterable_input = list(iterable_input)
+
+        res = apply_op_parallel_progress(
+            func_to_call=rewrite_file,
+            iterable_input=iterable_input,
+            parallel_op_config=parallel_op_config,
+            backend=backend,
+        )
+
+    finally:
+        if parallel_op_config.executor_created_in_class_method:
+            parallel_op_config.executor.shutdown()
+
+    return res
 
 
 __all__ = [

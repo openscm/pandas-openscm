@@ -25,6 +25,7 @@ from collections.abc import Iterable, Iterator
 from functools import partial
 from typing import Any, Callable, Protocol, TypeVar
 
+from attrs import define
 from typing_extensions import Concatenate, ParamSpec
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
@@ -163,18 +164,129 @@ def figure_out_progress_bars(
     return progress_results_use, progress_parallel_submission_use
 
 
-def apply_op_parallel_progress(
-    func_to_call: Callable[Concatenate[U, P], T],
-    iterable_input: Iterable[U],
-    progress_results: ProgressLike | None = None,
+@define
+class ParallelOpConfig:
+    """
+    Configuration for a potentially parallel op, potentially with a progress bar(s)
+    """
+
+    progress_results: ProgressLike | None = None
+    """
+    Progress bar to track the results of the op.
+
+    If `None`, no progress bar is displayed for the results of the op.
+    """
+
     # Note: I considered switching the executor for a Protocol here.
     # However, our parallelisation and progress bar display is tightly bound to
     # concurrent.futures' Future class.
     # I figure that, if a user wants to use another pattern,
     # they can and they will probably have other optimisations
     # they want to make too so I'm not going to try and make this too general now.
-    executor: concurrent.futures.Executor | None = None,
-    progress_parallel_submission: ProgressLike | None = None,
+    executor: concurrent.futures.Executor | None = None
+    """
+    Executor with which to perform the op.
+
+    If `None`, the op is executed serially.
+    """
+
+    progress_parallel_submission: ProgressLike | None = None
+    """
+    Progress bar to track the submission of the iterable to the parallel executor.
+
+    If `None`, no progress bar is displayed for the results of the op.
+    """
+
+    executor_created_in_class_method: bool = False
+    """
+    Whether `self.executor` was created in a class method
+
+    This can be used to indicate that the user needs to shutdown the executor,
+    it was not created from an accessible place.
+    """
+
+    @classmethod
+    def from_user_facing(
+        cls,
+        progress: bool = False,
+        progress_results_kwargs: dict[str, Any] | None = None,
+        progress_parallel_submission_kwargs: dict[str, Any] | None = None,
+        max_workers: int | None = None,
+        parallel_pool_cls: type[
+            concurrent.futures.Executor
+        ] = concurrent.futures.ProcessPoolExecutor,
+    ):
+        """
+        Initialise from more user-facing arguments
+
+        Parameters
+        ----------
+        progress
+            Should we show progress bars?
+
+        progress_results_kwargs
+            Passed to [get_tqdm_auto][(m).] when creating the results bar.
+
+            Only used if `progress`.
+
+        progress_parallel_submission_kwargs
+            Passed to [get_tqdm_auto][(m).] when creating the parallel submission bar.
+
+            Only used if `progress` and `max_workers` is not `None`.
+
+        max_workers
+            Maximum number of parallel workers.
+
+            If `None`, we set `executor` equal to `None` in the result.
+
+        parallel_pool_cls
+            Type of parallel pool executor to use if `max_workers` is not `None`.
+
+        Returns
+        -------
+        :
+            Initialised instance.
+        """
+        if progress:
+            if progress_results_kwargs is None:
+                progress_results_kwargs = {}
+
+            progress_results = get_tqdm_auto(**progress_results_kwargs)
+
+            if max_workers is not None:
+                if progress_parallel_submission_kwargs is None:
+                    progress_parallel_submission_kwargs = {}
+
+                progress_parallel_submission = get_tqdm_auto(
+                    **progress_parallel_submission_kwargs
+                )
+
+            else:
+                progress_parallel_submission = None
+
+        else:
+            progress_results = progress_parallel_submission = None
+
+        if max_workers is not None:
+            executor = parallel_pool_cls(max_workers=max_workers)
+            executor_created_in_class_method = True
+
+        else:
+            executor = None
+            executor_created_in_class_method = False
+
+        return cls(
+            progress_results=progress_results,
+            executor=executor,
+            progress_parallel_submission=progress_parallel_submission,
+            executor_created_in_class_method=executor_created_in_class_method,
+        )
+
+
+def apply_op_parallel_progress(
+    func_to_call: Callable[Concatenate[U, P], T],
+    iterable_input: Iterable[U],
+    parallel_op_config: ParallelOpConfig,
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> tuple[T, ...]:
@@ -191,23 +303,8 @@ def apply_op_parallel_progress(
 
         Each element of `iterable_input` is passed to `func_to_call`.
 
-    progress_results
-        Progress bar to use for retrieving the results of the operation.
-
-        If `None`, no progress bar is shown while retrieving the results.
-
-    executor
-        Parallel executor to which to submit the jobs.
-
-        If not supplied, the jobs are run serially.
-
-    progress_parallel_submission
-        Progress bar to use for submitting `iterable_input` to `executor`.
-
-        If `None`, no progress bar is shown while submitting to `executor`.
-
-        If `executor` is `None`, this is not used
-        (because there is no submission step).
+    parallel_op_config
+        Configuration with which to execute the potentially parallel process
 
     *args
         Passed to each call to `func_to_call`.
@@ -237,10 +334,10 @@ def apply_op_parallel_progress(
     and only switch to injection if we find we need more flexibility,
     because the abstractions will likely become hard to follow.
     """
-    if executor is None:
+    if parallel_op_config.executor is None:
         # Run serially
-        if progress_results:
-            iterable_input = progress_results(iterable_input)
+        if parallel_op_config.progress_results:
+            iterable_input = parallel_op_config.progress_results(iterable_input)
 
         # If you wanted to make output tracking injectable, something like
         # the below could allow that.
@@ -262,11 +359,11 @@ def apply_op_parallel_progress(
 
         return res
 
-    if progress_parallel_submission:
-        iterable_input = progress_parallel_submission(iterable_input)
+    if parallel_op_config.progress_parallel_submission:
+        iterable_input = parallel_op_config.progress_parallel_submission(iterable_input)
 
     futures = [
-        executor.submit(
+        parallel_op_config.executor.submit(
             func_to_call,
             v,
             *args,
@@ -276,8 +373,10 @@ def apply_op_parallel_progress(
     ]
 
     iterator_results = concurrent.futures.as_completed(futures)
-    if progress_results:
-        iterator_results = progress_results(iterator_results, total=len(futures))
+    if parallel_op_config.progress_results:
+        iterator_results = parallel_op_config.progress_results(
+            iterator_results, total=len(futures)
+        )
 
     res = tuple(ft.result() for ft in iterator_results)
 

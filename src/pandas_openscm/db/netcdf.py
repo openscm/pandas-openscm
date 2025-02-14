@@ -153,14 +153,12 @@ class netCDFBackend:
         data_xr = xr.merge([data_index_xr, data_values_xr.to_dataset(name="values")])
         data_xr.to_netcdf(data_file)
 
-    def save_database(  # noqa: PLR0913
+    def save_index_and_file_map(
         self,
         index: pd.DataFrame,
         index_file: Path,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
-        data: pd.DataFrame,
-        data_file: Path,
     ) -> None:
         """
         Save the database
@@ -178,12 +176,6 @@ class netCDFBackend:
 
         file_map_file
             File in which to save the file map
-
-        data
-            Data to save
-
-        data_file
-            File in which to save the data
         """
         try:
             import xarray as xr
@@ -205,8 +197,6 @@ class netCDFBackend:
 
         file_map_xr = xr.DataArray.from_series(file_map.astype(str))
         file_map_xr.to_netcdf(file_map_file)
-
-        self.save_data(data, data_file)
 
 
 def metadata_df_to_xr(

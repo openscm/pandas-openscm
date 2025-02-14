@@ -15,6 +15,7 @@ import pandas as pd
 import pytest
 
 from pandas_openscm.db import CSVBackend, EmptyDBError, OpenSCMDB
+from pandas_openscm.parallelisation import ParallelOpConfig
 from pandas_openscm.testing import create_test_df
 
 tqdm_auto = pytest.importorskip("tqdm.auto")
@@ -45,8 +46,16 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
     (
         pytest.param({}, id="no-progress"),
         pytest.param(
-            dict(progress_results=True, progress_parallel_submission=True),
+            dict(progress=True),
             id="default-progress",
+        ),
+        pytest.param(
+            dict(
+                progress=True,
+                progress_results_kwargs=dict(ncols=200),
+                progress_parallel_submission_kwargs=dict(leave=False),
+            ),
+            id="default-progress-custom-init-kwargs",
         ),
         pytest.param(
             dict(
@@ -79,12 +88,41 @@ def test_save_load_delete_parallel(
         db.save(svdf)
 
     with executor_ctx_manager(**executor_ctx_manager_kwargs) as executor:
-        loaded = db.load(
-            executor=executor, out_columns_type=df.columns.dtype, **progress_kwargs
-        )
+        from_user_facing_kwargs = {}
+        parallel_progress_kwargs = {}
+        if isinstance(executor, int):
+            from_user_facing_kwargs["max_workers"] = executor
+
+        for k in [
+            "progress",
+            "progress_results_kwargs",
+            "progress_parallel_submission_kwargs",
+        ]:
+            if k in progress_kwargs:
+                from_user_facing_kwargs[k] = progress_kwargs[k]
+
+        if from_user_facing_kwargs:
+            parallel_op_config = ParallelOpConfig.from_user_facing(
+                **from_user_facing_kwargs
+            )
+        else:
+            parallel_op_config = ParallelOpConfig()
+
+        if isinstance(executor, concurrent.futures.Executor):
+            parallel_op_config.executor = executor
+
+        if "progress_results" in progress_kwargs:
+            parallel_op_config.progress_results = progress_kwargs["progress_results"]
+
+        if "progress_parallel_submission" in progress_kwargs:
+            parallel_op_config.progress_parallel_submission = progress_kwargs[
+                "progress_parallel_submission"
+            ]
+
+        loaded = db.load(out_columns_type=df.columns.dtype, **parallel_progress_kwargs)
         pd.testing.assert_frame_equal(loaded, df, check_like=True)
 
-        db.delete(executor=executor, **progress_kwargs)
+        db.delete(**parallel_progress_kwargs)
 
     with pytest.raises(EmptyDBError):
         db.load_metadata()
