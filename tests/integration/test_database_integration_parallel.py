@@ -71,6 +71,7 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
 def test_save_load_delete_parallel(  # noqa: PLR0912
     tmpdir, progress_kwargs, executor_ctx_manager, executor_ctx_manager_kwargs
 ):
+    # TODO: split this so it's easier to tell what is going on
     db = OpenSCMDB(db_dir=Path(tmpdir), backend=CSVBackend())
 
     df = create_test_df(
@@ -136,8 +137,7 @@ def test_save_load_delete_parallel(  # noqa: PLR0912
             else:
                 parallel_progress_kwargs_save[k] = v
 
-        for _, svdf in df.groupby(["scenario", "variable"]):
-            db.save(svdf, **parallel_progress_kwargs_save)
+        db.save(df, groupby=["scenario", "variable"], **parallel_progress_kwargs_save)
 
         loaded = db.load(out_columns_type=df.columns.dtype, **parallel_progress_kwargs)
         pd.testing.assert_frame_equal(loaded, df, check_like=True)

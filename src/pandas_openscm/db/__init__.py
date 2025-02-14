@@ -323,7 +323,7 @@ class OpenSCMDB:
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
 
-            If not supplied, we use the values of `executor` and `progress`.
+            If not supplied, we use the values of `progress` and `max_workers`.
 
         progress
             Should progress bar(s) be used to display the progress of the deletion?
@@ -412,7 +412,7 @@ class OpenSCMDB:
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
 
-            If not supplied, we use the values of `executor` and `progress`.
+            If not supplied, we use the values of `progress` and `max_workers`.
 
         progress
             Should progress bar(s) be used to display the progress of the deletion?
@@ -674,8 +674,10 @@ class OpenSCMDB:
         data: pd.DataFrame,
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        groupby: list[str] | None = None,
         allow_overwrite: bool = False,
         warn_on_partial_overwrite: bool = True,
+        progress_grouping: ProgressLike | None = None,
         parallel_op_config_save: ParallelOpConfig | None = None,
         parallel_op_config_delete: ParallelOpConfig | None = None,
         parallel_op_config_rewrite: ParallelOpConfig | None = None,
@@ -700,6 +702,11 @@ class OpenSCMDB:
             If not supplied, we use
             [`self.index_file_lock.acquire`][(c)].
 
+        groupby
+            Metadata columns to use to group the data.
+
+            If not supplied, we save all the data in a single file.
+
         allow_overwrite
             Should overwrites of data that is already in the database be allowed?
 
@@ -713,20 +720,25 @@ class OpenSCMDB:
             This is on by default so that users
             are warned about the slow operation of re-writing.
 
+        progress_grouping
+            Progress bar to use when grouping the data
+
+            If not supplied, we use the values of `progress` and `max_workers`.
+
         parallel_op_config_save
             Parallel op configuration for executing save operations
 
-            If not supplied, we use the values of `executor` and `progress`.
+            If not supplied, we use the values of `progress` and `max_workers`.
 
         parallel_op_config_delete
             Parallel op configuration for executing any needed delete operations
 
-            If not supplied, we use the values of `executor` and `progress`.
+            If not supplied, we use the values of `progress` and `max_workers`.
 
         parallel_op_config_rewrite
             Parallel op configuration for executing any needed re-write operations
 
-            If not supplied, we use the values of `executor` and `progress`.
+            If not supplied, we use the values of `progress` and `max_workers`.
 
         progress
             Should progress bar(s) be used to display the progress of the various steps?
@@ -762,13 +774,16 @@ class OpenSCMDB:
 
         with lock_context_manager:
             if self.is_empty:
-                # Fast path
-                new_file_id = 0
-                new_file_path = self.get_new_data_file_path(file_id=new_file_id)
-                index_out = data.index.to_frame(index=False)
-                index_out["file_id"] = new_file_id
-                file_map_out = pd.Series({new_file_id: new_file_path}, name="file_path")
-                file_map_out.index.name = "file_id"
+                index_out, file_map_out = save_data(
+                    data,
+                    db=self,
+                    min_file_id=0,
+                    groupby=groupby,
+                    progress_grouping=progress_grouping,
+                    parallel_op_config=parallel_op_config_save,
+                    progress=progress,
+                    max_workers=max_workers,
+                )
 
                 self.backend.save_index_and_file_map(
                     index=index_out,
@@ -776,7 +791,6 @@ class OpenSCMDB:
                     file_map=file_map_out,
                     file_map_file=self.file_map_file,
                 )
-                self.backend.save_data(data, new_file_path)
 
                 return
 
@@ -832,6 +846,11 @@ class OpenSCMDB:
                 data,
                 db=self,
                 min_file_id=min_file_id,
+                groupby=groupby,
+                progress_grouping=progress_grouping,
+                parallel_op_config=parallel_op_config_save,
+                progress=progress,
+                max_workers=max_workers,
             )
 
             file_map_out = pd.concat([move_plan.moved_file_map, file_map_data])
@@ -875,7 +894,7 @@ def delete_files(
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
 
-        If not supplied, we use the values of `executor` and `progress`.
+        If not supplied, we use the values of `progress` and `max_workers`.
 
     progress
         Should progress bar(s) be used to display the progress of the deletion?
@@ -953,7 +972,7 @@ def load_files(
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
 
-        If not supplied, we use the values of `executor` and `progress`.
+        If not supplied, we use the values of `progress` and `max_workers`.
 
     progress
         Should progress bar(s) be used to display the progress of the deletion?
@@ -1063,7 +1082,7 @@ def rewrite_files(
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
 
-        If not supplied, we use the values of `executor` and `progress`.
+        If not supplied, we use the values of `progress` and `max_workers`.
 
     progress
         Should progress bar(s) be used to display the progress of the deletion?
@@ -1133,7 +1152,7 @@ def save_data(  # noqa: PLR0913
     data: pd.DataFrame,
     db: OpenSCMDBBackend,
     min_file_id: int = 0,
-    groups: list[str] | None = None,
+    groupby: list[str] | None = None,
     progress_grouping: ProgressLike | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
@@ -1153,8 +1172,8 @@ def save_data(  # noqa: PLR0913
     min_file_id
         Minimum file ID to assign to save data chunks
 
-    groups
-        Groups to use to group the data.
+    groupby
+        Metadata columns to use to group the data.
 
         If not supplied, we save all the data in a single file.
 
@@ -1164,7 +1183,7 @@ def save_data(  # noqa: PLR0913
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
 
-        If not supplied, we use the values of `executor` and `progress`.
+        If not supplied, we use the values of `progress` and `max_workers`.
 
     progress
         Should progress bar(s) be used to display the progress of the saving?
@@ -1197,11 +1216,11 @@ def save_data(  # noqa: PLR0913
     file_map_out :
         The map from file ID to file path for the written files
     """
-    if groups is None:
+    if groupby is None:
         # Write as a single file
         grouper = [(None, data)]
     else:
-        grouper = data.groupby(groups)
+        grouper = data.groupby(groupby)
 
     write_groups_l = []
     index_out_l = []
@@ -1223,7 +1242,7 @@ def save_data(  # noqa: PLR0913
 
         file_map_out.loc[file_id] = new_file_path
         index_df = data.index.to_frame(index=False)
-        index_df["file_id"] = min_file_id
+        index_df["file_id"] = file_id
         index_out_l.append(index_df)
 
         write_groups_l.append((df, new_file_path))
@@ -1279,7 +1298,7 @@ def save_files(
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
 
-        If not supplied, we use the values of `executor` and `progress`.
+        If not supplied, we use the values of `progress` and `max_workers`.
 
     progress
         Should progress bar(s) be used to display the progress of the deletion?
