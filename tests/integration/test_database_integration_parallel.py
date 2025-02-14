@@ -73,7 +73,6 @@ def test_save_load_delete_parallel(
 ):
     db = OpenSCMDB(db_dir=Path(tmpdir), backend=CSVBackend())
 
-    # TODO: parallel save
     df = create_test_df(
         n_scenarios=15,
         variables=[
@@ -84,6 +83,7 @@ def test_save_load_delete_parallel(
         n_runs=600,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
+    # TODO: parallel save
     for _, svdf in df.groupby(["scenario", "variable"]):
         db.save(svdf)
 
