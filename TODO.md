@@ -1,6 +1,3 @@
-- fix tests
-- check everything still lines up with `make checks`
-- test parallel save
 - parallel ops
     - save_grouped
         - implementation

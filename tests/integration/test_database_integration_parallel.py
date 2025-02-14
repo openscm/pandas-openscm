@@ -68,7 +68,7 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
         ),
     ),
 )
-def test_save_load_delete_parallel(
+def test_save_load_delete_parallel(  # noqa: PLR0912
     tmpdir, progress_kwargs, executor_ctx_manager, executor_ctx_manager_kwargs
 ):
     db = OpenSCMDB(db_dir=Path(tmpdir), backend=CSVBackend())
@@ -83,13 +83,12 @@ def test_save_load_delete_parallel(
         n_runs=600,
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
-    # TODO: parallel save
-    for _, svdf in df.groupby(["scenario", "variable"]):
-        db.save(svdf)
 
     with executor_ctx_manager(**executor_ctx_manager_kwargs) as executor:
         from_user_facing_kwargs = {}
         parallel_progress_kwargs = {}
+        pass_parallel_op_config = False
+
         if isinstance(executor, int):
             from_user_facing_kwargs["max_workers"] = executor
 
@@ -105,19 +104,40 @@ def test_save_load_delete_parallel(
             parallel_op_config = ParallelOpConfig.from_user_facing(
                 **from_user_facing_kwargs
             )
+
         else:
             parallel_op_config = ParallelOpConfig()
 
         if isinstance(executor, concurrent.futures.Executor):
             parallel_op_config.executor = executor
+            pass_parallel_op_config = True
 
         if "progress_results" in progress_kwargs:
             parallel_op_config.progress_results = progress_kwargs["progress_results"]
+            pass_parallel_op_config = True
 
         if "progress_parallel_submission" in progress_kwargs:
             parallel_op_config.progress_parallel_submission = progress_kwargs[
                 "progress_parallel_submission"
             ]
+            pass_parallel_op_config = True
+
+        if pass_parallel_op_config:
+            # Ensure we don't shutdown between uses
+            parallel_op_config.executor_created_in_class_method = False
+            parallel_progress_kwargs["parallel_op_config"] = parallel_op_config
+
+        parallel_progress_kwargs_save = {}
+        for k, v in parallel_progress_kwargs.items():
+            if k == "parallel_op_config":
+                for suffix in ["_save", "_delete", "_rewrite"]:
+                    parallel_progress_kwargs_save[f"{k}{suffix}"] = v
+
+            else:
+                parallel_progress_kwargs_save[k] = v
+
+        for _, svdf in df.groupby(["scenario", "variable"]):
+            db.save(svdf, **parallel_progress_kwargs_save)
 
         loaded = db.load(out_columns_type=df.columns.dtype, **parallel_progress_kwargs)
         pd.testing.assert_frame_equal(loaded, df, check_like=True)

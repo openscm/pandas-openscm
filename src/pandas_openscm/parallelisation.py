@@ -82,7 +82,7 @@ def get_tqdm_auto(**kwargs: Any) -> ProgressLike:
         import tqdm.auto
     except ImportError as exc:
         raise MissingOptionalDependencyError(
-            "get_default_progress_bar", requirement="tqdm"
+            "get_tqdm_auto", requirement="tqdm"
         ) from exc
 
     return partial(tqdm.auto.tqdm, **kwargs)  # type: ignore # can't get tqdm and mypy to play nice

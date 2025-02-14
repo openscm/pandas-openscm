@@ -23,7 +23,9 @@ from pandas_openscm.db.netcdf import netCDFBackend
 from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import (
     ParallelOpConfig,
+    ProgressLike,
     apply_op_parallel_progress,
+    get_tqdm_auto,
 )
 
 if TYPE_CHECKING:
@@ -1127,29 +1129,220 @@ def rewrite_files(
             parallel_op_config_use.executor.shutdown()
 
 
-def save_data(
+def save_data(  # noqa: PLR0913
     data: pd.DataFrame,
     db: OpenSCMDBBackend,
     min_file_id: int = 0,
     groups: list[str] | None = None,
+    progress_grouping: ProgressLike | None = None,
+    parallel_op_config: ParallelOpConfig | None = None,
+    progress: bool = False,
+    max_workers: int | None = None,
 ) -> tuple[pd.DataFrame, pd.Series[Path]]:
+    """
+    Save data
+
+    Parameters
+    ----------
+    data
+        Data to save
+
+    db
+        Database in which to save the data
+
+    min_file_id
+        Minimum file ID to assign to save data chunks
+
+    groups
+        Groups to use to group the data.
+
+        If not supplied, we save all the data in a single file.
+
+    progress_grouping
+        Progress bar to use when grouping the data
+
+    parallel_op_config
+        Configuration for executing the operation in parallel with progress bars
+
+        If not supplied, we use the values of `executor` and `progress`.
+
+    progress
+        Should progress bar(s) be used to display the progress of the saving?
+
+        Only used if `progress_grouping` is `None` or `parallel_op_config` is `None`.
+
+    max_workers
+        Maximum number of workers to use for parallel processing.
+
+        If supplied, we create an instance of
+        [concurrent.futures.ThreadPoolExecutor][]
+        with the provided number of workers.
+        A thread pool seems to be the sensible default from our experimentation,
+        but it is not a universally better choice.
+        If you need something else because of how your database is set up,
+        simply pass `parallel_op_config`
+        rather than using the shortcut of passing `max_workers`.
+
+        If not supplied, the saving is executed serially.
+
+        Only used if `parallel_op_config` is `None`.
+
+    Returns
+    -------
+    index_out :
+        The index of `data`
+
+        Now including the file ID of the file in which each chunk was written.
+
+    file_map_out :
+        The map from file ID to file path for the written files
+    """
     if groups is None:
         # Write as a single file
-        new_file_path = db.get_new_data_file_path(min_file_id)
-        db.backend.save_data(data, new_file_path)
+        grouper = [(None, data)]
+    else:
+        grouper = data.groupby(groups)
 
-        index_out = data.index.to_frame(index=False)
-        index_out["file_id"] = min_file_id
-        file_map_out = pd.Series(
-            [new_file_path],
-            index=pd.Index([min_file_id], name="file_id"),
-            name="file_path",
+    write_groups_l = []
+    index_out_l = []
+    file_map_out = pd.Series(
+        [],
+        index=pd.Index([], name="file_id"),
+        name="file_path",
+    )
+    if progress_grouping or progress:
+        if progress_grouping is None:
+            progress_grouping = get_tqdm_auto(desc="Grouping data to save")
+
+        grouper = progress_grouping(grouper, desc="Grouping data to save")
+
+    for increment, (_, df) in enumerate(grouper):
+        file_id = min_file_id + increment
+
+        new_file_path = db.get_new_data_file_path(file_id)
+
+        file_map_out.loc[file_id] = new_file_path
+        index_df = data.index.to_frame(index=False)
+        index_df["file_id"] = min_file_id
+        index_out_l.append(index_df)
+
+        write_groups_l.append((df, new_file_path))
+
+    index_out = pd.concat(index_out_l)
+    save_files(
+        write_groups_l,
+        backend=db.backend,
+        parallel_op_config=parallel_op_config,
+        progress=progress,
+        max_workers=max_workers,
+    )
+
+    return index_out, file_map_out
+
+
+def save_file(
+    save_action: tuple[pd.DataFrame, Path],
+    backend: OpenSCMDBBackend,
+) -> None:
+    """
+    Save a file to disk
+
+    Parameters
+    ----------
+    save_action
+        [pandas.DataFrame][`pd.DataFrame`] and the path to save it in
+
+    backend
+        Back-end to use for writing data
+    """
+    backend.save_data(save_action[0], save_action[1])
+
+
+def save_files(
+    save_actions: Iterable[tuple[pd.DataFrame, Path]],
+    backend: OpenSCMDBBackend,
+    parallel_op_config: ParallelOpConfig | None = None,
+    progress: bool = False,
+    max_workers: int | None = None,
+) -> None:
+    """
+    Save a number of [pandas.DataFrame][`pd.DataFrame`] to disk
+
+    Parameters
+    ----------
+    save_actions
+        Iterable of [pandas.DataFrame][`pd.DataFrame`] and the path to save them in
+
+    backend
+        Backend to use to write the files
+
+    parallel_op_config
+        Configuration for executing the operation in parallel with progress bars
+
+        If not supplied, we use the values of `executor` and `progress`.
+
+    progress
+        Should progress bar(s) be used to display the progress of the deletion?
+
+        Only used if `parallel_op_config` is `None`.
+
+    max_workers
+        Maximum number of workers to use for parallel processing.
+
+        If supplied, we create an instance of
+        [concurrent.futures.ThreadPoolExecutor][]
+        with the provided number of workers.
+        A thread pool seems to be the sensible default from our experimentation,
+        but it is not a universally better choice.
+        If you need something else because of how your database is set up,
+        simply pass `parallel_op_config`
+        rather than using the shortcut of passing `max_workers`.
+
+        If not supplied, the saving is executed serially.
+
+        Only used if `parallel_op_config` is `None`.
+    """
+    iterable_input: Iterable[ReWriteAction] | list[ReWriteAction] = save_actions
+
+    # Stick the whole thing in a try finally block so we shutdown
+    # the parallel pool, even if interrupted, if we created it.
+    try:
+        if parallel_op_config is None:
+            parallel_op_config_use = ParallelOpConfig.from_user_facing(
+                progress=progress,
+                progress_results_kwargs=dict(desc="File saving"),
+                progress_parallel_submission_kwargs=dict(
+                    desc="Submitting files to the parallel executor"
+                ),
+                max_workers=max_workers,
+                # Thread pool by default as basic tests suggest
+                # that writing is CPU-bound.
+                # See the docs for nuance though.
+                parallel_pool_cls=concurrent.futures.ThreadPoolExecutor,
+            )
+        else:
+            parallel_op_config_use = parallel_op_config
+
+        if parallel_op_config_use.progress_results is not None:
+            # Wrap in list to force the length to be available to any progress bar.
+            # This might be the wrong decision in a weird edge case,
+            # but it's convenient enough that I'm willing to take that risk
+            iterable_input = list(iterable_input)
+
+        apply_op_parallel_progress(
+            func_to_call=save_file,
+            iterable_input=iterable_input,
+            parallel_op_config=parallel_op_config_use,
+            backend=backend,
         )
 
-        return index_out, file_map_out
+    finally:
+        if parallel_op_config_use.executor_created_in_class_method:
+            if parallel_op_config_use.executor is None:  # pragma: no cover
+                # Should be impossible to get here
+                raise AssertionError
 
-    raise NotImplementedError
-    # breakpoint()
+            parallel_op_config_use.executor.shutdown()
 
 
 __all__ = [
