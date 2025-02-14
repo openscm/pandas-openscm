@@ -674,6 +674,7 @@ class OpenSCMDB:
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
         allow_overwrite: bool = False,
         warn_on_partial_overwrite: bool = True,
+        parallel_op_config_save: ParallelOpConfig | None = None,
         parallel_op_config_delete: ParallelOpConfig | None = None,
         parallel_op_config_rewrite: ParallelOpConfig | None = None,
         progress: bool = False,
@@ -710,6 +711,11 @@ class OpenSCMDB:
             This is on by default so that users
             are warned about the slow operation of re-writing.
 
+        parallel_op_config_save
+            Parallel op configuration for executing save operations
+
+            If not supplied, we use the values of `executor` and `progress`.
+
         parallel_op_config_delete
             Parallel op configuration for executing any needed delete operations
 
@@ -739,10 +745,15 @@ class OpenSCMDB:
             Only used if the corresponding `parallel_op_config_*` variable
             for the operation is `None`.
         """
-        # TODO: add check that data has no duplicates in its index
         if not isinstance(data.index, pd.MultiIndex):
             msg = f"data must have a MultiIndex, received {type(data.index)=}"
             raise TypeError(msg)
+
+        if data.index.duplicated().any():
+            duplicate_rows = data.index.duplicated(keep=False)
+            duplicates = data.loc[duplicate_rows, :]
+            # TODO: more helpful error message
+            raise ValueError(duplicates)
 
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
@@ -767,11 +778,10 @@ class OpenSCMDB:
 
                 return
 
-            index_db = self.backend.load_index(self.index_file)
             file_map_db = self.backend.load_file_map(self.file_map_file).set_index(
                 "file_id"
             )["file_path"]
-
+            index_db = self.backend.load_index(self.index_file)
             if not allow_overwrite:
                 overwrite_required = multi_index_match(
                     data.index,
@@ -808,20 +818,21 @@ class OpenSCMDB:
                 )
 
             # Write the new data
-            file_map_out = move_plan.moved_file_map
-            if file_map_out.empty:
-                # All data is being overwritten
-                new_file_id = file_map_db.index.max() + 1
-            else:
-                new_file_id = file_map_out.index.max() + 1
+            current_largest_file_id = file_map_db.index.max()
+            if not move_plan.moved_file_map.empty:
+                current_largest_file_id = max(
+                    move_plan.moved_file_map.index.max(), current_largest_file_id
+                )
 
-            new_file_path = self.get_new_data_file_path(new_file_id)
-            file_map_out.loc[new_file_id] = new_file_path  # type: ignore # pandas confused
-            self.backend.save_data(data, new_file_path)
+            min_file_id = current_largest_file_id + 1
 
-            # Create the output index
-            index_data = data.index.to_frame(index=False)
-            index_data["file_id"] = new_file_id
+            index_data, file_map_data = save_data(
+                data,
+                db=self,
+                min_file_id=min_file_id,
+            )
+
+            file_map_out = pd.concat([move_plan.moved_file_map, file_map_data])
             index_out = pd.concat([move_plan.moved_index, index_data])
 
             # Write the updated index and file map
@@ -1114,6 +1125,31 @@ def rewrite_files(
                 raise AssertionError
 
             parallel_op_config_use.executor.shutdown()
+
+
+def save_data(
+    data: pd.DataFrame,
+    db: OpenSCMDBBackend,
+    min_file_id: int = 0,
+    groups: list[str] | None = None,
+) -> tuple[pd.DataFrame, pd.Series[Path]]:
+    if groups is None:
+        # Write as a single file
+        new_file_path = db.get_new_data_file_path(min_file_id)
+        db.backend.save_data(data, new_file_path)
+
+        index_out = data.index.to_frame(index=False)
+        index_out["file_id"] = min_file_id
+        file_map_out = pd.Series(
+            [new_file_path],
+            index=pd.Index([min_file_id], name="file_id"),
+            name="file_path",
+        )
+
+        return index_out, file_map_out
+
+    raise NotImplementedError
+    # breakpoint()
 
 
 __all__ = [
