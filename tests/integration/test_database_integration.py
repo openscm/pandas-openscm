@@ -474,9 +474,118 @@ def test_deletion(tmpdir, db_backend):
         db.load()
 
 
-# @pytest.mark.parametrize("idx_start, idx_to_add, exp")
 @db_backends
-def test_save_sorting(db_backend, tmpdir):
+def test_make_move_plan_no_overwrite(db_backend, tmpdir):
+    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
+
+    index_start = pd.DataFrame(
+        [
+            ("scenario_a", "variable_a", "Mt", 0),
+            ("scenario_a", "variable_b", "Mt", 0),
+        ],
+        columns=["scenario", "variable", "unit", "file_id"],
+    )
+    file_map_start = pd.Series(
+        [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
+        index=pd.Index(index_start["file_id"].unique(), name="file_id"),
+    )
+
+    index_data_to_write = pd.MultiIndex.from_frame(
+        pd.DataFrame(
+            [
+                ("scenario_b", "variable_a", "Mt"),
+                ("scenario_b", "variable_b", "Mt"),
+            ],
+            columns=["scenario", "variable", "unit"],
+        )
+    )
+    data_to_write = pd.DataFrame(
+        np.random.default_rng().random((index_data_to_write.shape[0], 3)),
+        index=index_data_to_write,
+        columns=np.arange(2020.0, 2023.0),
+    )
+
+    # No overlap so no need to move anything,
+    # the index and file map are just the same as what we started with
+    # (the layer make_move_plan above deals with writing the new data).
+    exp = MovePlan(
+        moved_index=index_start,
+        moved_file_map=file_map_start,
+        rewrite_actions=None,
+        delete_paths=None,
+    )
+
+    res = db.make_move_plan(index_start, file_map_start, data_to_write)
+
+    assert_move_plan_equal(res, exp)
+
+
+@db_backends
+def test_make_move_plan_full_overwrite(db_backend, tmpdir):
+    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
+
+    index_start = pd.DataFrame(
+        [
+            ("scenario_a", "variable_a", "Mt", 0),
+            ("scenario_a", "variable_b", "Mt", 0),
+            ("scenario_b", "variable_a", "Mt", 1),
+            ("scenario_b", "variable_b", "Mt", 1),
+        ],
+        columns=["scenario", "variable", "unit", "file_id"],
+    )
+    file_map_start = pd.Series(
+        [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
+        index=pd.Index(index_start["file_id"].unique(), name="file_id"),
+    )
+
+    index_data_to_write = pd.MultiIndex.from_frame(
+        pd.DataFrame(
+            [
+                # Full overwrite of file 1
+                ("scenario_b", "variable_a", "Mt"),
+                ("scenario_b", "variable_b", "Mt"),
+            ],
+            columns=["scenario", "variable", "unit"],
+        )
+    )
+    data_to_write = pd.DataFrame(
+        np.random.default_rng().random((index_data_to_write.shape[0], 3)),
+        index=index_data_to_write,
+        columns=np.arange(2020.0, 2023.0),
+    )
+
+    exp_moved_file_ids = [0]  # 1 will be overwritten i.e. schedule to delete
+    exp_moved_file_map = pd.Series(
+        [db.get_new_data_file_path(file_id) for file_id in exp_moved_file_ids],
+        index=pd.Index(exp_moved_file_ids, name="file_id"),
+    )
+
+    exp_moved_index = pd.DataFrame(
+        [
+            # Unchanged
+            ("scenario_a", "variable_a", "Mt", 0),
+            ("scenario_a", "variable_b", "Mt", 0),
+            # # Will be overwritten hence deleted
+            # ("scenario_b", "variable_a", "Mt", 1),
+            # ("scenario_b", "variable_b", "Mt", 1),
+        ],
+        columns=["scenario", "variable", "unit", "file_id"],
+    )
+
+    exp = MovePlan(
+        moved_index=exp_moved_index,
+        moved_file_map=exp_moved_file_map,
+        rewrite_actions=None,
+        delete_paths=(file_map_start.loc[1],),
+    )
+
+    res = db.make_move_plan(index_start, file_map_start, data_to_write)
+
+    assert_move_plan_equal(res, exp)
+
+
+@db_backends
+def test_make_move_plan_partial_overwrite(db_backend, tmpdir):
     db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
 
     index_start = pd.DataFrame(

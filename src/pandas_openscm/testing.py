@@ -125,6 +125,22 @@ def create_test_df(
 
 
 def assert_move_plan_equal(a: MovePlan, b: MovePlan) -> None:
+    """
+    Assert that two [`MovePlan`][(p).db.MovePlan] are equal
+
+    Parameters
+    ----------
+    a
+        First object to check
+
+    b
+        Other object to check
+
+    Raises
+    ------
+    AssertionError
+        `a` and `b` are not equal
+    """
     # Check that the indexes are the same.
     # We convert to MultiIndex first as we don't care about the actual index values.
     pd.testing.assert_index_equal(
@@ -134,16 +150,22 @@ def assert_move_plan_equal(a: MovePlan, b: MovePlan) -> None:
     )
     pd.testing.assert_series_equal(a.moved_file_map, b.moved_file_map, check_like=True)
 
-    assert len(a.rewrite_actions) == len(b.rewrite_actions)
-    for ara in a.rewrite_actions:
-        for bra in b.rewrite_actions:
-            if ara.from_file == bra.from_file:
-                break
-        else:
-            msg = f"Did not find pair for\n{ara=}\nin\n{b.rewrite_actions=}"
-            raise AssertionError(msg)
+    if a.rewrite_actions is None:
+        assert b.rewrite_actions is None
+    else:
+        assert len(a.rewrite_actions) == len(b.rewrite_actions)
+        for ara in a.rewrite_actions:
+            for bra in b.rewrite_actions:
+                if ara.from_file == bra.from_file:
+                    break
+            else:
+                msg = f"Did not find pair for\n{ara=}\nin\n{b.rewrite_actions=}"
+                raise AssertionError(msg)
 
-        pd.testing.assert_index_equal(ara.locator, bra.locator, check_order=False)
-        assert ara.to_file == bra.to_file
+            pd.testing.assert_index_equal(ara.locator, bra.locator, check_order=False)
+            assert ara.to_file == bra.to_file
 
-    assert set(a.delete_paths) == set(b.delete_paths)
+    if a.delete_paths is None:
+        assert b.delete_paths is None
+    else:
+        assert set(a.delete_paths) == set(b.delete_paths)

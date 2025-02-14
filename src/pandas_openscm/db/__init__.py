@@ -636,7 +636,7 @@ class OpenSCMDB:
             delete_file_ids = full_overwrite.index[full_overwrite]
             delete_paths = file_map_start.loc[delete_file_ids]
             moved_index = index_start[~index_start["file_id"].isin(delete_file_ids)]
-            file_map_out = file_map_start.loc[moved_index["file_id"]]
+            file_map_out = file_map_start.loc[moved_index["file_id"].unique()]
 
             return MovePlan(
                 moved_index=moved_index,
