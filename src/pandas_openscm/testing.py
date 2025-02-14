@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from pandas_openscm.db import CSVBackend, FeatherBackend, netCDFBackend
+from pandas_openscm.db import CSVBackend, FeatherBackend, MovePlan, netCDFBackend
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
@@ -122,3 +122,28 @@ def create_test_df(
     )
 
     return df
+
+
+def assert_move_plan_equal(a: MovePlan, b: MovePlan) -> None:
+    # Check that the indexes are the same.
+    # We convert to MultiIndex first as we don't care about the actual index values.
+    pd.testing.assert_index_equal(
+        pd.MultiIndex.from_frame(a.moved_index),
+        pd.MultiIndex.from_frame(b.moved_index),
+        check_order=False,
+    )
+    pd.testing.assert_series_equal(a.moved_file_map, b.moved_file_map, check_like=True)
+
+    assert len(a.rewrite_actions) == len(b.rewrite_actions)
+    for ara in a.rewrite_actions:
+        for bra in b.rewrite_actions:
+            if ara.from_file == bra.from_file:
+                break
+        else:
+            msg = f"Did not find pair for\n{ara=}\nin\n{b.rewrite_actions=}"
+            raise AssertionError(msg)
+
+        pd.testing.assert_index_equal(ara.locator, bra.locator, check_order=False)
+        assert ara.to_file == bra.to_file
+
+    assert set(a.delete_paths) == set(b.delete_paths)

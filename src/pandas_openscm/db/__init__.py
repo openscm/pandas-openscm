@@ -660,16 +660,17 @@ class OpenSCMDB:
         to_rewrite = partial_overwrite & ~in_data_to_write
 
         full_overwrite_file_ids = full_overwrite.index[full_overwrite]
+        partial_overwrite_file_ids = partial_overwrite.index[partial_overwrite]
         file_ids_to_delete = np.union1d(
             full_overwrite_file_ids,
-            partial_overwrite.index[partial_overwrite],
+            partial_overwrite_file_ids,
         )
         delete_paths = file_map_start.loc[file_ids_to_delete]
 
         index_moved = in_data_to_write[
-            in_data_to_write
-            & ~in_data_to_write.index.get_level_values("file_id").isin(
-                full_overwrite_file_ids
+            ~in_data_to_write
+            & in_data_to_write.index.get_level_values("file_id").isin(
+                partial_overwrite_file_ids
             )
         ].index.to_frame(index=False)
 

@@ -23,7 +23,11 @@ from pandas_openscm.db import (
     OpenSCMDB,
     ReWriteAction,
 )
-from pandas_openscm.testing import create_test_df, get_parametrized_db_backends
+from pandas_openscm.testing import (
+    assert_move_plan_equal,
+    create_test_df,
+    get_parametrized_db_backends,
+)
 
 db_backends = get_parametrized_db_backends()
 
@@ -576,5 +580,3 @@ def test_save_sorting(db_backend, tmpdir):
     #   if the operation fails halfway through.
     #   Just note that risk in the docs and move on,
     #   users have to opt in to overwriting so this won't happen by accident)
-
-    assert False
