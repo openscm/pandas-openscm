@@ -5,6 +5,7 @@ CSV-backend
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from attrs import define
@@ -20,6 +21,15 @@ class CSVBackend:
     """
     Extension to use with files saved by this backend.
     """
+
+    @property
+    def preserves_index(self) -> Literal[False]:
+        """
+        Whether this backend preserves the index
+
+        (Hint, it doesn't)
+        """
+        return False
 
     @staticmethod
     def load_data_file(data_file: Path) -> pd.DataFrame:

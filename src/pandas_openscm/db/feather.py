@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 from attrs import define
@@ -22,6 +23,13 @@ class FeatherBackend:
     """
     Extension to use with files saved by this backend.
     """
+
+    @property
+    def preserves_index(self) -> Literal[True]:
+        """
+        Whether this backend preserves the index
+        """
+        return True
 
     @staticmethod
     def load_data_file(data_file: Path) -> pd.DataFrame:
@@ -87,14 +95,11 @@ class FeatherBackend:
         data_file
             File in which to save the data
         """
-        # Feather doesn't support
-        # (see https://pandas.pydata.org/docs/user_guide/io.html#feather):
-        # - writing indexes
-        data_write = data.reset_index()
-        # - mixed column types
-        data_write.columns = data_write.columns.astype(str)
-
-        data_write.to_feather(data_file)
+        # The docs say that feather doesn't support writing indexes
+        # # (see https://pandas.pydata.org/docs/user_guide/io.html#feather).
+        # However, it seems to have no issue writing our multi-indexes.
+        # Hence the implementation below
+        data.to_feather(data_file)
 
     def save_index_and_file_map(
         self,

@@ -10,7 +10,7 @@ import os
 import warnings
 from collections.abc import Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 import filelock
 import numpy as np
@@ -20,6 +20,7 @@ from attrs import define
 from pandas_openscm.db.csv import CSVBackend
 from pandas_openscm.db.feather import FeatherBackend
 from pandas_openscm.db.netcdf import netCDFBackend
+from pandas_openscm.index_manipulation import update_index_from_candidates
 from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import (
     ParallelOpConfig,
@@ -29,6 +30,8 @@ from pandas_openscm.parallelisation import (
 )
 
 if TYPE_CHECKING:
+    import pandas.core.groupby.generic
+    import pandas.core.indexes.frozen
     import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
 
 
@@ -110,6 +113,11 @@ class OpenSCMDBBackend(Protocol):
     ext: str
     """
     Extension to use with files saved by this backend.
+    """
+
+    preserves_index: bool
+    """
+    Whether this backend preserves the index
     """
 
     @staticmethod
@@ -501,13 +509,15 @@ class OpenSCMDB:
                 max_workers=max_workers,
             )
 
-        loaded = pd.concat(loaded_l).set_index(index.index.droplevel("file_id").names)
+        res = pd.concat(loaded_l)
+        if not self.backend.preserves_index:
+            index_names: pandas.core.indexes.frozen.FrozenList = index.index.names  # type: ignore # pandas type hints wrong
+            res = update_index_from_candidates(res, index_names.difference({"file_id"}))
 
         # Look up only the indexes we want
         # just in case the data we loaded had more than we asked for
         # (because the files aren't saved with exactly the right granularity
         # for the query that has been requested).
-        res = loaded
         if selector is not None:
             res = mi_loc(res, selector)
 
@@ -1054,9 +1064,16 @@ def rewrite_file(
     backend
         Back-end to use for reading and writing data
     """
-    data_all = backend.load_data_file(rewrite_action.from_file).set_index(
-        rewrite_action.locator.names
-    )
+    data_all = backend.load_data_file(rewrite_action.from_file)
+    if not backend.preserves_index:
+        rewrite_action_names: pandas.core.indexes.frozen.FrozenList = (
+            rewrite_action.locator.names  # type: ignore # pandas type hints wrong
+        )
+        data_all = update_index_from_candidates(
+            data_all,
+            rewrite_action_names,
+        )
+
     data_rewrite = mi_loc(data_all, rewrite_action.locator)
     backend.save_data(data_rewrite, rewrite_action.to_file)
 
@@ -1150,14 +1167,14 @@ def rewrite_files(
 
 def save_data(  # noqa: PLR0913
     data: pd.DataFrame,
-    db: OpenSCMDBBackend,
+    db: OpenSCMDB,
     min_file_id: int = 0,
     groupby: list[str] | None = None,
     progress_grouping: ProgressLike | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
-) -> tuple[pd.DataFrame, pd.Series[Path]]:
+) -> tuple[pd.DataFrame, pd.Series[Path]]:  # type: ignore # pandas type hints confused about what it supports
     """
     Save data
 
@@ -1218,7 +1235,12 @@ def save_data(  # noqa: PLR0913
     """
     if groupby is None:
         # Write as a single file
-        grouper = [(None, data)]
+        grouper: (
+            Iterable[tuple[tuple[Any, ...], pd.DataFrame]]
+            | pandas.core.groupby.generic.DataFrameGroupBy[
+                tuple[Any, ...], Literal[True]
+            ]
+        ) = [((None,), data)]
     else:
         grouper = data.groupby(groupby)
 
@@ -1233,14 +1255,14 @@ def save_data(  # noqa: PLR0913
         if progress_grouping is None:
             progress_grouping = get_tqdm_auto(desc="Grouping data to save")
 
-        grouper = progress_grouping(grouper, desc="Grouping data to save")
+        grouper = progress_grouping(grouper)
 
     for increment, (_, df) in enumerate(grouper):
         file_id = min_file_id + increment
 
         new_file_path = db.get_new_data_file_path(file_id)
 
-        file_map_out.loc[file_id] = new_file_path
+        file_map_out.loc[file_id] = new_file_path  # type: ignore # pandas types confused about what they support
         index_df = data.index.to_frame(index=False)
         index_df["file_id"] = file_id
         index_out_l.append(index_df)
@@ -1321,7 +1343,9 @@ def save_files(
 
         Only used if `parallel_op_config` is `None`.
     """
-    iterable_input: Iterable[ReWriteAction] | list[ReWriteAction] = save_actions
+    iterable_input: (
+        Iterable[tuple[pd.DataFrame, Path]] | list[tuple[pd.DataFrame, Path]]
+    ) = save_actions
 
     # Stick the whole thing in a try finally block so we shutdown
     # the parallel pool, even if interrupted, if we created it.

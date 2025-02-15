@@ -5,7 +5,7 @@ netCDF backend
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 from attrs import define
@@ -31,6 +31,13 @@ class netCDFBackend:
     """
     Name of the timeseries dimension in serialised output
     """
+
+    @property
+    def preserves_index(self) -> Literal[True]:
+        """
+        Whether this backend preserves the index
+        """
+        return True
 
     def load_data_file(self, data_file: Path) -> pd.DataFrame:
         """
@@ -59,7 +66,9 @@ class netCDFBackend:
         index = metadata_xr_to_df(raw)
         index_concat = index.loc[raw[self.timeseries_dim].values]
 
-        res = pd.concat([index_concat, data], axis="columns")
+        res = pd.concat([index_concat, data], axis="columns").set_index(
+            index.columns.to_list()
+        )
 
         return res
 
