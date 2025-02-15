@@ -561,6 +561,11 @@ class OpenSCMDB:
         -------
         :
             Map from file ID to file path
+
+        Raises
+        ------
+        EmptyDBError
+            The database is empty
         """
         if self.is_empty:
             raise EmptyDBError(self)
@@ -578,6 +583,43 @@ class OpenSCMDB:
             file_map = file_map_indexed["file_path"]
 
         return file_map
+
+    def load_index(
+        self,
+        *,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+    ) -> pd.DataFrame:
+        """
+        Load the index
+
+        Parameters
+        ----------
+        lock_context_manager
+            Context manager to use to acquire the lock file.
+
+            If not supplied, we use
+            [`self.index_file_lock.acquire`][(c)].
+
+        Returns
+        -------
+        :
+            Database index
+
+        Raises
+        ------
+        EmptyDBError
+            The database is empty
+        """
+        if self.is_empty:
+            raise EmptyDBError(self)
+
+        if lock_context_manager is None:
+            lock_context_manager = self.index_file_lock.acquire()
+
+        with lock_context_manager:
+            index = self.backend.load_index(self.index_file)
+
+        return index
 
     def load_metadata(
         self,
@@ -607,7 +649,10 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            db_index = self.backend.load_index(self.index_file)
+            db_index = self.load_index(
+                # Already have the lock
+                lock_context_manager=contextlib.nullcontext(None)
+            )
 
         res: pd.MultiIndex = pd.MultiIndex.from_frame(db_index).droplevel("file_id")
 
@@ -863,7 +908,10 @@ class OpenSCMDB:
                 # Already have the lock
                 lock_context_manager=contextlib.nullcontext(None)
             )
-            index_db = self.backend.load_index(self.index_file)
+            index_db = self.load_index(
+                # Already have the lock
+                lock_context_manager=contextlib.nullcontext(None)
+            )
             if not allow_overwrite:
                 overwrite_required = multi_index_match(
                     data.index,
