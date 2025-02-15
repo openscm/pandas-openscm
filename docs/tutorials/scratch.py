@@ -71,12 +71,12 @@ like_for_like_test_create_kwargs = dict(
 )
 
 # %%
-# groupby = ["scenario", "variable"]
-# big_df = create_test_df(**artificial_test_create_kwargs)
+groupby = ["scenario", "variable"]
+big_df = create_test_df(**artificial_test_create_kwargs)
 # groupby = ["variable"]
 # big_df = create_test_df(**more_realistic_test_create_kwargs)
-groupby = ["variable"]
-big_df = create_test_df(**like_for_like_test_create_kwargs)
+# groupby = ["variable"]
+# big_df = create_test_df(**like_for_like_test_create_kwargs)
 big_df
 
 # %%

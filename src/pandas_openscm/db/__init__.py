@@ -9,6 +9,7 @@ import contextlib
 import os
 import warnings
 from collections.abc import Iterable
+from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol
 
@@ -1264,6 +1265,32 @@ def rewrite_files(
             parallel_op_config_use.executor.shutdown()
 
 
+class DBFileType(Enum):
+    """
+    Type of a database file
+
+    Really just a helper for [save_data][(m).]
+    """
+
+    DATA = auto()
+    INDEX = auto()
+    FILE_MAP = auto()
+
+
+@define
+class SaveAction:
+    """A database save action"""
+
+    info: pd.DataFrame | pd.Series[Any]
+    """Information to save"""
+
+    info_kind: DBFileType
+    """The kind of information that this is"""
+
+    save_path: Path
+    """Path in which to save the information"""
+
+
 def save_data(  # noqa: PLR0913
     data: pd.DataFrame,
     db: OpenSCMDB,
@@ -1372,7 +1399,31 @@ def save_data(  # noqa: PLR0913
             )
         )
 
-        write_groups_l.append((df, new_file_path))
+        write_groups_l.append(
+            SaveAction(info=df, info_kind=DBFileType.DATA, save_path=new_file_path)
+        )
+
+    if index_non_data is None:
+        index_out = pd.concat(index_out_l)
+    else:
+        index_out = pd.concat(
+            [index_non_data.reorder_levels(data.index.names), *index_out_l]
+        )
+
+    if file_map_non_data is not None:
+        file_map_out = pd.concat([file_map_non_data, file_map_out])
+
+    # Write the index first as it can be slow if very big
+    write_groups_l.insert(
+        0,
+        SaveAction(info=index_out, info_kind=DBFileType.INDEX, save_path=db.index_file),
+    )
+    # Write the file map last, it is almost always cheapest
+    write_groups_l.append(
+        SaveAction(
+            info=file_map_out, info_kind=DBFileType.FILE_MAP, save_path=db.file_map_file
+        )
+    )
 
     save_files(
         write_groups_l,
@@ -1382,59 +1433,21 @@ def save_data(  # noqa: PLR0913
         max_workers=max_workers,
     )
 
-    if index_non_data is None:
-        index_out = pd.concat(index_out_l)
-    else:
-        index_out = pd.concat(
-            [*index_out_l, index_non_data.reorder_levels(data.index.names)]
-        )
-
-    db.backend.save_index(
-        index=index_out,
-        index_file=db.index_file,
-    )
-
-    if file_map_non_data is not None:
-        file_map_out = pd.concat([file_map_out, file_map_non_data])
-
-    db.backend.save_file_map(
-        file_map=file_map_out,
-        file_map_file=db.file_map_file,
-    )
-
-
-def save_file(
-    save_action: tuple[pd.DataFrame, Path],
-    backend: OpenSCMDBBackend,
-) -> None:
-    """
-    Save a file to disk
-
-    Parameters
-    ----------
-    save_action
-        [pandas.DataFrame][`pd.DataFrame`] and the path to save it in
-
-    backend
-        Back-end to use for writing data
-    """
-    backend.save_data(save_action[0], save_action[1])
-
 
 def save_files(
-    save_actions: Iterable[tuple[pd.DataFrame, Path]],
+    save_actions: Iterable[SaveAction],
     backend: OpenSCMDBBackend,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
 ) -> None:
     """
-    Save a number of [pandas.DataFrame][`pd.DataFrame`] to disk
+    Save database information to disk
 
     Parameters
     ----------
     save_actions
-        Iterable of [pandas.DataFrame][`pd.DataFrame`] and the path to save them in
+        Iterable of save actions
 
     backend
         Backend to use to write the files
@@ -1465,9 +1478,7 @@ def save_files(
 
         Only used if `parallel_op_config` is `None`.
     """
-    iterable_input: (
-        Iterable[tuple[pd.DataFrame, Path]] | list[tuple[pd.DataFrame, Path]]
-    ) = save_actions
+    iterable_input: Iterable[SaveAction] | list[SaveAction] = save_actions
 
     # Stick the whole thing in a try finally block so we shutdown
     # the parallel pool, even if interrupted, if we created it.
@@ -1508,6 +1519,40 @@ def save_files(
                 raise AssertionError
 
             parallel_op_config_use.executor.shutdown()
+
+
+def save_file(
+    save_action: SaveAction,
+    backend: OpenSCMDBBackend,
+) -> None:
+    """
+    Save a file to disk
+
+    Parameters
+    ----------
+    save_action
+        Save action to perform
+
+    backend
+        Back-end to use for writing data
+    """
+    if save_action.info_kind == DBFileType.DATA:
+        backend.save_data(save_action.info, save_action.save_path)
+
+    elif save_action.info_kind == DBFileType.INDEX:
+        backend.save_index(
+            index=save_action.info,
+            index_file=save_action.save_path,
+        )
+
+    elif save_action.info_kind == DBFileType.FILE_MAP:
+        backend.save_file_map(
+            file_map=save_action.info,
+            file_map_file=save_action.save_path,
+        )
+
+    else:
+        raise NotImplementedError(save_action.info_kind)
 
 
 __all__ = [
