@@ -88,82 +88,6 @@ def get_tqdm_auto(**kwargs: Any) -> ProgressLike:
     return partial(tqdm.auto.tqdm, **kwargs)  # type: ignore # can't get tqdm and mypy to play nice
 
 
-def figure_out_progress_bars(
-    progress_results: bool | ProgressLike | None,
-    progress_results_default_kwargs: dict[str, Any],
-    executor: Any | None,
-    progress_parallel_submission: bool | ProgressLike | None,
-    progress_parallel_submission_default_kwargs: dict[str, Any],
-) -> tuple[ProgressLike | None, ProgressLike | None]:
-    """
-    Figure out which progress bars to use
-
-    This is just a helper to avoid having to repeat this logic everywhere.
-
-    Parameters
-    ----------
-    progress_results
-        Progress bar to use for the results.
-
-        If `True`, we use the default bar.
-
-        Otherwise, we use the supplied value
-        or `None` if the supplied value is falsey.
-
-    progress_results_default_kwargs
-        Keyword-arguments to pass to [`get_tqdm_auto`][(m).]
-        if we are using the default bar (i.e. `progress_results` is `True`).
-
-    executor
-        Parallel executor being used.
-
-        If this is `None`, we know that no parallelisation will occur
-        so we can safely return `None` for `progress_parallel_submission`.
-
-    progress_parallel_submission
-        Progress bar to use for submitting the iterable to the parallel pool.
-
-        If `True`, we use the default bar.
-
-        Otherwise, we use the supplied value
-        or `None` if the supplied value is falsey.
-
-    progress_parallel_submission_default_kwargs
-        Keyword-arguments to pass to [`get_tqdm_auto`][(m).]
-        if we are using the default bar (i.e. `progress_parallel_submission` is `True`).
-
-    Returns
-    -------
-    progress_results_use :
-        The progress bar (or lack thereof) to use for result retrieval
-
-    progress_parallel_submission_use :
-        The progress bar (or lack thereof) to use for submitting to the parallel pool
-    """
-    if executor is not None:
-        if progress_parallel_submission and isinstance(
-            progress_parallel_submission, bool
-        ):
-            progress_parallel_submission_use = get_tqdm_auto(
-                **progress_parallel_submission_default_kwargs
-            )
-        elif not progress_parallel_submission:
-            progress_parallel_submission_use = None
-        else:
-            progress_parallel_submission_use = progress_parallel_submission
-    else:
-        progress_parallel_submission_use = None
-
-    if progress_results and isinstance(progress_results, bool):
-        progress_results_use = get_tqdm_auto(**progress_results_default_kwargs)
-    elif not progress_results:
-        progress_results_use = None
-    else:
-        progress_results_use = progress_results
-
-    return progress_results_use, progress_parallel_submission_use
-
-
 @define
 class ParallelOpConfig:
     """
@@ -212,10 +136,10 @@ class ParallelOpConfig:
         progress_results_kwargs: dict[str, Any] | None = None,
         progress_parallel_submission_kwargs: dict[str, Any] | None = None,
         max_workers: int | None = None,
-        parallel_pool_cls: type[concurrent.futures.ProcessPoolExecutor]
-        | type[
-            concurrent.futures.ThreadPoolExecutor
-        ] = concurrent.futures.ProcessPoolExecutor,
+        parallel_pool_cls: (
+            type[concurrent.futures.ProcessPoolExecutor]
+            | type[concurrent.futures.ThreadPoolExecutor]
+        ) = concurrent.futures.ProcessPoolExecutor,
     ) -> ParallelOpConfig:
         """
         Initialise from more user-facing arguments
@@ -384,3 +308,76 @@ def apply_op_parallel_progress(
     res = tuple(ft.result() for ft in iterator_results)
 
     return res
+
+
+# # This is how you could abstract out the pattern we repeat in db.__init__
+# # It's not that helpful though, it just saves line of code.
+# # I also can't make the type hints work.
+# def hard_to_describe(
+#     iterable_input: Iterable[U],
+#     func_to_call: Callable[Concatenate[U, P], T],
+#     parallel_op_config: ParallelOpConfig | None = None,
+#     progress: bool = False,
+#     max_workers: int | None = None,
+#     default_progress_results_kwargs: dict[str, Any] | None = None,
+#     default_progress_parallel_submission_kwargs: dict[str, Any] | None = None,
+#     default_parallel_pool_cls: (
+#         type[concurrent.futures.ProcessPoolExecutor]
+#         | type[concurrent.futures.ThreadPoolExecutor]
+#         | None
+#     ) = None,
+#     *args: P.args,
+#     **kwargs: P.kwargs,
+# ) -> tuple[T, ...]:
+#     iter_or_list: Iterable[U] | list[U] = iterable_input
+#
+#     if default_progress_results_kwargs is None:
+#         default_progress_results_kwargs = {}
+#
+#     if default_progress_parallel_submission_kwargs is None:
+#         default_progress_parallel_submission_kwargs = {}
+#
+#     # Stick the whole thing in a try finally block so we shutdown
+#     # the parallel pool, even if interrupted, if we created it.
+#     try:
+#         if parallel_op_config is None:
+#             if default_parallel_pool_cls is None:
+#                 msg = (
+#                     f"{parallel_op_config=}, "
+#                     "please supply default_parallel_pool_cls"
+#                 )
+#                 raise TypeError(msg)
+#
+#             parallel_op_config_use = ParallelOpConfig.from_user_facing(
+#                 progress=progress,
+#                 progress_results_kwargs=default_progress_results_kwargs,
+#                 progress_parallel_submission_kwargs=default_progress_parallel_submission_kwargs,  # noqa: E501
+#                 max_workers=max_workers,
+#                 parallel_pool_cls=default_parallel_pool_cls,
+#             )
+#         else:
+#             parallel_op_config_use = parallel_op_config
+#
+#         if parallel_op_config_use.progress_results is not None:
+#             # Wrap in list to force the length to be available to any progress bar.
+#             # This might be the wrong decision in a weird edge case,
+#             # but it's convenient enough that I'm willing to take that risk
+#             iter_or_list = list(iter_or_list)
+#
+#         res = apply_op_parallel_progress(
+#             func_to_call=func_to_call,
+#             iterable_input=iter_or_list,
+#             parallel_op_config=parallel_op_config_use,
+#             *args,
+#             **kwargs,
+#         )
+#
+#     finally:
+#         if parallel_op_config_use.executor_created_in_class_method:
+#             if parallel_op_config_use.executor is None:  # pragma: no cover
+#                 # Should be impossible to get here
+#                 raise AssertionError
+#
+#             parallel_op_config_use.executor.shutdown()
+#
+#     return res
