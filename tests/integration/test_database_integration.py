@@ -117,7 +117,7 @@ def test_save_multiple_and_load(tmpdir, db_backend):
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(all_saved, loaded)
+    pd.testing.assert_frame_equal(all_saved, loaded, check_like=True)
 
 
 @db_backends
@@ -276,7 +276,7 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(update_exp, loaded)
+    pd.testing.assert_frame_equal(update_exp, loaded, check_like=True)
 
 
 @pytest.mark.parametrize(
@@ -360,7 +360,7 @@ def test_load_with_loc(tmpdir, db_backend):
         loaded = db.load(selector, out_columns_type=float)
         exp = full_db.loc[selector]
 
-        pd.testing.assert_frame_equal(loaded, exp)
+        pd.testing.assert_frame_equal(loaded, exp, check_like=True)
 
 
 @db_backends
@@ -382,7 +382,7 @@ def test_load_with_index_all(tmpdir, db_backend):
 
     loaded = db.load(idx, out_columns_type=float)
 
-    pd.testing.assert_frame_equal(loaded, exp)
+    pd.testing.assert_frame_equal(loaded, exp, check_like=True)
 
 
 @pytest.mark.parametrize(
@@ -408,7 +408,7 @@ def test_load_with_index_slice(tmpdir, slice, db_backend):
 
     loaded = db.load(idx, out_columns_type=float)
 
-    pd.testing.assert_frame_equal(loaded, exp)
+    pd.testing.assert_frame_equal(loaded, exp, check_like=True)
 
 
 @pytest.mark.parametrize(
@@ -448,7 +448,7 @@ def test_load_with_pix_unique_levels(tmpdir, levels, db_backend):
 
     loaded = db.load(idx, out_columns_type=float)
 
-    pd.testing.assert_frame_equal(loaded, exp)
+    pd.testing.assert_frame_equal(loaded, exp, check_like=True)
 
 
 @db_backends

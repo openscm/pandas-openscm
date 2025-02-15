@@ -882,7 +882,7 @@ class OpenSCMDB:
 
         with lock_context_manager:
             if self.is_empty:
-                index_out, file_map_out = save_data(
+                save_data(
                     data,
                     db=self,
                     min_file_id=0,
@@ -891,15 +891,6 @@ class OpenSCMDB:
                     parallel_op_config=parallel_op_config_save,
                     progress=progress,
                     max_workers=max_workers,
-                )
-
-                self.backend.save_index(
-                    index=index_out,
-                    index_file=self.index_file,
-                )
-                self.backend.save_file_map(
-                    file_map=file_map_out,
-                    file_map_file=self.file_map_file,
                 )
 
                 return
@@ -956,28 +947,17 @@ class OpenSCMDB:
 
             min_file_id = current_largest_file_id + 1
 
-            index_data, file_map_data = save_data(
+            save_data(
                 data,
                 db=self,
+                index_non_data=move_plan.moved_index,
+                file_map_non_data=move_plan.moved_file_map,
                 min_file_id=min_file_id,
                 groupby=groupby,
                 progress_grouping=progress_grouping,
                 parallel_op_config=parallel_op_config_save,
                 progress=progress,
                 max_workers=max_workers,
-            )
-
-            file_map_out = pd.concat([move_plan.moved_file_map, file_map_data])
-            index_out = pd.concat([move_plan.moved_index, index_data])
-
-            # Write the updated index and file map
-            self.backend.save_index(
-                index=index_out,
-                index_file=self.index_file,
-            )
-            self.backend.save_file_map(
-                file_map=file_map_out,
-                file_map_file=self.file_map_file,
             )
 
             # As needed, delete files.
@@ -1274,13 +1254,15 @@ def rewrite_files(
 def save_data(  # noqa: PLR0913
     data: pd.DataFrame,
     db: OpenSCMDB,
+    index_non_data: pd.DataFrame | None = None,
+    file_map_non_data: pd.Series[Path] | None = None,  # type: ignore # pandas type hints doesn't know what it supports
     min_file_id: int = 0,
     groupby: list[str] | None = None,
     progress_grouping: ProgressLike | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
-) -> tuple[pd.DataFrame, pd.Series[Path]]:  # type: ignore # pandas type hints confused about what it supports
+) -> None:
     """
     Save data
 
@@ -1291,6 +1273,18 @@ def save_data(  # noqa: PLR0913
 
     db
         Database in which to save the data
+
+    index_non_data
+        Index that is already in the database but isn't related to data.
+
+        If supplied, this is combined with the index generated for `data`
+        before we write the database's index.
+
+    file_map_non_data
+        File map that is already in the database but isn't related to data.
+
+        If supplied, this is combined with the file map generated for `data`
+        before we write the database's file map.
 
     min_file_id
         Minimum file ID to assign to save data chunks
@@ -1328,16 +1322,6 @@ def save_data(  # noqa: PLR0913
         If not supplied, the saving is executed serially.
 
         Only used if `parallel_op_config` is `None`.
-
-    Returns
-    -------
-    index_out :
-        The index of `data`
-
-        Now including the file ID of the file in which each chunk was written.
-
-    file_map_out :
-        The map from file ID to file path for the written files
     """
     if groupby is None:
         # Write as a single file
@@ -1375,7 +1359,6 @@ def save_data(  # noqa: PLR0913
 
         write_groups_l.append((df, new_file_path))
 
-    index_out = pd.concat(index_out_l)
     save_files(
         write_groups_l,
         backend=db.backend,
@@ -1384,7 +1367,23 @@ def save_data(  # noqa: PLR0913
         max_workers=max_workers,
     )
 
-    return index_out, file_map_out
+    if index_non_data is None:
+        index_out = pd.concat(index_out_l)
+    else:
+        index_out = pd.concat([*index_out_l, index_non_data])
+
+    db.backend.save_index(
+        index=index_out,
+        index_file=db.index_file,
+    )
+
+    if file_map_non_data is not None:
+        file_map_out = pd.concat([file_map_out, file_map_non_data])
+
+    db.backend.save_file_map(
+        file_map=file_map_out,
+        file_map_file=db.file_map_file,
+    )
 
 
 def save_file(
