@@ -20,6 +20,7 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import tqdm.autonotebook as tqdman
 
 from pandas_openscm.db import FeatherBackend, OpenSCMDB
@@ -51,19 +52,70 @@ db = OpenSCMDB(db_dir=db_dir, backend=FeatherBackend())
 db
 
 # %%
-big_df.to_feather("dump.feather")
+scratch_dir = Path(tempfile.mkdtemp())
 
 # %%
-import pandas as pd
-
-pd.read_feather("dump.feather")
-
-# %%
-# %time
+# %%time
 # How long does it take to just write as a single file
-test_all_in_one_file = Path(tempfile.mkdtemp()) / f"test-all-in-one{db.backend.ext}"
+test_all_in_one_file = scratch_dir / f"test-all-in-one{db.backend.ext}"
 db.backend.save_data(big_df.reset_index(), test_all_in_one_file)
 os.path.getsize(test_all_in_one_file) / (2**10) ** 2
+
+# %%
+# %%time
+# Grouping makes things an incredible amount slower.
+# Really slow for writing, but way faster for later reading.
+test_single_group_file = scratch_dir / f"test-single-group{db.backend.ext}"
+for _, df in tqdman.tqdm(big_df.groupby(groupby)):
+    db.backend.save_data(df, test_single_group_file)
+
+# %%
+max_workers = 4
+
+# %%
+# Make a database to work with
+with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+    db.save(
+        big_df,
+        groupby=groupby,
+        progress_grouping=partial(tqdman.tqdm, desc="Grouping"),
+        parallel_op_config_save=ParallelOpConfig(
+            progress_results=partial(tqdman.tqdm, desc="Saving files"),
+            progress_parallel_submission=partial(
+                tqdman.tqdm, desc="Submitting files to save executor"
+            ),
+            executor=executor,
+        ),
+    )
+
+# %%
+# %%time
+# How long does it take to load the index directly with pandas
+pd.read_feather(db.index_file).shape
+
+# %%
+# %%time
+# How long does it take to load the index via the db
+index = db.load_index()
+index
+
+# %%
+# %%time
+# How long does it take to load the file map
+file_map = db.load_file_map()
+file_map
+
+# %%
+# %%time
+# How long does it take to save the index directly with pandas
+scratch_index_file_pd = scratch_dir / f"pd-index{db.backend.ext}"
+index.to_feather(scratch_index_file_pd)
+
+# %%
+# %%time
+# How long does it take to save the index via the db
+scratch_index_file = scratch_dir / f"index{db.backend.ext}"
+db.backend.save_index(index, scratch_index_file)
 
 # %%
 # %time
@@ -76,7 +128,7 @@ os.path.getsize(test_all_in_one_file_index) / (2**10) ** 2
 
 # %%
 # %time
-# How long does it take to just write the index as a single file
+# How long does it take to just write the file map as a single file
 test_all_in_one_file_map = (
     Path(tempfile.mkdtemp()) / f"test-all-in-one-map{db.backend.ext}"
 )
@@ -93,11 +145,6 @@ db.backend.save_data(big_df, test_all_in_one_file)
 os.path.getsize(test_all_in_one_file) / (2**10) ** 2
 
 # %%
-# Grouping makes things an incredible amount slower.
-# Really slow for writing, but way faster for later reading.
-test_single_group_file = dump_dir / f"test-single-group{db.backend.ext}"
-for _, df in tqdman.tqdm(big_df.groupby(groupby)):
-    db.backend.save_data(df, test_single_group_file)
 
 # %%
 tqdman.tqdm.pandas()
