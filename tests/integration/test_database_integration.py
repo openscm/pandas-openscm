@@ -284,6 +284,7 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
     (
         ("delete", []),
         ("load", []),
+        ("load_file_map", []),
         ("load_metadata", []),
         (
             "save",

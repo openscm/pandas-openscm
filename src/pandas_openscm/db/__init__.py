@@ -486,8 +486,10 @@ class OpenSCMDB:
 
         with lock_context_manager:
             index_raw = self.backend.load_index(self.index_file)
-            file_map_raw = self.backend.load_file_map(self.file_map_file)
-            file_map = file_map_raw.set_index("file_id")["file_path"]
+            file_map = self.load_file_map(
+                # Already have the lock
+                lock_context_manager=contextlib.nullcontext(None)
+            )
 
             # Don't need to copy as index_raw is only used internally.
             # The different name is just to help understand the order of operations.
@@ -525,6 +527,44 @@ class OpenSCMDB:
             res.columns = res.columns.astype(out_columns_type)
 
         return res
+
+    def load_file_map(
+        self,
+        *,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+    ) -> pd.Series[Path]:  # type: ignore # pandas type hints confused about what they support
+        """
+        Load the file map
+
+        Parameters
+        ----------
+        lock_context_manager
+            Context manager to use to acquire the lock file.
+
+            If not supplied, we use
+            [`self.index_file_lock.acquire`][(c)].
+
+        Returns
+        -------
+        :
+            Map from file ID to file path
+        """
+        if self.is_empty:
+            raise EmptyDBError(self)
+
+        if lock_context_manager is None:
+            lock_context_manager = self.index_file_lock.acquire()
+
+        with lock_context_manager:
+            file_map_raw = self.backend.load_file_map(self.file_map_file)
+            if not self.backend.preserves_index:
+                file_map_indexed = file_map_raw.set_index("file_id")
+            else:
+                file_map_indexed = file_map_raw
+
+            file_map = file_map_indexed["file_path"]
+
+        return file_map
 
     def load_metadata(
         self,
@@ -804,9 +844,10 @@ class OpenSCMDB:
 
                 return
 
-            file_map_db = self.backend.load_file_map(self.file_map_file).set_index(
-                "file_id"
-            )["file_path"]
+            file_map_db = self.load_file_map(
+                # Already have the lock
+                lock_context_manager=contextlib.nullcontext(None)
+            )
             index_db = self.backend.load_index(self.index_file)
             if not allow_overwrite:
                 overwrite_required = multi_index_match(

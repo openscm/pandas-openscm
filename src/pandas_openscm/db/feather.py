@@ -127,10 +127,11 @@ class FeatherBackend:
         """
         index.to_feather(index_file)
 
-        # Feather doesn't support
-        # (see https://pandas.pydata.org/docs/user_guide/io.html#feather):
-        # - writing indexes
-        file_map_write = file_map.reset_index()
-        # - writing non-native types (e.g. Path)
-        file_map_write["file_path"] = file_map_write["file_path"].astype(str)
-        file_map_write.to_feather(file_map_file)
+        # Feather doesn't support writing non-native types
+        # (see https://pandas.pydata.org/docs/user_guide/io.html#feather).
+        # The docs say that feather doesn't support writing indexes
+        # # (see https://pandas.pydata.org/docs/user_guide/io.html#feather).
+        # However, it seems to have no issue writing this index.
+        # Hence the implementation below
+        file_map_write = file_map.astype(str)
+        file_map_write.to_frame().to_feather(file_map_file)

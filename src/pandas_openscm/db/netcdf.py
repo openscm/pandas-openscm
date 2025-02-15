@@ -94,7 +94,13 @@ class netCDFBackend:
                 "netCDFBackend.load_file_map", requirement="xarray"
             ) from exc
 
-        res: pd.DataFrame = xr.load_dataarray(file_map_file).to_pandas().reset_index()  # type: ignore # not sure why load_dataarray is untyped
+        res = xr.load_dataset(file_map_file).to_pandas()
+        if isinstance(res, pd.Series):
+            raise TypeError
+
+        # res: pd.DataFrame = xr.load_dataarray(file_map_file).to_pandas().to_frame()
+        # breakpoint()
+        # .reset_index()  # type: ignore # not sure why load_dataarray is untyped
 
         return res
 
