@@ -1537,15 +1537,27 @@ def save_file(
         Back-end to use for writing data
     """
     if save_action.info_kind == DBFileType.DATA:
+        if isinstance(save_action.info, pd.Series):  # pragma: no cover
+            # Should be impossible to get here
+            raise TypeError
+
         backend.save_data(save_action.info, save_action.save_path)
 
     elif save_action.info_kind == DBFileType.INDEX:
+        if isinstance(save_action.info, pd.Series):  # pragma: no cover
+            # Should be impossible to get here
+            raise TypeError
+
         backend.save_index(
             index=save_action.info,
             index_file=save_action.save_path,
         )
 
     elif save_action.info_kind == DBFileType.FILE_MAP:
+        if isinstance(save_action.info, pd.DataFrame):  # pragma: no cover
+            # Should be impossible to get here
+            raise TypeError
+
         backend.save_file_map(
             file_map=save_action.info,
             file_map_file=save_action.save_path,
