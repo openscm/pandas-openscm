@@ -131,4 +131,4 @@ class CSVBackend:
         index_file
             File in which to save the index
         """
-        index.to_csv(index_file, index=False)
+        index.to_csv(index_file)

@@ -24,6 +24,7 @@ from pandas_openscm.db import (
     ReWriteAction,
 )
 from pandas_openscm.testing import (
+    assert_frame_alike,
     assert_move_plan_equal,
     create_test_df,
     get_parametrized_db_backends,
@@ -77,14 +78,14 @@ def test_save_and_load(n_scenarios, variables, n_runs, db_backend, tmpdir):
     db.save(start)
 
     db_metadata = db.load_metadata()
-    metadata_compare = db_metadata
+    metadata_compare = db_metadata.reorder_levels(start.index.names)
     pd.testing.assert_index_equal(
         start.index, metadata_compare, exact="equiv", check_order=False
     )
 
     loaded = db.load(out_columns_type=int)
 
-    pd.testing.assert_frame_equal(start, loaded)
+    assert_frame_alike(start, loaded)
 
 
 @db_backends
@@ -93,9 +94,9 @@ def test_save_multiple_and_load(tmpdir, db_backend):
 
     all_saved_l = []
     for variable in [
-        ("Emissions", "Gt"),
-        ("Concentrations", "ppm"),
-        ("Forcing", "W/m^2"),
+        [("Emissions", "Gt")],
+        [("Concentrations", "ppm")],
+        [("Forcing", "W/m^2")],
     ]:
         to_save = create_test_df(
             n_scenarios=10,
@@ -110,14 +111,14 @@ def test_save_multiple_and_load(tmpdir, db_backend):
     all_saved = pix.concat(all_saved_l)
 
     db_metadata = db.load_metadata()
-    metadata_compare = db_metadata
+    metadata_compare = db_metadata.reorder_levels(all_saved.index.names)
     pd.testing.assert_index_equal(
         all_saved.index, metadata_compare, exact="equiv", check_order=False
     )
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(all_saved, loaded, check_like=True)
+    assert_frame_alike(all_saved, loaded)
 
 
 @db_backends
@@ -160,14 +161,14 @@ def test_save_overwrite_force(tmpdir, db_backend):
 
     # Make sure that our data saved correctly
     db_metadata = db.load_metadata()
-    metadata_compare = db_metadata
+    metadata_compare = db_metadata.reorder_levels(original.index.names)
     pd.testing.assert_index_equal(
         original.index, metadata_compare, exact="equiv", check_order=False
     )
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(original, loaded)
+    assert_frame_alike(original, loaded)
 
     original_overwrite = cdf(variables=[("Emissions", "t")])
     updated = pix.concat([original_overwrite, cdf(variables=[("Height", "m")])])
@@ -185,7 +186,7 @@ def test_save_overwrite_force(tmpdir, db_backend):
 
     # Check that the data was overwritten with new data
     try:
-        pd.testing.assert_frame_equal(original, original_overwrite)
+        assert_frame_alike(original, original_overwrite)
     except AssertionError:
         pass
     else:
@@ -195,14 +196,14 @@ def test_save_overwrite_force(tmpdir, db_backend):
         raise AssertionError(msg)
 
     db_metadata = db.load_metadata()
-    metadata_compare = db_metadata
+    metadata_compare = db_metadata.reorder_levels(updated.index.names)
     pd.testing.assert_index_equal(
         updated.index, metadata_compare, exact="equiv", check_order=False
     )
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(updated, loaded)
+    assert_frame_alike(updated, loaded)
 
 
 @db_backends
@@ -229,14 +230,14 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
 
     # Make sure that our data saved correctly
     db_metadata = db.load_metadata()
-    metadata_compare = db_metadata
+    metadata_compare = db_metadata.reorder_levels(original.index.names)
     pd.testing.assert_index_equal(
         original.index, metadata_compare, exact="equiv", check_order=False
     )
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(original, loaded)
+    assert_frame_alike(original, loaded)
 
     original_overwrite = cdf(n_scenarios=3)
 
@@ -258,7 +259,7 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
     overlap_idx = original.index.isin(original_overwrite.index)
     overlap = original.loc[overlap_idx]
     try:
-        pd.testing.assert_frame_equal(overlap, original_overwrite)
+        assert_frame_alike(overlap, original_overwrite)
     except AssertionError:
         pass
     else:
@@ -269,14 +270,14 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
 
     update_exp = pix.concat([original.loc[~overlap_idx], original_overwrite])
     db_metadata = db.load_metadata()
-    metadata_compare = db_metadata
+    metadata_compare = db_metadata.reorder_levels(update_exp.index.names)
     pd.testing.assert_index_equal(
         update_exp.index, metadata_compare, exact="equiv", check_order=False
     )
 
     loaded = db.load(out_columns_type=float)
 
-    pd.testing.assert_frame_equal(update_exp, loaded, check_like=True)
+    assert_frame_alike(update_exp, loaded)
 
 
 @pytest.mark.parametrize(
@@ -345,8 +346,7 @@ def test_load_with_loc(tmpdir, db_backend):
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
 
-    for _, pdf in full_db.groupby(["scenario"]):
-        db.save(pdf)
+    db.save(full_db, groupby=["scenario"])
 
     for selector in [
         pix.isin(scenario=["scenario_1", "scenario_3"]),
@@ -360,7 +360,7 @@ def test_load_with_loc(tmpdir, db_backend):
         loaded = db.load(selector, out_columns_type=float)
         exp = full_db.loc[selector]
 
-        pd.testing.assert_frame_equal(loaded, exp, check_like=True)
+        assert_frame_alike(loaded, exp)
 
 
 @db_backends
@@ -374,15 +374,14 @@ def test_load_with_index_all(tmpdir, db_backend):
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
 
-    for _, pdf in full_db.groupby(["scenario"]):
-        db.save(pdf)
+    db.save(full_db, groupby=["scenario"])
 
     idx = full_db.index
     exp = full_db
 
     loaded = db.load(idx, out_columns_type=float)
 
-    pd.testing.assert_frame_equal(loaded, exp, check_like=True)
+    assert_frame_alike(loaded, exp)
 
 
 @pytest.mark.parametrize(
@@ -400,15 +399,14 @@ def test_load_with_index_slice(tmpdir, slice, db_backend):
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
 
-    for _, pdf in full_db.groupby(["scenario"]):
-        db.save(pdf)
+    db.save(full_db, groupby=["scenario"])
 
     idx = full_db.index[slice]
     exp = full_db[slice]
 
     loaded = db.load(idx, out_columns_type=float)
 
-    pd.testing.assert_frame_equal(loaded, exp, check_like=True)
+    assert_frame_alike(loaded, exp)
 
 
 @pytest.mark.parametrize(
@@ -433,8 +431,7 @@ def test_load_with_pix_unique_levels(tmpdir, levels, db_backend):
         timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
     )
 
-    for _, pdf in full_db.groupby(["scenario"]):
-        db.save(pdf)
+    db.save(full_db, groupby=["scenario"])
 
     locator = None
     for level in levels:
@@ -448,7 +445,7 @@ def test_load_with_pix_unique_levels(tmpdir, levels, db_backend):
 
     loaded = db.load(idx, out_columns_type=float)
 
-    pd.testing.assert_frame_equal(loaded, exp, check_like=True)
+    assert_frame_alike(loaded, exp)
 
 
 @db_backends
@@ -485,20 +482,18 @@ def test_make_move_plan_no_overwrite(db_backend, tmpdir):
             ("scenario_a", "variable_b", "Mt", 0),
         ],
         columns=["scenario", "variable", "unit", "file_id"],
-    )
+    ).set_index(["scenario", "variable", "unit"])
     file_map_start = pd.Series(
         [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
         index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
-    index_data_to_write = pd.MultiIndex.from_frame(
-        pd.DataFrame(
-            [
-                ("scenario_b", "variable_a", "Mt"),
-                ("scenario_b", "variable_b", "Mt"),
-            ],
-            columns=["scenario", "variable", "unit"],
-        )
+    index_data_to_write = pd.MultiIndex.from_tuples(
+        [
+            ("scenario_b", "variable_a", "Mt"),
+            ("scenario_b", "variable_b", "Mt"),
+        ],
+        names=["scenario", "variable", "unit"],
     )
     data_to_write = pd.DataFrame(
         np.random.default_rng().random((index_data_to_write.shape[0], 3)),
@@ -533,21 +528,19 @@ def test_make_move_plan_full_overwrite(db_backend, tmpdir):
             ("scenario_b", "variable_b", "Mt", 1),
         ],
         columns=["scenario", "variable", "unit", "file_id"],
-    )
+    ).set_index(["scenario", "variable", "unit"])
     file_map_start = pd.Series(
         [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
         index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
-    index_data_to_write = pd.MultiIndex.from_frame(
-        pd.DataFrame(
-            [
-                # Full overwrite of file 1
-                ("scenario_b", "variable_a", "Mt"),
-                ("scenario_b", "variable_b", "Mt"),
-            ],
-            columns=["scenario", "variable", "unit"],
-        )
+    index_data_to_write = pd.MultiIndex.from_tuples(
+        [
+            # Full overwrite of file 1
+            ("scenario_b", "variable_a", "Mt"),
+            ("scenario_b", "variable_b", "Mt"),
+        ],
+        names=["scenario", "variable", "unit"],
     )
     data_to_write = pd.DataFrame(
         np.random.default_rng().random((index_data_to_write.shape[0], 3)),
@@ -571,7 +564,7 @@ def test_make_move_plan_full_overwrite(db_backend, tmpdir):
             # ("scenario_b", "variable_b", "Mt", 1),
         ],
         columns=["scenario", "variable", "unit", "file_id"],
-    )
+    ).set_index(index_start.index.names)
 
     exp = MovePlan(
         moved_index=exp_moved_index,
@@ -599,30 +592,28 @@ def test_make_move_plan_partial_overwrite(db_backend, tmpdir):
             ("scenario_c", "variable_b", "Mt", 2),
         ],
         columns=["scenario", "variable", "unit", "file_id"],
-    )
+    ).set_index(["scenario", "variable", "unit"])
     file_map_start = pd.Series(
         [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
         index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
-    index_data_to_write = pd.MultiIndex.from_frame(
-        pd.DataFrame(
-            [
-                # File 0 should be left alone
-                # ("scenario_a", "variable_a", "Mt"),
-                # ("scenario_a", "variable_b", "Mt"),
-                # File 1 should be fully deleted to make room
-                # for this data
-                ("scenario_b", "variable_a", "Mt"),
-                ("scenario_b", "variable_b", "Mt"),
-                # File 2 should be partially re-written,
-                # keeping variable_a but not variable_b
-                # (which will be overwritten)
-                # ("scenario_c", "variable_a", "Mt"),
-                ("scenario_c", "variable_b", "Mt"),
-            ],
-            columns=["scenario", "variable", "unit"],
-        )
+    index_data_to_write = pd.MultiIndex.from_tuples(
+        [
+            # File 0 should be left alone
+            # ("scenario_a", "variable_a", "Mt"),
+            # ("scenario_a", "variable_b", "Mt"),
+            # File 1 should be fully deleted to make room
+            # for this data
+            ("scenario_b", "variable_a", "Mt"),
+            ("scenario_b", "variable_b", "Mt"),
+            # File 2 should be partially re-written,
+            # keeping variable_a but not variable_b
+            # (which will be overwritten)
+            # ("scenario_c", "variable_a", "Mt"),
+            ("scenario_c", "variable_b", "Mt"),
+        ],
+        names=["scenario", "variable", "unit"],
     )
     data_to_write = pd.DataFrame(
         np.random.default_rng().random((index_data_to_write.shape[0], 3)),
@@ -650,7 +641,7 @@ def test_make_move_plan_partial_overwrite(db_backend, tmpdir):
             # ("scenario_c", "variable_b", "Mt", 2),
         ],
         columns=["scenario", "variable", "unit", "file_id"],
-    )
+    ).set_index(index_start.index.names)
 
     exp = MovePlan(
         moved_index=exp_moved_index,

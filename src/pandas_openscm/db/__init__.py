@@ -498,20 +498,26 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            index_raw = self.backend.load_index(self.index_file)
+            # index_raw = self.backend.load_index(self.index_file)
+            #
+            # # Don't need to copy as index_raw is only used internally.
+            # # The different name is just to help understand the order of operations.
+            # index = index_raw
+            # index.index = pd.MultiIndex.from_frame(index_raw)
+            #
+            # index_to_load = index
             file_map = self.load_file_map(
                 # Already have the lock
                 lock_context_manager=contextlib.nullcontext(None)
             )
-
-            # Don't need to copy as index_raw is only used internally.
-            # The different name is just to help understand the order of operations.
-            index = index_raw
-            index.index = pd.MultiIndex.from_frame(index_raw)
-
-            index_to_load = index
-            if selector is not None:
-                index_to_load = mi_loc(index_to_load, selector)
+            index = self.load_index(
+                # Already have the lock
+                lock_context_manager=contextlib.nullcontext(None)
+            )
+            if selector is None:
+                index_to_load = index
+            else:
+                index_to_load = mi_loc(index, selector)
 
             files_to_load = (
                 Path(v) for v in file_map[index_to_load["file_id"].unique()]
@@ -619,6 +625,9 @@ class OpenSCMDB:
         with lock_context_manager:
             index = self.backend.load_index(self.index_file)
 
+        if not self.backend.preserves_index:
+            index = index.set_index(index.columns.difference(["file_id"]).to_list())
+
         return index
 
     def load_metadata(
@@ -654,7 +663,11 @@ class OpenSCMDB:
                 lock_context_manager=contextlib.nullcontext(None)
             )
 
-        res: pd.MultiIndex = pd.MultiIndex.from_frame(db_index).droplevel("file_id")
+        if not isinstance(db_index.index, pd.MultiIndex):  # pragma: no cover
+            # Should be impossible to get here
+            raise TypeError
+
+        res: pd.MultiIndex = db_index.index
 
         return res
 
@@ -683,13 +696,12 @@ class OpenSCMDB:
         :
             Plan for moving data to make room for the new data
         """
-        index_start_mi = pd.MultiIndex.from_frame(index_start)
         if not isinstance(data_to_write.index, pd.MultiIndex):
             raise TypeError
 
         in_data_to_write = pd.Series(
-            multi_index_match(index_start_mi, data_to_write.index),  # type: ignore # pandas confused
-            index=index_start_mi,
+            multi_index_match(index_start.index, data_to_write.index),  # type: ignore # pandas type hints confused
+            index=index_start.set_index("file_id", append=True).index,
         )
 
         grouper = in_data_to_write.groupby("file_id")
@@ -702,7 +714,7 @@ class OpenSCMDB:
                 delete_paths=None,
             )
 
-        full_overwrite = grouper.apply(np.all)
+        full_overwrite: pd.Series[bool] = grouper.apply(np.all)  # type: ignore # pandas type hints confused
         partial_overwrite = ~(full_overwrite | no_overwrite)
         if not partial_overwrite.any():
             # Only keep the bits of the index which won't be overwritten
@@ -733,7 +745,7 @@ class OpenSCMDB:
             & in_data_to_write.index.get_level_values("file_id").isin(
                 partial_overwrite_file_ids
             )
-        ].index.to_frame(index=False)
+        ].reset_index("file_id")[["file_id"]]
 
         file_id_map = {}
         file_map_out = file_map_start[no_overwrite].copy()
@@ -904,10 +916,11 @@ class OpenSCMDB:
                 lock_context_manager=contextlib.nullcontext(None)
             )
             if not allow_overwrite:
-                overwrite_required = multi_index_match(
-                    data.index,
-                    pd.MultiIndex.from_frame(index_db.drop("file_id", axis="columns")),
-                )
+                if not isinstance(index_db.index, pd.MultiIndex):  # pragma: no cover
+                    # Should be impossible to get here
+                    raise TypeError
+
+                overwrite_required = multi_index_match(data.index, index_db.index)
 
                 if overwrite_required.any():
                     data_to_write_already_in_db = data.loc[overwrite_required, :]
@@ -1311,9 +1324,9 @@ def save_data(  # noqa: PLR0913
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ThreadPoolExecutor][]
+        [concurrent.futures.ProcessPoolExecutor][]
         with the provided number of workers.
-        A thread pool seems to be the sensible default from our experimentation,
+        A process pool seems to be the sensible default from our experimentation,
         but it is not a universally better choice.
         If you need something else because of how your database is set up,
         simply pass `parallel_op_config`
@@ -1334,6 +1347,12 @@ def save_data(  # noqa: PLR0913
     else:
         grouper = data.groupby(groupby)
 
+    if progress_grouping or progress:
+        if progress_grouping is None:
+            progress_grouping = get_tqdm_auto(desc="Grouping data to save")
+
+        grouper = progress_grouping(grouper)
+
     write_groups_l = []
     index_out_l = []
     file_map_out = pd.Series(
@@ -1341,21 +1360,17 @@ def save_data(  # noqa: PLR0913
         index=pd.Index([], name="file_id"),
         name="file_path",
     )
-    if progress_grouping or progress:
-        if progress_grouping is None:
-            progress_grouping = get_tqdm_auto(desc="Grouping data to save")
-
-        grouper = progress_grouping(grouper)
-
     for increment, (_, df) in enumerate(grouper):
         file_id = min_file_id + increment
 
         new_file_path = db.get_new_data_file_path(file_id)
 
         file_map_out.loc[file_id] = new_file_path  # type: ignore # pandas types confused about what they support
-        index_df = data.index.to_frame(index=False)
-        index_df["file_id"] = file_id
-        index_out_l.append(index_df)
+        index_out_l.append(
+            pd.DataFrame(
+                np.full(len(df.index), file_id), index=df.index, columns=["file_id"]
+            )
+        )
 
         write_groups_l.append((df, new_file_path))
 
@@ -1370,7 +1385,9 @@ def save_data(  # noqa: PLR0913
     if index_non_data is None:
         index_out = pd.concat(index_out_l)
     else:
-        index_out = pd.concat([*index_out_l, index_non_data])
+        index_out = pd.concat(
+            [*index_out_l, index_non_data.reorder_levels(data.index.names)]
+        )
 
     db.backend.save_index(
         index=index_out,
@@ -1436,9 +1453,9 @@ def save_files(
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ThreadPoolExecutor][]
+        [concurrent.futures.ProcessPoolExecutor][]
         with the provided number of workers.
-        A thread pool seems to be the sensible default from our experimentation,
+        A process pool seems to be the sensible default from our experimentation,
         but it is not a universally better choice.
         If you need something else because of how your database is set up,
         simply pass `parallel_op_config`
@@ -1463,10 +1480,10 @@ def save_files(
                     desc="Submitting files to the parallel executor"
                 ),
                 max_workers=max_workers,
-                # Thread pool by default as basic tests suggest
+                # Process pool by default as basic tests suggest
                 # that writing is CPU-bound.
                 # See the docs for nuance though.
-                parallel_pool_cls=concurrent.futures.ThreadPoolExecutor,
+                parallel_pool_cls=concurrent.futures.ProcessPoolExecutor,
             )
         else:
             parallel_op_config_use = parallel_op_config

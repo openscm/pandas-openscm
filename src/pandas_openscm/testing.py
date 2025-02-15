@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Collection
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -47,6 +47,38 @@ def get_parametrized_db_backends() -> pytest.MarkDecorator:
                 # HDF5 = auto()
             )
         ),
+    )
+
+
+def assert_frame_alike(
+    res: pd.DataFrame, exp: pd.DataFrame, check_like: bool = True, **kwargs: Any
+) -> None:
+    """
+    Assert that two [pd.DataFrame][`pandas.DataFrame`] are alike
+
+    Here, alike means that they have the same data,
+    just potentially not in the same order.
+    This includes the order of index levels, which may also differ.
+
+    Parameters
+    ----------
+    res
+        Result to check
+
+    exp
+        Expected result
+
+    check_like
+        Passed to [`assert_frame_equal`][pandas.testing.assert_frame_equal]
+
+    **kwargs
+        Passed to [`assert_frame_equal`][pandas.testing.assert_frame_equal]
+    """
+    pd.testing.assert_frame_equal(
+        res.reorder_levels(exp.index.names),
+        exp,
+        check_like=check_like,
+        **kwargs,
     )
 
 
@@ -124,56 +156,60 @@ def create_test_df(
     return df
 
 
-def assert_move_plan_equal(a: MovePlan, b: MovePlan) -> None:
+def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
     """
     Assert that two [`MovePlan`][(p).db.MovePlan] are equal
 
     Parameters
     ----------
-    a
-        First object to check
+    res
+        The result
 
-    b
-        Other object to check
+    exp
+        The expectation
 
     Raises
     ------
     AssertionError
-        `a` and `b` are not equal
+        `res` and `exp` are not equal
     """
     # Check that the indexes are the same.
     # We convert to MultiIndex first as we don't care about the actual index values.
     pd.testing.assert_index_equal(
-        pd.MultiIndex.from_frame(a.moved_index),
-        pd.MultiIndex.from_frame(b.moved_index),
+        pd.MultiIndex.from_frame(res.moved_index.reset_index()),
+        pd.MultiIndex.from_frame(exp.moved_index.reset_index()),
         check_order=False,
     )
-    pd.testing.assert_series_equal(a.moved_file_map, b.moved_file_map, check_like=True)
+    pd.testing.assert_series_equal(
+        res.moved_file_map, exp.moved_file_map, check_like=True
+    )
 
-    if a.rewrite_actions is None:
-        assert b.rewrite_actions is None
+    if res.rewrite_actions is None:
+        assert exp.rewrite_actions is None
     else:
-        if b.rewrite_actions is None:
-            msg = f"{b.rewrite_actions=} while {a.rewrite_actions=}"
+        if exp.rewrite_actions is None:
+            msg = f"{exp.rewrite_actions=} while {res.rewrite_actions=}"
             raise AssertionError(msg)
 
-        assert len(a.rewrite_actions) == len(b.rewrite_actions)
-        for ara in a.rewrite_actions:
-            for bra in b.rewrite_actions:
-                if ara.from_file == bra.from_file:
+        assert len(res.rewrite_actions) == len(exp.rewrite_actions)
+        for res_rwa in res.rewrite_actions:
+            for exp_rwa in exp.rewrite_actions:
+                if res_rwa.from_file == exp_rwa.from_file:
                     break
             else:
-                msg = f"Did not find pair for\n{ara=}\nin\n{b.rewrite_actions=}"
+                msg = f"Did not find pair for\n{res_rwa=}\nin\n{exp.rewrite_actions=}"
                 raise AssertionError(msg)
 
-            pd.testing.assert_index_equal(ara.locator, bra.locator, check_order=False)
-            assert ara.to_file == bra.to_file
+            pd.testing.assert_index_equal(
+                res_rwa.locator, exp_rwa.locator, check_order=False
+            )
+            assert res_rwa.to_file == exp_rwa.to_file
 
-    if a.delete_paths is None:
-        assert b.delete_paths is None
+    if res.delete_paths is None:
+        assert exp.delete_paths is None
     else:
-        if b.delete_paths is None:
-            msg = f"{b.delete_paths=} while {a.delete_paths=}"
+        if exp.delete_paths is None:
+            msg = f"{exp.delete_paths=} while {res.delete_paths=}"
             raise AssertionError(msg)
 
-        assert set(a.delete_paths) == set(b.delete_paths)
+        assert set(res.delete_paths) == set(exp.delete_paths)

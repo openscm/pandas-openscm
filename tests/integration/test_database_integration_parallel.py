@@ -11,12 +11,11 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from pandas_openscm.db import CSVBackend, EmptyDBError, OpenSCMDB
 from pandas_openscm.parallelisation import ParallelOpConfig
-from pandas_openscm.testing import create_test_df
+from pandas_openscm.testing import assert_frame_alike, create_test_df
 
 tqdm_auto = pytest.importorskip("tqdm.auto")
 
@@ -55,7 +54,7 @@ def test_save_load_delete_parallel(tmpdir, progress, max_workers):
     loaded = db.load(
         out_columns_type=df.columns.dtype, progress=progress, max_workers=max_workers
     )
-    pd.testing.assert_frame_equal(loaded, df, check_like=True)
+    assert_frame_alike(loaded, df)
 
     db.delete(progress=progress, max_workers=max_workers)
 
@@ -157,7 +156,7 @@ def test_save_load_delete_parallel_custom_progress(
         loaded = db.load(
             out_columns_type=df.columns.dtype, parallel_op_config=load_progress
         )
-        pd.testing.assert_frame_equal(loaded, df, check_like=True)
+        assert_frame_alike(loaded, df)
 
         db.delete(parallel_op_config=save_progress_kwargs["parallel_op_config_delete"])
 

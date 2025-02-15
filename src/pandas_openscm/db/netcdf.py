@@ -98,10 +98,6 @@ class netCDFBackend:
         if isinstance(res, pd.Series):
             raise TypeError
 
-        # res: pd.DataFrame = xr.load_dataarray(file_map_file).to_pandas().to_frame()
-        # breakpoint()
-        # .reset_index()  # type: ignore # not sure why load_dataarray is untyped
-
         return res
 
     @staticmethod
@@ -128,7 +124,10 @@ class netCDFBackend:
 
         raw = xr.load_dataset(index_file)
 
-        res = metadata_xr_to_df(raw)
+        intermediate = metadata_xr_to_df(raw)
+        res = intermediate.set_index(
+            intermediate.columns.difference(["file_id"]).to_list()
+        )
 
         return res
 
@@ -215,8 +214,8 @@ class netCDFBackend:
         # This should not matter for users, who never see them side-by-side,
         # but just in case.
         index_xr = metadata_df_to_xr(
-            # reset_index is necessary to ensure unique IDs for the timeseries axis
-            index.reset_index(drop=True),
+            # Have to reset the index so we can serialise to disk
+            index.reset_index(),
             timeseries_dim=f"{self.timeseries_dim}_index",
         )
         index_xr.to_netcdf(index_file)
