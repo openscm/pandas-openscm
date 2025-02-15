@@ -168,24 +168,16 @@ class netCDFBackend:
         data_xr = xr.merge([data_index_xr, data_values_xr.to_dataset(name="values")])
         data_xr.to_netcdf(data_file)
 
-    def save_index_and_file_map(
+    def save_file_map(
         self,
-        index: pd.DataFrame,
-        index_file: Path,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
     ) -> None:
         """
-        Save the database
+        Save the file map
 
         Parameters
         ----------
-        index
-            Index file to save
-
-        index_file
-            File in which to save the index
-
         file_map
             File map to save
 
@@ -196,9 +188,28 @@ class netCDFBackend:
             import xarray as xr
         except ImportError as exc:
             raise MissingOptionalDependencyError(
-                "netCDFBackend.save_database", requirement="xarray"
+                "netCDFBackend.save_file_map", requirement="xarray"
             ) from exc
 
+        file_map_xr = xr.DataArray.from_series(file_map.astype(str))
+        file_map_xr.to_netcdf(file_map_file)
+
+    def save_index(
+        self,
+        index: pd.DataFrame,
+        index_file: Path,
+    ) -> None:
+        """
+        Save the index
+
+        Parameters
+        ----------
+        index
+            Index to save
+
+        index_file
+            File in which to save the index
+        """
         # Use a different name because the timeseries IDs in the index
         # won't necessarily line up with those in the file(s).
         # This should not matter for users, who never see them side-by-side,
@@ -209,9 +220,6 @@ class netCDFBackend:
             timeseries_dim=f"{self.timeseries_dim}_index",
         )
         index_xr.to_netcdf(index_file)
-
-        file_map_xr = xr.DataArray.from_series(file_map.astype(str))
-        file_map_xr.to_netcdf(file_map_file)
 
 
 def metadata_df_to_xr(

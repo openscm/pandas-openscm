@@ -203,35 +203,48 @@ class OpenSCMDBBackend(Protocol):
             File in which to save the data
         """
 
-    def save_index_and_file_map(
+    def save_file_map(
         self,
-        index: pd.DataFrame,
-        index_file: Path,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
     ) -> None:
         """
-        Save the index and file map
+        Save the file map
 
         This is a low-level method
-        that just handles the specifics of serialising
-        these components to the disk.
+        that just handles the specifics of serialising the file map to disk.
+        Working out what data to save and in what path
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        file_map
+            File map to save
+
+        file_map_file
+            File in which to save the file map
+        """
+
+    def save_index(
+        self,
+        index: pd.DataFrame,
+        index_file: Path,
+    ) -> None:
+        """
+        Save the index
+
+        This is a low-level method
+        that just handles the specifics of serialising the index to disk.
         Working out what data to save and in what path
         should happen in higher-level functions.
 
         Parameters
         ----------
         index
-            Index file to save
+            Index to save
 
         index_file
             File in which to save the index
-
-        file_map
-            File map to save
-
-        file_map_file
-            File in which to save the file map
         """
 
 
@@ -835,9 +848,11 @@ class OpenSCMDB:
                     max_workers=max_workers,
                 )
 
-                self.backend.save_index_and_file_map(
+                self.backend.save_index(
                     index=index_out,
                     index_file=self.index_file,
+                )
+                self.backend.save_file_map(
                     file_map=file_map_out,
                     file_map_file=self.file_map_file,
                 )
@@ -908,9 +923,11 @@ class OpenSCMDB:
             index_out = pd.concat([move_plan.moved_index, index_data])
 
             # Write the updated index and file map
-            self.backend.save_index_and_file_map(
+            self.backend.save_index(
                 index=index_out,
                 index_file=self.index_file,
+            )
+            self.backend.save_file_map(
                 file_map=file_map_out,
                 file_map_file=self.file_map_file,
             )
