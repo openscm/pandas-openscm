@@ -11,16 +11,16 @@ import warnings
 from collections.abc import Iterable
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 
 import filelock
 import numpy as np
 import pandas as pd
 from attrs import define
 
-from pandas_openscm.db.csv import CSVBackend
-from pandas_openscm.db.feather import FeatherBackend
-from pandas_openscm.db.netcdf import netCDFBackend
+from pandas_openscm.db.csv import CSVDataBackend, CSVIndexBackend
+from pandas_openscm.db.feather import FeatherDataBackend, FeatherIndexBackend
+from pandas_openscm.db.netcdf import netCDFDataBackend, netCDFIndexBackend
 from pandas_openscm.index_manipulation import update_index_from_candidates
 from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import (
@@ -128,54 +128,39 @@ class SaveAction:
     info_kind: DBFileType
     """The kind of information that this is"""
 
+    backend: OpenSCMDBDataBackend | OpenSCMDBIndexBackend
+    """Backend to use to save the data to disk"""
+
     save_path: Path
     """Path in which to save the information"""
 
 
-class OpenSCMDBBackend(Protocol):
+@runtime_checkable
+class OpenSCMDBIndexBackend(Protocol):
     """
-    Backend that can be used with [`OpenSCMDB`][(m)]
+    Backend for (de-)serialising the index (and file map)
+
+    Designed to be used with [`OpenSCMDB`][(m)]
     """
 
     ext: str
     """
-    Extension to use with files saved by this backend.
+    Extension to use with index files saved by this backend.
     """
 
     preserves_index: bool
     """
-    Whether this backend preserves the index
+    Whether this backend preserves the `pd.MultiIndex` upon (de-)serialisation
     """
-
-    @staticmethod
-    def load_data_file(data_file: Path) -> pd.DataFrame:
-        """
-        Load a data file
-
-        This is a low-level method
-        that just handles the specifics of serialising the data to disk.
-        Working out the path in which to save the data
-        should happen in higher-level functions.
-
-        Parameters
-        ----------
-        data_file
-            File from which to load the data
-
-        Returns
-        -------
-        :
-            Loaded data
-        """
 
     @staticmethod
     def load_file_map(file_map_file: Path) -> pd.DataFrame:
         """
-        Load the database's file map
+        Load the file map
 
         This is a low-level method
-        that just handles the specifics of serialising the index to disk.
-        Working out the path in which to save the file map
+        that just handles the specifics of loading the index from disk.
+        Working out the path from which to load the file map
         should happen in higher-level functions.
 
         Parameters
@@ -187,16 +172,22 @@ class OpenSCMDBBackend(Protocol):
         -------
         :
             Loaded file map
+
+        Notes
+        -----
+        This returns a [`pd.DataFrame`][pandas.DataFrame].
+        It is up to the user to cast this to a [`pd.Series`][pandas.Series]
+        if they wish.
         """
 
     @staticmethod
     def load_index(index_file: Path) -> pd.DataFrame:
         """
-        Load the database's index
+        Load the index
 
         This is a low-level method
-        that just handles the specifics of serialising the index to disk.
-        Working out the path in which to save the index
+        that just handles the specifics of loading the index from disk.
+        Working out the path from which to load the index
         should happen in higher-level functions.
 
         Parameters
@@ -208,26 +199,18 @@ class OpenSCMDBBackend(Protocol):
         -------
         :
             Loaded index
-        """
 
-    @staticmethod
-    def save_data(
-        data: pd.DataFrame,
-        data_file: Path,
-    ) -> None:
-        """
-        Save an individual data file to the database
-
-        This is a low-level method
-        that just handles the specifics of serialising the data to disk.
-
-        Parameters
-        ----------
-        data
-            Data to save
-
-        data_file
-            File in which to save the data
+        Notes
+        -----
+        This just loads the index directly from disk.
+        If the index had a `pd.MultiIndex` when it was saved,
+        this may or not be restored.
+        It is up to the user
+        to decide whether to do any `pd.MultiIndex` restoration or not,
+        based on their use case and the value of `self.preserves_index`.
+        We do not make this choice as converting back to a
+        `pd.MultiIndex` can be a very expensive operation,
+        and we want to give the user control over any such optimisations.
         """
 
     def save_file_map(
@@ -236,11 +219,11 @@ class OpenSCMDBBackend(Protocol):
         file_map_file: Path,
     ) -> None:
         """
-        Save the file map
+        Save the file map to disk
 
         This is a low-level method
         that just handles the specifics of serialising the file map to disk.
-        Working out what data to save and in what path
+        Working out what to save and in what path
         should happen in higher-level functions.
 
         Parameters
@@ -258,11 +241,11 @@ class OpenSCMDBBackend(Protocol):
         index_file: Path,
     ) -> None:
         """
-        Save the index
+        Save the index to disk
 
         This is a low-level method
         that just handles the specifics of serialising the index to disk.
-        Working out what data to save and in what path
+        Working out what to save and in what path
         should happen in higher-level functions.
 
         Parameters
@@ -272,6 +255,80 @@ class OpenSCMDBBackend(Protocol):
 
         index_file
             File in which to save the index
+        """
+
+
+@runtime_checkable
+class OpenSCMDBDataBackend(Protocol):
+    """
+    Backend for (de-)serialising data
+
+    Designed to be used with [`OpenSCMDB`][(m)]
+    """
+
+    ext: str
+    """
+    Extension to use with data files saved by this backend.
+    """
+
+    preserves_index: bool
+    """
+    Whether this backend preserves the index of data upon (de-)serialisation
+    """
+
+    @staticmethod
+    def load_data(data_file: Path) -> pd.DataFrame:
+        """
+        Load a data file
+
+        This is a low-level method
+        that just handles the specifics of loading the data from disk.
+        Working out the path from which to load the data
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        data_file
+            File from which to load the data
+
+        Returns
+        -------
+        :
+            Loaded data
+
+        Notes
+        -----
+        This just loads the data directly from disk.
+        If the data had a `pd.MultiIndex` when it was saved,
+        this may or not be restored.
+        It is up to the user
+        to decide whether to do any `pd.MultiIndex` restoration or not,
+        based on their use case and the value of `self.preserves_index`.
+        We do not make this choice as converting back to a
+        `pd.MultiIndex` can be a very expensive operation,
+        and we want to give the user control over any such optimisations.
+        """
+
+    @staticmethod
+    def save_data(
+        data: pd.DataFrame,
+        data_file: Path,
+    ) -> None:
+        """
+        Save data to disk
+
+        This is a low-level method
+        that just handles the specifics of serialising the data to disk.
+        Working out what to save and in what path
+        should happen in higher-level functions.
+
+        Parameters
+        ----------
+        data
+            Data to save
+
+        data_file
+            File in which to save the data
         """
 
 
@@ -288,9 +345,14 @@ class OpenSCMDB:
     would be required to make something truly backend agnostic.
     """
 
-    backend: OpenSCMDBBackend
+    backend_data: OpenSCMDBDataBackend
     """
-    The backend of the database
+    The backend for serialising data to disk
+    """
+
+    backend_index: OpenSCMDBIndexBackend
+    """
+    The backend for serialising the database index to disk
     """
 
     db_dir: Path
@@ -313,7 +375,7 @@ class OpenSCMDB:
         :
             Path to the file map file
         """
-        return self.db_dir / f"filemap{self.backend.ext}"
+        return self.db_dir / f"filemap{self.backend_index.ext}"
 
     @property
     def index_file(self) -> Path:
@@ -325,7 +387,7 @@ class OpenSCMDB:
         :
             Path to the index file
         """
-        return self.db_dir / f"index{self.backend.ext}"
+        return self.db_dir / f"index{self.backend_index.ext}"
 
     @property
     def index_file_lock(self) -> filelock.SoftFileLock:
@@ -394,7 +456,10 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            files_to_delete = self.db_dir.glob(f"*{self.backend.ext}")
+            files_to_delete = {
+                *self.db_dir.glob(f"*{self.backend_data.ext}"),
+                *self.db_dir.glob(f"*{self.backend_index.ext}"),
+            }
             delete_files(
                 files_to_delete=files_to_delete,
                 parallel_op_config=parallel_op_config,
@@ -421,7 +486,7 @@ class OpenSCMDB:
         FileExistsError
             A file already exists for the given `file_id`
         """
-        file_path = self.db_dir / f"{file_id}{self.backend.ext}"
+        file_path = self.db_dir / f"{file_id}{self.backend_data.ext}"
 
         if file_path.exists():
             raise FileExistsError(file_path)
@@ -541,21 +606,21 @@ class OpenSCMDB:
             files_to_load = (
                 Path(v) for v in file_map[index_to_load["file_id"].unique()]
             )
-            loaded_l = load_files(
+            loaded_l = load_data_files(
                 files_to_load=files_to_load,
-                backend=self.backend,
+                backend_data=self.backend_data,
                 parallel_op_config=parallel_op_config,
                 progress=progress,
                 max_workers=max_workers,
             )
 
-        if self.backend.preserves_index:
+        if self.backend_data.preserves_index:
             # TODO: align indexes here before concat
-            ...
+            pass
 
         res = pd.concat(loaded_l)
 
-        if not self.backend.preserves_index:
+        if not self.backend_data.preserves_index:
             index_names: pandas.core.indexes.frozen.FrozenList = index.index.names  # type: ignore # pandas type hints wrong
             res = update_index_from_candidates(res, index_names.difference({"file_id"}))
 
@@ -604,8 +669,8 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            file_map_raw = self.backend.load_file_map(self.file_map_file)
-            if not self.backend.preserves_index:
+            file_map_raw = self.backend_index.load_file_map(self.file_map_file)
+            if not self.backend_index.preserves_index:
                 file_map_indexed = file_map_raw.set_index("file_id")
             else:
                 file_map_indexed = file_map_raw
@@ -647,9 +712,9 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            index = self.backend.load_index(self.index_file)
+            index = self.backend_index.load_index(self.index_file)
 
-        if not self.backend.preserves_index:
+        if not self.backend_index.preserves_index:
             index = index.set_index(index.columns.difference(["file_id"]).to_list())
 
         return index
@@ -978,7 +1043,7 @@ class OpenSCMDB:
 
                 rewrite_files(
                     move_plan.rewrite_actions,
-                    backend=self.backend,
+                    backend=self.backend_data,
                     parallel_op_config=parallel_op_config_rewrite,
                     progress=progress,
                     max_workers=max_workers,
@@ -1093,23 +1158,23 @@ def delete_files(
             parallel_op_config_use.executor.shutdown()
 
 
-def load_files(
+def load_data_files(
     files_to_load: Iterable[Path],
-    backend: OpenSCMDBBackend,
+    backend_data: OpenSCMDBDataBackend,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
 ) -> tuple[pd.DataFrame, ...]:
     """
-    Load a number of files
+    Load a number of data files
 
     Parameters
     ----------
     files_to_load
         Files to load
 
-    backend
-        Backend to use to load the files
+    backend_data
+        Data backend to use to load the files
 
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
@@ -1165,7 +1230,7 @@ def load_files(
             iterable_input = list(iterable_input)
 
         res = apply_op_parallel_progress(
-            func_to_call=backend.load_data_file,
+            func_to_call=backend_data.load_data,
             iterable_input=iterable_input,
             parallel_op_config=parallel_op_config_use,
         )
@@ -1183,7 +1248,7 @@ def load_files(
 
 def rewrite_file(
     rewrite_action: ReWriteAction,
-    backend: OpenSCMDBBackend,
+    backend: OpenSCMDBDataBackend,
 ) -> None:
     """
     Re-write a file
@@ -1196,7 +1261,7 @@ def rewrite_file(
     backend
         Back-end to use for reading and writing data
     """
-    data_all = backend.load_data_file(rewrite_action.from_file)
+    data_all = backend.load_data(rewrite_action.from_file)
     if not backend.preserves_index:
         rewrite_action_names: pandas.core.indexes.frozen.FrozenList = (
             rewrite_action.locator.names  # type: ignore # pandas type hints wrong
@@ -1212,7 +1277,7 @@ def rewrite_file(
 
 def rewrite_files(
     rewrite_actions: Iterable[ReWriteAction],
-    backend: OpenSCMDBBackend,
+    backend: OpenSCMDBDataBackend,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
@@ -1406,7 +1471,12 @@ def save_data(  # noqa: PLR0913
         )
 
         write_groups_l.append(
-            SaveAction(info=df, info_kind=DBFileType.DATA, save_path=new_file_path)
+            SaveAction(
+                info=df,
+                info_kind=DBFileType.DATA,
+                backend=db.backend_data,
+                save_path=new_file_path,
+            )
         )
 
     if index_non_data is None:
@@ -1422,18 +1492,25 @@ def save_data(  # noqa: PLR0913
     # Write the index first as it can be slow if very big
     write_groups_l.insert(
         0,
-        SaveAction(info=index_out, info_kind=DBFileType.INDEX, save_path=db.index_file),
+        SaveAction(
+            info=index_out,
+            info_kind=DBFileType.INDEX,
+            backend=db.backend_index,
+            save_path=db.index_file,
+        ),
     )
     # Write the file map last, it is almost always cheapest
     write_groups_l.append(
         SaveAction(
-            info=file_map_out, info_kind=DBFileType.FILE_MAP, save_path=db.file_map_file
+            info=file_map_out,
+            info_kind=DBFileType.FILE_MAP,
+            backend=db.backend_index,
+            save_path=db.file_map_file,
         )
     )
 
     save_files(
         write_groups_l,
-        backend=db.backend,
         parallel_op_config=parallel_op_config,
         progress=progress,
         max_workers=max_workers,
@@ -1442,7 +1519,6 @@ def save_data(  # noqa: PLR0913
 
 def save_files(
     save_actions: Iterable[SaveAction],
-    backend: OpenSCMDBBackend,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
@@ -1454,9 +1530,6 @@ def save_files(
     ----------
     save_actions
         Iterable of save actions
-
-    backend
-        Backend to use to write the files
 
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
@@ -1515,7 +1588,6 @@ def save_files(
             func_to_call=save_file,
             iterable_input=iterable_input,
             parallel_op_config=parallel_op_config_use,
-            backend=backend,
         )
 
     finally:
@@ -1527,10 +1599,7 @@ def save_files(
             parallel_op_config_use.executor.shutdown()
 
 
-def save_file(
-    save_action: SaveAction,
-    backend: OpenSCMDBBackend,
-) -> None:
+def save_file(save_action: SaveAction) -> None:
     """
     Save a file to disk
 
@@ -1538,33 +1607,36 @@ def save_file(
     ----------
     save_action
         Save action to perform
-
-    backend
-        Back-end to use for writing data
     """
     if save_action.info_kind == DBFileType.DATA:
-        if isinstance(save_action.info, pd.Series):  # pragma: no cover
+        if isinstance(save_action.info, pd.Series) or isinstance(
+            save_action.backend, OpenSCMDBIndexBackend
+        ):  # pragma: no cover
             # Should be impossible to get here
             raise TypeError
 
-        backend.save_data(save_action.info, save_action.save_path)
+        save_action.backend.save_data(save_action.info, save_action.save_path)
 
     elif save_action.info_kind == DBFileType.INDEX:
-        if isinstance(save_action.info, pd.Series):  # pragma: no cover
+        if isinstance(save_action.info, pd.Series) or isinstance(
+            save_action.backend, OpenSCMDBDataBackend
+        ):  # pragma: no cover
             # Should be impossible to get here
             raise TypeError
 
-        backend.save_index(
+        save_action.backend.save_index(
             index=save_action.info,
             index_file=save_action.save_path,
         )
 
     elif save_action.info_kind == DBFileType.FILE_MAP:
-        if isinstance(save_action.info, pd.DataFrame):  # pragma: no cover
+        if isinstance(save_action.info, pd.DataFrame) or isinstance(
+            save_action.backend, OpenSCMDBDataBackend
+        ):  # pragma: no cover
             # Should be impossible to get here
             raise TypeError
 
-        backend.save_file_map(
+        save_action.backend.save_file_map(
             file_map=save_action.info,
             file_map_file=save_action.save_path,
         )
@@ -1575,10 +1647,13 @@ def save_file(
 
 __all__ = [
     "AlreadyInDBError",
-    "CSVBackend",
+    "CSVDataBackend",
+    "CSVIndexBackend",
     "EmptyDBError",
-    "FeatherBackend",
+    "FeatherDataBackend",
+    "FeatherIndexBackend",
     "OpenSCMDB",
     "OpenSCMDBBackend",
-    "netCDFBackend",
+    "netCDFDataBackend",
+    "netCDFIndexBackend",
 ]

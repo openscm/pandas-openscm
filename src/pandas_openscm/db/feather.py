@@ -12,9 +12,9 @@ from attrs import define
 
 
 @define
-class FeatherBackend:
+class FeatherDataBackend:
     """
-    Feather-backend for our database
+    Feather data backend
 
     For details on feather, see https://arrow.apache.org/docs/python/feather.html
     """
@@ -27,12 +27,12 @@ class FeatherBackend:
     @property
     def preserves_index(self) -> Literal[True]:
         """
-        Whether this backend preserves the index
+        Whether this backend preserves the index of data upon (de-)serialisation
         """
         return True
 
     @staticmethod
-    def load_data_file(data_file: Path) -> pd.DataFrame:
+    def load_data(data_file: Path) -> pd.DataFrame:
         """
         Load a data file
 
@@ -49,9 +49,49 @@ class FeatherBackend:
         return pd.read_feather(data_file)
 
     @staticmethod
+    def save_data(data: pd.DataFrame, data_file: Path) -> None:
+        """
+        Save data to disk
+
+        Parameters
+        ----------
+        data
+            Data to save
+
+        data_file
+            File in which to save the data
+        """
+        # The docs say that feather doesn't support writing indexes
+        # # (see https://pandas.pydata.org/docs/user_guide/io.html#feather).
+        # However, it seems to have no issue writing our multi-indexes.
+        # Hence the implementation below
+        data.to_feather(data_file)
+
+
+@define
+class FeatherIndexBackend:
+    """
+    Feather index backend
+
+    For details on feather, see https://arrow.apache.org/docs/python/feather.html
+    """
+
+    ext: str = ".feather"
+    """
+    Extension to use with files saved by this backend.
+    """
+
+    @property
+    def preserves_index(self) -> Literal[True]:
+        """
+        Whether this backend preserves the `pd.MultiIndex` upon (de-)serialisation
+        """
+        return True
+
+    @staticmethod
     def load_file_map(file_map_file: Path) -> pd.DataFrame:
         """
-        Load the database's file map
+        Load the file map
 
         Parameters
         ----------
@@ -68,7 +108,7 @@ class FeatherBackend:
     @staticmethod
     def load_index(index_file: Path) -> pd.DataFrame:
         """
-        Load the database's index
+        Load the index
 
         Parameters
         ----------
@@ -83,31 +123,12 @@ class FeatherBackend:
         return pd.read_feather(index_file)
 
     @staticmethod
-    def save_data(data: pd.DataFrame, data_file: Path) -> None:
-        """
-        Save an individual data file to the database
-
-        Parameters
-        ----------
-        data
-            Data to save
-
-        data_file
-            File in which to save the data
-        """
-        # The docs say that feather doesn't support writing indexes
-        # # (see https://pandas.pydata.org/docs/user_guide/io.html#feather).
-        # However, it seems to have no issue writing our multi-indexes.
-        # Hence the implementation below
-        data.to_feather(data_file)
-
     def save_file_map(
-        self,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
     ) -> None:
         """
-        Save the file map
+        Save the file map to disk
 
         Parameters
         ----------
@@ -126,13 +147,13 @@ class FeatherBackend:
         file_map_write = file_map.astype(str)
         file_map_write.to_frame().to_feather(file_map_file)
 
+    @staticmethod
     def save_index(
-        self,
         index: pd.DataFrame,
         index_file: Path,
     ) -> None:
         """
-        Save the index
+        Save the index to disk
 
         Parameters
         ----------

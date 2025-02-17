@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 
 
 @define
-class netCDFBackend:
+class netCDFDataBackend:
     """
-    netCDF-backend for our database
+    netCDF data backend
     """
 
     ext: str = ".nc"
@@ -35,11 +35,11 @@ class netCDFBackend:
     @property
     def preserves_index(self) -> Literal[True]:
         """
-        Whether this backend preserves the index
+        Whether this backend preserves the index of data upon (de-)serialisation
         """
         return True
 
-    def load_data_file(self, data_file: Path) -> pd.DataFrame:
+    def load_data(self, data_file: Path) -> pd.DataFrame:
         """
         Load a data file
 
@@ -57,7 +57,7 @@ class netCDFBackend:
             import xarray as xr
         except ImportError as exc:
             raise MissingOptionalDependencyError(
-                "netCDFBackend.load_file_map", requirement="xarray"
+                "netCDFBackend.load_data", requirement="xarray"
             ) from exc
 
         raw = xr.load_dataset(data_file)
@@ -72,68 +72,9 @@ class netCDFBackend:
 
         return res
 
-    @staticmethod
-    def load_file_map(file_map_file: Path) -> pd.DataFrame:
-        """
-        Load the database's file map
-
-        Parameters
-        ----------
-        file_map_file
-            File from which to load the file map
-
-        Returns
-        -------
-        :
-            Loaded file map
-        """
-        try:
-            import xarray as xr
-        except ImportError as exc:
-            raise MissingOptionalDependencyError(
-                "netCDFBackend.load_file_map", requirement="xarray"
-            ) from exc
-
-        res = xr.load_dataset(file_map_file).to_pandas()
-        if isinstance(res, pd.Series):
-            raise TypeError
-
-        return res
-
-    @staticmethod
-    def load_index(index_file: Path) -> pd.DataFrame:
-        """
-        Load the database's index
-
-        Parameters
-        ----------
-        index_file
-            File from which to load the index
-
-        Returns
-        -------
-        :
-            Loaded index
-        """
-        try:
-            import xarray as xr
-        except ImportError as exc:
-            raise MissingOptionalDependencyError(
-                "netCDFBackend.load_index", requirement="xarray"
-            ) from exc
-
-        raw = xr.load_dataset(index_file)
-
-        intermediate = metadata_xr_to_df(raw)
-        res = intermediate.set_index(
-            intermediate.columns.difference(["file_id"]).to_list()
-        )
-
-        return res
-
     def save_data(self, data: pd.DataFrame, data_file: Path) -> None:
         """
-        Save an individual data file to the database
+        Save data to disk
 
         Parameters
         ----------
@@ -167,13 +108,96 @@ class netCDFBackend:
         data_xr = xr.merge([data_index_xr, data_values_xr.to_dataset(name="values")])
         data_xr.to_netcdf(data_file)
 
+
+@define
+class netCDFIndexBackend:
+    """
+    netCDF index backend
+    """
+
+    ext: str = ".nc"
+    """
+    Extension to use with files saved by this backend.
+    """
+
+    timeseries_dim: str = "ts_id"
+    """
+    Name of the timeseries dimension in serialised output
+    """
+
+    @property
+    def preserves_index(self) -> Literal[True]:
+        """
+        Whether this backend preserves the `pd.MultiIndex` upon (de-)serialisation
+        """
+        return True
+
+    @staticmethod
+    def load_file_map(file_map_file: Path) -> pd.DataFrame:
+        """
+        Load the database's file map
+
+        Parameters
+        ----------
+        file_map_file
+            File from which to load the file map
+
+        Returns
+        -------
+        :
+            Loaded file map
+        """
+        try:
+            import xarray as xr
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(
+                "netCDFBackend.load_file_map", requirement="xarray"
+            ) from exc
+
+        res = xr.load_dataset(file_map_file).to_pandas()
+        if isinstance(res, pd.Series):
+            raise TypeError
+
+        return res
+
+    @staticmethod
+    def load_index(index_file: Path) -> pd.DataFrame:
+        """
+        Load the index
+
+        Parameters
+        ----------
+        index_file
+            File from which to load the index
+
+        Returns
+        -------
+        :
+            Loaded index
+        """
+        try:
+            import xarray as xr
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(
+                "netCDFBackend.load_index", requirement="xarray"
+            ) from exc
+
+        raw = xr.load_dataset(index_file)
+
+        intermediate = metadata_xr_to_df(raw)
+        res = intermediate.set_index(
+            intermediate.columns.difference(["file_id"]).to_list()
+        )
+
+        return res
+
+    @staticmethod
     def save_file_map(
-        self,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
     ) -> None:
         """
-        Save the file map
+        Save the file map to disk
 
         Parameters
         ----------
@@ -199,7 +223,7 @@ class netCDFBackend:
         index_file: Path,
     ) -> None:
         """
-        Save the index
+        Save the index to disk
 
         Parameters
         ----------
@@ -272,6 +296,7 @@ def metadata_df_to_xr(
     --------
     metadata_xr_to_df
     """
+    # TODO: doctests/examples
     try:
         import xarray as xr
     except ImportError as exc:
@@ -342,6 +367,7 @@ def metadata_xr_to_df(
     --------
     metadata_df_to_xr
     """
+    # TODO: doctests/examples
     # make naming injectable (?)
     metadata_columns = [
         str(v).replace("_map", "") for v in metadata.coords if str(v).endswith("_map")

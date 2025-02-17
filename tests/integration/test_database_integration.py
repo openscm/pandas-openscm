@@ -17,7 +17,8 @@ import pytest
 
 from pandas_openscm.db import (
     AlreadyInDBError,
-    CSVBackend,
+    CSVDataBackend,
+    CSVIndexBackend,
     EmptyDBError,
     MovePlan,
     OpenSCMDB,
@@ -27,10 +28,12 @@ from pandas_openscm.testing import (
     assert_frame_alike,
     assert_move_plan_equal,
     create_test_df,
-    get_parametrized_db_backends,
+    get_parametrized_db_data_backends,
+    get_parametrized_db_index_backends,
 )
 
-db_backends = get_parametrized_db_backends()
+db_data_backends = get_parametrized_db_data_backends()
+db_index_backends = get_parametrized_db_index_backends()
 
 
 @pytest.mark.parametrize(
@@ -61,9 +64,14 @@ db_backends = get_parametrized_db_backends()
         # ),
     ),
 )
-@db_backends
-def test_save_and_load(n_scenarios, variables, n_runs, db_backend, tmpdir):
-    if db_backend == CSVBackend and (n_scenarios * len(variables) * n_runs) > 25000:
+@db_data_backends
+@db_index_backends
+def test_save_and_load(  # noqa: PLR0913
+    n_scenarios, variables, n_runs, db_data_backend, db_index_backend, tmpdir
+):
+    if (db_data_backend == CSVDataBackend or db_index_backend == CSVIndexBackend) and (
+        n_scenarios * len(variables) * n_runs
+    ) > 25000:
         pytest.skip("Too slow")
 
     start = create_test_df(
@@ -73,7 +81,11 @@ def test_save_and_load(n_scenarios, variables, n_runs, db_backend, tmpdir):
         timepoints=np.arange(1750, 2100),
     )
 
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     db.save(start)
 
@@ -88,9 +100,14 @@ def test_save_and_load(n_scenarios, variables, n_runs, db_backend, tmpdir):
     assert_frame_alike(start, loaded)
 
 
-@db_backends
-def test_save_multiple_and_load(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_save_multiple_and_load(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     all_saved_l = []
     for variable in [
@@ -121,9 +138,14 @@ def test_save_multiple_and_load(tmpdir, db_backend):
     assert_frame_alike(all_saved, loaded)
 
 
-@db_backends
-def test_save_overwrite_error(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_save_overwrite_error(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     cdf = partial(
         create_test_df,
@@ -145,9 +167,14 @@ def test_save_overwrite_error(tmpdir, db_backend):
         db.save(to_save)
 
 
-@db_backends
-def test_save_overwrite_force(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_save_overwrite_force(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     cdf = partial(
         create_test_df,
@@ -176,14 +203,6 @@ def test_save_overwrite_force(tmpdir, db_backend):
     # With force, we can overwrite
     db.save(updated, allow_overwrite=True)
 
-    # As a helper, check we've got the number of files we expect.
-    # This is testing implementation, so could be removed in future.
-    # Expect to have the index file plus the new file, but not the original file.
-    db_files = list(db.db_dir.glob(f"*{db.backend.ext}"))
-    assert set([f.name for f in db_files]) == set(
-        f"{prefix}{db.backend.ext}" for prefix in ["1", "index", "filemap"]
-    )
-
     # Check that the data was overwritten with new data
     try:
         assert_frame_alike(original, original_overwrite)
@@ -206,9 +225,14 @@ def test_save_overwrite_force(tmpdir, db_backend):
     assert_frame_alike(updated, loaded)
 
 
-@db_backends
-def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_save_overwrite_force_half_overlap(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     cdf = partial(
         create_test_df,
@@ -219,14 +243,6 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
 
     original = cdf(n_scenarios=6)
     db.save(original)
-
-    # As a helper, check we've got the number of files we expect.
-    # This is testing implementation, so could be removed in future.
-    # Expect to have the index file plus the file map file plus written file.
-    db_files = list(db.db_dir.glob(f"*{db.backend.ext}"))
-    assert set([f.name for f in db_files]) == set(
-        f"{prefix}{db.backend.ext}" for prefix in ["0", "index", "filemap"]
-    )
 
     # Make sure that our data saved correctly
     db_metadata = db.load_metadata()
@@ -241,20 +257,6 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
 
     original_overwrite = cdf(n_scenarios=3)
 
-    # With force, we can overwrite
-    db.save(original_overwrite, allow_overwrite=True)
-
-    # As a helper, check we've got the number of files we expect.
-    # This is testing implementation, so could be removed in future.
-    # Expect to have the index file plus the file map file plus the newly written file
-    # plus the re-written data file
-    # (to handle the need to split the original data so we can keep only what we need),
-    # but not the original file.
-    db_files = list(db.db_dir.glob(f"*{db.backend.ext}"))
-    assert set([f.name for f in db_files]) == set(
-        f"{prefix}{db.backend.ext}" for prefix in ["1", "2", "index", "filemap"]
-    )
-
     # Check that the data was overwritten with new data
     overlap_idx = original.index.isin(original_overwrite.index)
     overlap = original.loc[overlap_idx]
@@ -267,6 +269,10 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
         # so there won't be any difference in the db.
         msg = "Test won't do anything"
         raise AssertionError(msg)
+
+    # With force, we can overwrite
+    # TODO: make warn_on_partial_overwrite a parameter and test
+    db.save(original_overwrite, allow_overwrite=True, warn_on_partial_overwrite=False)
 
     update_exp = pix.concat([original.loc[~overlap_idx], original_overwrite])
     db_metadata = db.load_metadata()
@@ -300,9 +306,14 @@ def test_save_overwrite_force_half_overlap(tmpdir, db_backend):
         ),
     ),
 )
-@db_backends
-def test_locking(tmpdir, meth, args, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_locking(tmpdir, meth, args, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     # Put some data in the db so there's something to lock
     db.save(
@@ -335,9 +346,14 @@ def test_locking(tmpdir, meth, args, db_backend):
         getattr(db, meth)(lock_context_manager=nullcontext(), *args)
 
 
-@db_backends
-def test_load_with_loc(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_load_with_loc(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     full_db = create_test_df(
         n_scenarios=10,
@@ -363,9 +379,14 @@ def test_load_with_loc(tmpdir, db_backend):
         assert_frame_alike(loaded, exp)
 
 
-@db_backends
-def test_load_with_index_all(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_load_with_index_all(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     full_db = create_test_df(
         n_scenarios=10,
@@ -388,9 +409,14 @@ def test_load_with_index_all(tmpdir, db_backend):
     "slice",
     (slice(None, None, None), slice(None, 3, None), slice(2, 4, None), slice(1, 15, 2)),
 )
-@db_backends
-def test_load_with_index_slice(tmpdir, slice, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_load_with_index_slice(tmpdir, slice, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     full_db = create_test_df(
         n_scenarios=10,
@@ -420,9 +446,14 @@ def test_load_with_index_slice(tmpdir, slice, db_backend):
         pytest.param(["run", "variable"], id="multi_level_out_of_order_not_first"),
     ),
 )
-@db_backends
-def test_load_with_pix_unique_levels(tmpdir, levels, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_load_with_pix_unique_levels(tmpdir, levels, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     full_db = create_test_df(
         n_scenarios=10,
@@ -448,9 +479,14 @@ def test_load_with_pix_unique_levels(tmpdir, levels, db_backend):
     assert_frame_alike(loaded, exp)
 
 
-@db_backends
-def test_deletion(tmpdir, db_backend):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_deletion(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     db.save(
         create_test_df(
@@ -472,9 +508,14 @@ def test_deletion(tmpdir, db_backend):
         db.load()
 
 
-@db_backends
-def test_make_move_plan_no_overwrite(db_backend, tmpdir):
-    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_make_move_plan_no_overwrite(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     index_start = pd.DataFrame(
         [
@@ -516,9 +557,14 @@ def test_make_move_plan_no_overwrite(db_backend, tmpdir):
     assert_move_plan_equal(res, exp)
 
 
-@db_backends
-def test_make_move_plan_full_overwrite(db_backend, tmpdir):
-    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_make_move_plan_full_overwrite(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     index_start = pd.DataFrame(
         [
@@ -578,9 +624,14 @@ def test_make_move_plan_full_overwrite(db_backend, tmpdir):
     assert_move_plan_equal(res, exp)
 
 
-@db_backends
-def test_make_move_plan_partial_overwrite(db_backend, tmpdir):
-    db = OpenSCMDB(db_dir=tmpdir, backend=db_backend())
+@db_data_backends
+@db_index_backends
+def test_make_move_plan_partial_overwrite(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
 
     index_start = pd.DataFrame(
         [

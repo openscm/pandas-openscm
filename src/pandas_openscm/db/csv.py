@@ -12,9 +12,9 @@ from attrs import define
 
 
 @define
-class CSVBackend:
+class CSVDataBackend:
     """
-    CSV-backend for our database
+    CSV data backend
     """
 
     ext: str = ".csv"
@@ -25,14 +25,12 @@ class CSVBackend:
     @property
     def preserves_index(self) -> Literal[False]:
         """
-        Whether this backend preserves the index
-
-        (Hint, it doesn't)
+        Whether this backend preserves the index of data upon (de-)serialisation
         """
         return False
 
     @staticmethod
-    def load_data_file(data_file: Path) -> pd.DataFrame:
+    def load_data(data_file: Path) -> pd.DataFrame:
         """
         Load a data file
 
@@ -49,9 +47,43 @@ class CSVBackend:
         return pd.read_csv(data_file)
 
     @staticmethod
+    def save_data(data: pd.DataFrame, data_file: Path) -> None:
+        """
+        Save data to disk
+
+        Parameters
+        ----------
+        data
+            Data to save
+
+        data_file
+            File in which to save the data
+        """
+        data.to_csv(data_file)
+
+
+@define
+class CSVIndexBackend:
+    """
+    CSV index backend
+    """
+
+    ext: str = ".csv"
+    """
+    Extension to use with files saved by this backend.
+    """
+
+    @property
+    def preserves_index(self) -> Literal[False]:
+        """
+        Whether this backend preserves the `pd.MultiIndex` upon (de-)serialisation
+        """
+        return False
+
+    @staticmethod
     def load_file_map(file_map_file: Path) -> pd.DataFrame:
         """
-        Load the database's file map
+        Load the file map
 
         Parameters
         ----------
@@ -68,7 +100,7 @@ class CSVBackend:
     @staticmethod
     def load_index(index_file: Path) -> pd.DataFrame:
         """
-        Load the database's index
+        Load the index
 
         Parameters
         ----------
@@ -83,27 +115,12 @@ class CSVBackend:
         return pd.read_csv(index_file)
 
     @staticmethod
-    def save_data(data: pd.DataFrame, data_file: Path) -> None:
-        """
-        Save an individual data file to the database
-
-        Parameters
-        ----------
-        data
-            Data to save
-
-        data_file
-            File in which to save the data
-        """
-        data.to_csv(data_file)
-
     def save_file_map(
-        self,
         file_map: pd.Series[Path],  # type: ignore # pandas confused about what it supports
         file_map_file: Path,
     ) -> None:
         """
-        Save the file map
+        Save the file map to disk
 
         Parameters
         ----------
@@ -115,13 +132,13 @@ class CSVBackend:
         """
         file_map.to_csv(file_map_file)
 
+    @staticmethod
     def save_index(
-        self,
         index: pd.DataFrame,
         index_file: Path,
     ) -> None:
         """
-        Save the index
+        Save the index to disk
 
         Parameters
         ----------

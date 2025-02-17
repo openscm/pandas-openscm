@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas_openscm.db import CSVBackend, EmptyDBError, OpenSCMDB
+from pandas_openscm.db import CSVDataBackend, CSVIndexBackend, EmptyDBError, OpenSCMDB
 from pandas_openscm.parallelisation import ParallelOpConfig
 from pandas_openscm.testing import assert_frame_alike, create_test_df
 
@@ -34,7 +34,12 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
     (pytest.param(False, id="no-progress"), pytest.param(True, id="progress")),
 )
 def test_save_load_delete_parallel(tmpdir, progress, max_workers):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=CSVBackend())
+    # TODO: switch to InMemoryDataBackend
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=CSVDataBackend(),
+        backend_index=CSVIndexBackend(),
+    )
 
     df = create_test_df(
         n_scenarios=15,
@@ -126,7 +131,12 @@ def test_save_load_delete_parallel_custom_progress(
     executor_ctx_manager,
     executor_ctx_manager_kwargs,
 ):
-    db = OpenSCMDB(db_dir=Path(tmpdir), backend=CSVBackend())
+    # TODO: switch to InMemoryDataBackend
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=CSVDataBackend(),
+        backend_index=CSVIndexBackend(),
+    )
 
     df = create_test_df(
         n_scenarios=15,

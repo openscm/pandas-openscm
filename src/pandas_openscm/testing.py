@@ -15,29 +15,65 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from pandas_openscm.db import CSVBackend, FeatherBackend, MovePlan, netCDFBackend
+from pandas_openscm.db import (
+    CSVDataBackend,
+    CSVIndexBackend,
+    FeatherDataBackend,
+    FeatherIndexBackend,
+    MovePlan,
+    netCDFDataBackend,
+    netCDFIndexBackend,
+)
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
     import pytest
 
 
-def get_parametrized_db_backends() -> pytest.MarkDecorator:
+def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
     try:
         import pytest
     except ImportError as exc:
         raise MissingOptionalDependencyError(
-            "get_parametrized_db_backends", requirement="pytest"
+            "get_parametrized_db_data_backends", requirement="pytest"
         ) from exc
 
     return pytest.mark.parametrize(
-        "db_backend",
+        "db_data_backend",
         tuple(
-            pytest.param(db_format, id=str(db_format))
-            for db_format in (
-                CSVBackend,
-                FeatherBackend,
-                netCDFBackend,
+            pytest.param(db_data_format, id=str(db_data_format))
+            for db_data_format in (
+                CSVDataBackend,
+                FeatherDataBackend,
+                netCDFDataBackend,
+                # Other back-end options to consider:
+                #
+                # pretty netCDF, where we try and save the data with dimensions
+                # where possible
+                #
+                # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
+                # HDF5 = auto()
+            )
+        ),
+    )
+
+
+def get_parametrized_db_index_backends() -> pytest.MarkDecorator:
+    try:
+        import pytest
+    except ImportError as exc:
+        raise MissingOptionalDependencyError(
+            "get_parametrized_db_index_backends", requirement="pytest"
+        ) from exc
+
+    return pytest.mark.parametrize(
+        "db_index_backend",
+        tuple(
+            pytest.param(db_index_format, id=str(db_index_format))
+            for db_index_format in (
+                CSVIndexBackend,
+                FeatherIndexBackend,
+                netCDFIndexBackend,
                 # Other back-end options to consider:
                 #
                 # pretty netCDF, where we try and save the data with dimensions
