@@ -309,13 +309,74 @@ def test_unify_index_ordering():
             [11, 5, 7],
             [12, 4, 8],
             [],
-            # np.array([], dtype=np.int64),
         ],
         codes=[[-1, -1, -1], [0, 1, 2], [0, 1, 2], [-1, -1, -1]],
         names=["a", "b", "c", "d"],
     )
 
     res_a, res_b = unify_index_levels(idx_a, idx_b)
+
+    assert_index_equal_here(res_a, exp_a)
+    assert_index_equal_here(res_b, exp_b)
+
+
+def test_unify_index_overlap():
+    idx_a = pd.MultiIndex.from_tuples(
+        [
+            ("scenario_a", "model_1", "variable_1"),
+            ("scenario_a", "model_2", "variable_1"),
+            ("scenario_a", "model_1", "variable_2"),
+            ("scenario_a", "model_2", "variable_2"),
+            ("scenario_b", "model_1", "variable_1"),
+            ("scenario_b", "model_2", "variable_1"),
+            ("scenario_b", "model_1", "variable_2"),
+            ("scenario_b", "model_2", "variable_2"),
+        ],
+        names=["scenario", "model", "variable"],
+    )
+
+    idx_b = pd.MultiIndex.from_tuples(
+        [
+            ("scenario_a", "variable_1"),
+            ("scenario_a", "variable_1"),
+            ("scenario_a", "variable_2"),
+            ("scenario_a", "variable_2"),
+            ("scenario_b", "variable_1"),
+            ("scenario_b", "variable_1"),
+            ("scenario_b", "variable_2"),
+            ("scenario_b", "variable_2"),
+        ],
+        names=["scenario", "variable"],
+    )
+
+    # Expect no change
+    exp_a = idx_a
+
+    exp_b = pd.MultiIndex(
+        levels=[
+            ["scenario_a", "scenario_b"],
+            [],
+            ["variable_1", "variable_2"],
+        ],
+        codes=[
+            [0, 0, 0, 0, 1, 1, 1, 1],
+            [-1, -1, -1, -1, -1, -1, -1, -1],
+            [0, 0, 1, 1, 0, 0, 1, 1],
+        ],
+        names=["scenario", "model", "variable"],
+    )
+
+    res_a, res_b = unify_index_levels(idx_a, idx_b)
+
+    assert_index_equal_here(res_a, exp_a)
+    assert_index_equal_here(res_b, exp_b)
+
+    # Do it the other way around too
+    res_b, res_a = unify_index_levels(idx_b, idx_a)
+
+    exp_order = [*idx_b.names, *res_a.names.difference(idx_b.names)]
+    exp_a = res_a.reorder_levels(exp_order)
+    exp_b = res_b.reorder_levels(exp_order)
 
     assert_index_equal_here(res_a, exp_a)
     assert_index_equal_here(res_b, exp_b)

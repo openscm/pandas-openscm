@@ -230,45 +230,39 @@ def unify_index_levels(
     ):
         return left, right.reorder_levels(left.names)
 
-    if not set(left.names).intersection(set(right.names)):
-        # No intersection, have to roll this one ourselves
-        n_left_names = len(left.names)
-        n_right_names = len(right.names)
-        out_names = [*left.names, *right.names]
-        left_unified = pd.MultiIndex(
-            levels=[
-                *left.levels,
-                *[np.array([], dtype=np.int64) for _ in range(n_right_names)],
-            ],
-            codes=[
-                *left.codes,
-                *[np.full(left.shape[0], -1) for _ in range(n_right_names)],
-            ],
-            names=out_names,
-        )
-        right_unified = pd.MultiIndex(
-            levels=[
-                *[np.array([], dtype=np.int64) for _ in range(n_left_names)],
-                *right.levels,
-            ],
-            codes=[
-                *[np.full(left.shape[0], -1) for _ in range(n_left_names)],
-                *right.codes,
-            ],
-            names=out_names,
-        )
+    out_names = [*left.names, *[v for v in right.names if v not in left.names]]
+    out_names_s = set(out_names)
+    left_to_add = out_names_s.difference(left.names)
+    right_to_add = out_names_s.difference(right.names)
 
-        return left_unified, right_unified
+    left_unified = pd.MultiIndex(
+        levels=[
+            *left.levels,
+            *[np.array([], dtype=right.get_level_values(c).dtype) for c in left_to_add],
+        ],
+        codes=[
+            *left.codes,
+            *([np.full(left.shape[0], -1)] * len(left_to_add)),
+        ],
+        names=[
+            *left.names,
+            *left_to_add,
+        ],
+    ).reorder_levels(out_names)
 
-    joint_idx, left_indexer, right_indexer = left.join(
-        right, how="outer", return_indexers=True
-    )
+    right_unified = pd.MultiIndex(
+        levels=[
+            *[np.array([], dtype=left.get_level_values(c).dtype) for c in right_to_add],
+            *right.levels,
+        ],
+        codes=[
+            *([np.full(right.shape[0], -1)] * len(right_to_add)),
+            *right.codes,
+        ],
+        names=[
+            *right_to_add,
+            *right.names,
+        ],
+    ).reorder_levels(out_names)
 
-    def get_aligned_res(indexer):
-        tmp = indexer != -1
-        return joint_idx[tmp][np.argsort(indexer[tmp])]
-
-    left_aligned = get_aligned_res(left_indexer)
-    right_aligned = get_aligned_res(right_indexer)
-
-    return left_aligned, right_aligned
+    return left_unified, right_unified
