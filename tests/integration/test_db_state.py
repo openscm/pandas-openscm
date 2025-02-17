@@ -113,8 +113,9 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
         if self.data_exp is None:
             self.data_exp = data
         else:
-            raise NotImplementedError
-            # breakpoint()
+            self.data_exp = pd.concat(
+                v.dropna() for v in self.data_exp.align(data, axis="rows")
+            )
 
     # Add fully overlapping data
     # Add partially overlapping data

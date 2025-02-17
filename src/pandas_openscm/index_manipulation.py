@@ -222,6 +222,14 @@ def unify_index_levels(
                 (5, 4, 6)],
                names=['b', 'a', 'c'])
     """
+    if left.names == right.names:
+        return left, right
+
+    if (not left.names.difference(right.names)) and (
+        not right.names.difference(left.names)
+    ):
+        return left, right.reorder_levels(left.names)
+
     joint_idx, left_idxer, right_idxer = left.join(
         right, how="outer", return_indexers=True
     )

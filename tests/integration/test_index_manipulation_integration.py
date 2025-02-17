@@ -47,6 +47,33 @@ def test_unify_index_levels_already_matching():
     assert_index_equal_here(res_b, exp_b)
 
 
+def test_unify_index_levels_just_reordering():
+    idx_a = pd.MultiIndex.from_tuples(
+        [
+            (1, 2, 3),
+            (4, 5, 6),
+        ],
+        names=["a", "b", "c"],
+    )
+
+    idx_b = pd.MultiIndex.from_tuples(
+        [
+            (7, 8, 9),
+            (10, 11, 12),
+        ],
+        names=["c", "a", "b"],
+    )
+
+    # Should be no change
+    exp_a = idx_a
+    exp_b = idx_b.reorder_levels(idx_a.names)
+
+    res_a, res_b = unify_index_levels(idx_a, idx_b)
+
+    assert_index_equal_here(res_a, exp_a)
+    assert_index_equal_here(res_b, exp_b)
+
+
 def test_unify_index_levels_a_within_b():
     idx_a = pd.MultiIndex.from_tuples(
         [

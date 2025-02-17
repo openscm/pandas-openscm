@@ -22,7 +22,10 @@ from pandas_openscm.db.csv import CSVDataBackend, CSVIndexBackend
 from pandas_openscm.db.feather import FeatherDataBackend, FeatherIndexBackend
 from pandas_openscm.db.in_memory import InMemoryDataBackend, InMemoryIndexBackend
 from pandas_openscm.db.netcdf import netCDFDataBackend, netCDFIndexBackend
-from pandas_openscm.index_manipulation import update_index_from_candidates
+from pandas_openscm.index_manipulation import (
+    unify_index_levels,
+    update_index_from_candidates,
+)
 from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import (
     ParallelOpConfig,
@@ -794,19 +797,13 @@ class OpenSCMDB:
         if not isinstance(data_to_write.index, pd.MultiIndex):
             raise TypeError
 
-        if data_to_write.index.names.difference(index_start.index.names):
-            # There are index values in the data we're writing that aren't in our index.
-            # Hence, there can't be any overlap.
-            in_data_to_write = pd.Series(
-                np.full(index_start.shape[0], False),
-                index=index_start.set_index("file_id", append=True).index,
-            )
-
-        else:
-            in_data_to_write = pd.Series(
-                multi_index_match(index_start.index, data_to_write.index),  # type: ignore # pandas type hints confused
-                index=index_start.set_index("file_id", append=True).index,
-            )
+        index_start_index_unified, data_to_write_index_unified = unify_index_levels(
+            index_start.index, data_to_write.index
+        )
+        in_data_to_write = pd.Series(
+            multi_index_match(index_start_index_unified, data_to_write_index_unified),  # type: ignore # pandas type hints confused
+            index=index_start.set_index("file_id", append=True).index,
+        )
 
         grouper = in_data_to_write.groupby("file_id")
         no_overwrite = ~grouper.apply(np.any)
@@ -1033,7 +1030,12 @@ class OpenSCMDB:
                     # Should be impossible to get here
                     raise TypeError
 
-                overwrite_required = multi_index_match(data.index, index_db.index)
+                data_index_unified, index_db_index_unified = unify_index_levels(
+                    data.index, index_db.index
+                )
+                overwrite_required = multi_index_match(
+                    data_index_unified, index_db_index_unified
+                )
 
                 if overwrite_required.any():
                     data_to_write_already_in_db = data.loc[overwrite_required, :]
@@ -1496,10 +1498,23 @@ def save_data(  # noqa: PLR0913
 
     if index_non_data is None:
         index_out = pd.concat(index_out_l)
+
     else:
-        index_out = pd.concat(
-            [index_non_data.reorder_levels(data.index.names), *index_out_l]
+        # # I wonder if this would be faster.
+        # # Would have to test
+        # index_out = pd.concat(
+        #     v.dropna(how="all", axis="rows")
+        #     for v in index_non_data.align(index_out, axis="rows")
+        # )
+        _, index_non_data_index_unified = unify_index_levels(
+            index_out_l[0].index, index_non_data.index
         )
+        index_non_data_aligned = pd.DataFrame(
+            index_non_data.values,
+            columns=index_non_data.columns,
+            index=index_non_data_index_unified,
+        )
+        index_out = pd.concat([index_non_data_aligned, *index_out_l])
 
     if file_map_non_data is not None:
         file_map_out = pd.concat([file_map_non_data, file_map_out])
