@@ -50,6 +50,11 @@ def multi_index_match(
     :
         Location of the rows in `idx` which are in `locator`.
 
+    Raises
+    ------
+    KeyError
+        `locator` has levels which are not in `idx`
+
     Examples
     --------
     >>> base = pd.MultiIndex.from_tuples(
@@ -97,9 +102,20 @@ def multi_index_match(
     >>> multi_index_match(base, loc_first_level)
     array([False, False, False,  True])
     """
-    idx_reordered: pd.MultiIndex = idx.reorder_levels(  # type: ignore # reorder_levels untyped
-        [*locator.names, *(set(idx.names) - {*locator.names})]
-    )
+    try:
+        idx_reordered: pd.MultiIndex = idx.reorder_levels(  # type: ignore # reorder_levels untyped
+            [*locator.names, *idx.names.difference(locator.names)]
+        )
+    except KeyError as exc:
+        unusable = locator.names.difference(idx.names)
+        if unusable:
+            msg = (
+                f"The following levels in `idx` are not in `locator`: {unusable}. "
+                f"{idx.names=} {locator.names=}"
+            )
+            raise KeyError(msg) from exc
+
+        raise
 
     return idx_reordered.isin(locator)
 

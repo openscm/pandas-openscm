@@ -583,6 +583,11 @@ class OpenSCMDB:
         -------
         :
             Loaded data
+
+        Raises
+        ------
+        EmptyDBError
+            The database is empty
         """
         if self.is_empty:
             raise EmptyDBError(self)
@@ -789,10 +794,19 @@ class OpenSCMDB:
         if not isinstance(data_to_write.index, pd.MultiIndex):
             raise TypeError
 
-        in_data_to_write = pd.Series(
-            multi_index_match(index_start.index, data_to_write.index),  # type: ignore # pandas type hints confused
-            index=index_start.set_index("file_id", append=True).index,
-        )
+        if data_to_write.index.names.difference(index_start.index.names):
+            # There are index values in the data we're writing that aren't in our index.
+            # Hence, there can't be any overlap.
+            in_data_to_write = pd.Series(
+                np.full(index_start.shape[0], False),
+                index=index_start.set_index("file_id", append=True).index,
+            )
+
+        else:
+            in_data_to_write = pd.Series(
+                multi_index_match(index_start.index, data_to_write.index),  # type: ignore # pandas type hints confused
+                index=index_start.set_index("file_id", append=True).index,
+            )
 
         grouper = in_data_to_write.groupby("file_id")
         no_overwrite = ~grouper.apply(np.any)
