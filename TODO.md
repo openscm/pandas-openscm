@@ -1,12 +1,36 @@
-- add state testing with hypothesis
+- re-think the tests
+    - clean up the hypothesis tests
+        - fill out the missing pieces
+    - use the in-memory back-end for most things
+    - tests:
+        - rethink the naming schemes
+            - test_database_integration/test_save_load
+                - various kinds of serialisation (single, grouped, one after the other etc.)
+                - note that it's supplemented by hypothesis
+            - test_database_integration/test_db_state_with_hypothesis
+            - test_database_integration/test_make_move_plan
+            - test_database_integration/test_locking
+            - test_database_integration/test_paralell_and_progress
+                - parallel and progress bars
+                    - do this using the in-memory backend
+            - test_index_manpulation_integration/test_to_category_index
+            - test_index_manpulation_integration/test_unify_index_levels
+        - other bits and pieces
+        - use code coverage to help guide this
+
+
+- add DBReader so we can do reads with an in-memory index
+    - include a context manager so the lock is auto-released
+- database docs
+    - regroup demo in docs (not in core API so we don't take responsibility for deletion)
+    - parallel tricks
+    - progress tricks
+- create the speed benchmarking tool/notebook
+    - just dump results with operating system, date and commit used to make them
 - parallel ops
-    - [ ] tests of and docstrings for layers created `figure_out_progress_bars`, `apply_op_parallel_progress`
+    - [ ] tests of and docstrings for layers created in parallelisation and related stuff
 - push --doctest-report ndiff upstream in Makefile
 - push dependency pinning and testing section in docs' navigation upstream
 - push footnotes extension upstream
 - push fixes to dependency pinning text upstream
 - push tqdm lack of intersphinx upstream
-- database docs
-    - regroup demo in docs (not in core API so we don't take responsibility for deletion)
-    - parallel tricks
-    - progress tricks

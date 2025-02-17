@@ -20,10 +20,13 @@ from pandas_openscm.db import (
     CSVDataBackend,
     CSVIndexBackend,
     EmptyDBError,
+    InMemoryDataBackend,
+    InMemoryIndexBackend,
     MovePlan,
     OpenSCMDB,
     ReWriteAction,
 )
+from pandas_openscm.index_manipulation import unify_index_levels
 from pandas_openscm.testing import (
     assert_frame_alike,
     assert_move_plan_equal,
@@ -174,6 +177,55 @@ def test_save_multiple_grouped_and_load(tmpdir, db_data_backend, db_index_backen
     loaded = db.load(out_columns_type=float)
 
     assert_frame_alike(all_saved, loaded)
+
+
+@pytest.mark.parametrize(
+    "wide_first",
+    (
+        pytest.param(True, id="wide-first"),
+        pytest.param(False, id="narrow-first"),
+    ),
+)
+def test_save_multiple_grouped_wide_and_narrow_and_load(wide_first, tmpdir):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=InMemoryDataBackend(),
+        backend_index=InMemoryIndexBackend(),
+    )
+
+    to_save_wide_index = create_test_df(
+        n_scenarios=3,
+        variables=[("Emission", "Gt"), ("Concentrations", "ppm")],
+        n_runs=3,
+        timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
+    )
+
+    to_save_narrow_index = to_save_wide_index.groupby(
+        ["variable", "unit", "run"]
+    ).mean()
+    assert len(to_save_narrow_index.index.names) < len(to_save_wide_index.index.names)
+
+    if wide_first:
+        db.save(to_save_wide_index.copy(), groupby=["scenario", "variable"])
+        db.save(to_save_narrow_index.copy(), groupby=["variable", "unit"])
+    else:
+        db.save(to_save_narrow_index.copy(), groupby=["variable", "unit"])
+        db.save(to_save_wide_index.copy(), groupby=["scenario", "variable"])
+
+    tmp = unify_index_levels(to_save_wide_index.index, to_save_narrow_index.index)[1]
+    to_save_narrow_index_unified_index = to_save_narrow_index.copy()
+    to_save_narrow_index_unified_index.index = tmp
+    all_saved_exp = pd.concat([to_save_wide_index, to_save_narrow_index_unified_index])
+
+    db_metadata = db.load_metadata()
+    metadata_compare = db_metadata.reorder_levels(all_saved_exp.index.names)
+    pd.testing.assert_index_equal(
+        all_saved_exp.index, metadata_compare, check_order=False
+    )
+
+    loaded = db.load(out_columns_type=float)
+
+    assert_frame_alike(all_saved_exp, loaded)
 
 
 @db_data_backends

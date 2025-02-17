@@ -1475,9 +1475,12 @@ def save_data(  # noqa: PLR0913
     if index_non_data is None:
         index_non_data_unified_index = None
     else:
-        index_non_data_unified_index = index_non_data.align(
-            data.iloc[:1, :], axis="rows"
-        )[0].dropna()
+        unified_index = unify_index_levels(index_non_data.index, data.index[:1])[0]
+        index_non_data_unified_index = pd.DataFrame(
+            index_non_data.values,
+            index=unified_index,
+            columns=index_non_data.columns,
+        )
 
     write_groups_l = []
     index_data_out_l = []

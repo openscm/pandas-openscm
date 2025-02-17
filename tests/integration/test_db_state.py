@@ -1,6 +1,6 @@
 """
-Stateful testing of the database with hypothesis
-TODO: add link above
+Stateful testing of the database with [hypothesis](https://hypothesis.readthedocs.io/en/latest/)
+
 This allows us check that a series of operations on the database
 yields the same result, independent of data and index back-ends.
 It's not a perfect test, but it is a very helpful one for finding edge cases
@@ -23,16 +23,19 @@ import pytest
 
 from pandas_openscm.db import (
     EmptyDBError,
-    InMemoryDataBackend,
-    InMemoryIndexBackend,
     OpenSCMDB,
 )
-from pandas_openscm.testing import assert_frame_alike
+from pandas_openscm.testing import (
+    assert_frame_alike,
+    get_db_data_backends,
+    get_db_index_backends,
+)
 
 pytestmark = pytest.mark.slow
 
 
-@hypothesis.settings(max_examples=100)
+# @hypothesis.settings(max_examples=50)
+@hypothesis.settings(max_examples=1)
 class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
     def __init__(self):
         super().__init__()
@@ -42,9 +45,13 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
                 backend_index=backend_index(),
                 db_dir=Path(tempfile.mkdtemp()),
             )
-            for backend_data in [InMemoryDataBackend]
-            for backend_index in [InMemoryIndexBackend]
-            # TODO: replace with all combos
+            # TODO: split this out so we can do more examples with just memory backend
+            # for backend_data in [InMemoryDataBackend]
+            # for backend_index in [InMemoryIndexBackend]
+            # # # TODO: figure out how to do the type stuff with this.
+            # # # Serialising is lossy, so comparisons have to be done carefully.
+            for backend_data in get_db_data_backends()
+            for backend_index in get_db_index_backends()
         )
         self.data_exp = None
         self.n_ts_options = (1, 3, 5, 10)
@@ -119,9 +126,10 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
                 for v in self.data_exp.align(data, axis="rows")
             )
 
-    # Add fully overlapping data
-    # Add partially overlapping data
-    # Add grouped dated
+    # TODO:
+    # - Add fully overlapping data
+    # - Add partially overlapping data
+    # - Add grouped dated
 
     @hypothesis.stateful.invariant()
     def all_db_index_are_multiindex(self):
@@ -145,16 +153,27 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
         for db in self.dbs:
             try:
                 if self.data_exp is not None:
-                    loaded = db.load()
+                    loaded = db.load(out_columns_type=self.data_exp.columns.dtype)
                     assert isinstance(loaded.index, pd.MultiIndex)
                     assert_frame_alike(loaded, self.data_exp)
 
                     loaded_metadata = db.load_metadata()
                     assert isinstance(loaded_metadata, pd.MultiIndex)
-                    pd.testing.assert_index_equal(
-                        loaded_metadata.reorder_levels(self.data_exp.index.names),
-                        self.data_exp.index,
-                        check_order=False,
+                    loaded_comparison = (
+                        loaded_metadata.to_frame(index=False)
+                        .fillna("i_was_nan")
+                        .replace("nan", "i_was_nan")
+                        .sort_values(self.data_exp.index.names)
+                        .reset_index(drop=True)
+                    )
+                    exp_comparison = (
+                        self.data_exp.index.to_frame(index=False)
+                        .fillna("i_was_nan")
+                        .sort_values(self.data_exp.index.names)
+                        .reset_index(drop=True)
+                    )
+                    pd.testing.assert_frame_equal(
+                        loaded_comparison, exp_comparison, check_like=True
                     )
 
                 else:

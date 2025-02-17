@@ -129,8 +129,6 @@ def test_unify_index_levels_a_within_b_skip_a_level():
         names=["a", "c", "b"],
     )
 
-    # unify_index_levels is not 100% symmetric
-    # TODO: put in docstring
     exp_b = idx_b.reorder_levels(["a", "c", "b"])
 
     res_a, res_b = unify_index_levels(idx_a, idx_b)

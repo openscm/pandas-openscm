@@ -23,6 +23,8 @@ from pandas_openscm.db import (
     InMemoryDataBackend,
     InMemoryIndexBackend,
     MovePlan,
+    OpenSCMDBDataBackend,
+    OpenSCMDBIndexBackend,
     netCDFDataBackend,
     netCDFIndexBackend,
 )
@@ -30,6 +32,38 @@ from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
     import pytest
+
+
+def get_db_data_backends() -> tuple[OpenSCMDBDataBackend, ...]:
+    return (
+        CSVDataBackend,
+        FeatherDataBackend,
+        InMemoryDataBackend,
+        netCDFDataBackend,
+        # Other back-end options to consider:
+        #
+        # pretty netCDF, where we try and save the data with dimensions
+        # where possible
+        #
+        # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
+        # HDF5 = auto()
+    )
+
+
+def get_db_index_backends() -> tuple[OpenSCMDBIndexBackend, ...]:
+    return (
+        CSVIndexBackend,
+        FeatherIndexBackend,
+        InMemoryIndexBackend,
+        netCDFIndexBackend,
+        # Other back-end options to consider:
+        #
+        # pretty netCDF, where we try and save the data with dimensions
+        # where possible
+        #
+        # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
+        # HDF5 = auto()
+    )
 
 
 def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
@@ -44,19 +78,7 @@ def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
         "db_data_backend",
         tuple(
             pytest.param(db_data_format, id=str(db_data_format))
-            for db_data_format in (
-                CSVDataBackend,
-                FeatherDataBackend,
-                InMemoryDataBackend,
-                netCDFDataBackend,
-                # Other back-end options to consider:
-                #
-                # pretty netCDF, where we try and save the data with dimensions
-                # where possible
-                #
-                # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-                # HDF5 = auto()
-            )
+            for db_data_format in get_db_data_backends()
         ),
     )
 
@@ -73,19 +95,7 @@ def get_parametrized_db_index_backends() -> pytest.MarkDecorator:
         "db_index_backend",
         tuple(
             pytest.param(db_index_format, id=str(db_index_format))
-            for db_index_format in (
-                CSVIndexBackend,
-                FeatherIndexBackend,
-                InMemoryIndexBackend,
-                netCDFIndexBackend,
-                # Other back-end options to consider:
-                #
-                # pretty netCDF, where we try and save the data with dimensions
-                # where possible
-                #
-                # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-                # HDF5 = auto()
-            )
+            for db_index_format in get_db_index_backends()
         ),
     )
 
