@@ -57,6 +57,7 @@ def multi_index_match(
 
     Examples
     --------
+    >>> import pandas as pd
     >>> base = pd.MultiIndex.from_tuples(
     ...     (
     ...         ("ma", "sa", 1),
@@ -141,6 +142,9 @@ def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> P:
 
     Examples
     --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>>
     >>> base = pd.DataFrame(
     ...     data=np.arange(8).reshape((4, 2)),
     ...     columns=[2000, 2020],
@@ -205,6 +209,8 @@ def index_name_aware_match(
 
     Examples
     --------
+    >>> import pandas as pd
+    >>>
     >>> base = pd.MultiIndex.from_tuples(
     ...     (
     ...         ("ma", "sa", 1),
@@ -246,6 +252,9 @@ def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
 
     Examples
     --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>>
     >>> base = pd.DataFrame(
     ...     data=np.arange(8).reshape((4, 2)),
     ...     columns=[2000, 2020],

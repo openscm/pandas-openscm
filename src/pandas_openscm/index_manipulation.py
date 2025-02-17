@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeVar
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -84,3 +85,147 @@ def update_index_from_candidates(
     res = indf.set_index(set_to_index)
 
     return res
+
+
+def unify_index_levels(
+    left: pd.MultiIndex, right: pd.MultiIndex
+) -> tuple[pd.MultiIndex, pd.MultiIndex]:
+    """
+    Unify the levels on two indexes
+
+    You can achieve similar behaviour with
+    [`pd.DataFrame.align`][pandas.DataFrame.align],
+    but we want to do this on indexes
+    without paying the price of aligning everything else
+    or creating a bunch of NaN that we just drop straight away.
+
+    The levels are unified by simply adding NaN to any level in either `left` or `right`
+    that is not in the level of the other index.
+
+    The indexes are returned with the levels from `left` first,
+    then the levels from `right`.
+
+    Parameters
+    ----------
+    left
+        First index to unify
+
+    right
+        Second index to unify
+
+    Returns
+    -------
+    left_aligned :
+        Left after alignment
+
+    right_aligned :
+        Right after alignment
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>>
+    >>> idx_a = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (1, 2, 3),
+    ...         (4, 5, 6),
+    ...     ],
+    ...     names=["a", "b", "c"],
+    ... )
+    >>> idx_b = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (7, 8),
+    ...         (10, 11),
+    ...     ],
+    ...     names=["a", "b"],
+    ... )
+    >>> unified_a, unified_b = unify_index_levels(idx_a, idx_b)
+    >>> unified_a
+    MultiIndex([(1, 2, 3),
+                (4, 5, 6)],
+               names=['a', 'b', 'c'])
+
+    >>> unified_b
+    MultiIndex([( 7,  8, nan),
+                (10, 11, nan)],
+               names=['a', 'b', 'c'])
+
+    >>> # Also fine if b has swapped levels
+    >>> idx_b = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (7, 8),
+    ...         (10, 11),
+    ...     ],
+    ...     names=["b", "a"],
+    ... )
+    >>> unified_a, unified_b = unify_index_levels(idx_a, idx_b)
+    >>> unified_a
+    MultiIndex([(1, 2, 3),
+                (4, 5, 6)],
+               names=['a', 'b', 'c'])
+
+    >>> unified_b
+    MultiIndex([( 8,  7, nan),
+                (11, 10, nan)],
+               names=['a', 'b', 'c'])
+
+    >>> # Also works if a is 'inside' b
+    >>> idx_a = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (7, 8),
+    ...         (10, 11),
+    ...     ],
+    ...     names=["a", "b"],
+    ... )
+    >>> idx_b = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (1, 2, 3),
+    ...         (4, 5, 6),
+    ...     ],
+    ...     names=["a", "b", "c"],
+    ... )
+    >>> unified_a, unified_b = unify_index_levels(idx_a, idx_b)
+    >>> unified_a
+    MultiIndex([( 7,  8, nan),
+                (10, 11, nan)],
+               names=['a', 'b', 'c'])
+
+    >>> unified_b
+    MultiIndex([(1, 2, 3),
+                (4, 5, 6)],
+               names=['a', 'b', 'c'])
+
+    >>> # But, be a bit careful, this is now sensitive to a's column order
+    >>> idx_a = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (7, 8),
+    ...         (10, 11),
+    ...     ],
+    ...     names=["b", "a"],
+    ... )
+    >>> idx_b = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         (1, 2, 3),
+    ...         (4, 5, 6),
+    ...     ],
+    ...     names=["a", "b", "c"],
+    ... )
+    >>> unified_a, unified_b = unify_index_levels(idx_a, idx_b)
+    >>> # Note that the names are `['b', 'a', 'c']` in the output
+    >>> unified_a
+    MultiIndex([( 7,  8, nan),
+                (10, 11, nan)],
+               names=['b', 'a', 'c'])
+
+    >>> unified_b
+    MultiIndex([(2, 1, 3),
+                (5, 4, 6)],
+               names=['b', 'a', 'c'])
+    """
+    joint_idx, left_idxer, right_idxer = left.join(
+        right, how="outer", return_indexers=True
+    )
+    left_aligned = joint_idx[np.where(left_idxer != -1)]
+    right_aligned = joint_idx[np.where(right_idxer != -1)]
+
+    return left_aligned, right_aligned
