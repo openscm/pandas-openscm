@@ -230,9 +230,40 @@ def unify_index_levels(
     ):
         return left, right.reorder_levels(left.names)
 
+    if not set(left.names).intersection(set(right.names)):
+        n_left_names = len(left.names)
+        n_right_names = len(right.names)
+        out_names = [*left.names, *right.names]
+        left_unified = pd.MultiIndex(
+            levels=[
+                *left.levels,
+                *[np.array([], dtype=np.int64) for _ in range(n_right_names)],
+            ],
+            codes=[
+                *left.codes,
+                *[np.full(left.shape[0], -1) for _ in range(n_right_names)],
+            ],
+            names=out_names,
+        )
+        right_unified = pd.MultiIndex(
+            levels=[
+                *[np.array([], dtype=np.int64) for _ in range(n_left_names)],
+                *right.levels,
+            ],
+            codes=[
+                *[np.full(left.shape[0], -1) for _ in range(n_left_names)],
+                *right.codes,
+            ],
+            names=out_names,
+        )
+
+        return left_unified, right_unified
+
     joint_idx, left_idxer, right_idxer = left.join(
         right, how="outer", return_indexers=True
     )
+    # Shouldn't be using where below as it breaks ordering.
+    # TODO: add failing test first.
     left_aligned = joint_idx[np.where(left_idxer != -1)]
     right_aligned = joint_idx[np.where(right_idxer != -1)]
 

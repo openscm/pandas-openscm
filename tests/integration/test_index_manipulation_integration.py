@@ -201,3 +201,83 @@ def test_unify_index_levels_a_outside_b_skip_level():
 
     assert_index_equal_here(res_a, exp_a)
     assert_index_equal_here(res_b, exp_b)
+
+
+def test_unify_index_partial_intersecting():
+    idx_a = pd.MultiIndex.from_tuples(
+        [
+            (1, 2, 3),
+            (4, 5, 6),
+        ],
+        names=["a", "b", "d"],
+    )
+
+    idx_b = pd.MultiIndex.from_tuples(
+        [
+            (7, 8, 9),
+            (10, 11, 12),
+        ],
+        names=["a", "b", "c"],
+    )
+
+    exp_a = pd.MultiIndex(
+        levels=[[1, 4], [2, 5], [3, 6], np.array([], dtype=np.int64)],
+        codes=[[0, 1], [0, 1], [0, 1], [-1, -1]],
+        names=["a", "b", "d", "c"],
+    )
+
+    exp_b = pd.MultiIndex(
+        levels=[[7, 10], [8, 11], np.array([], dtype=np.int64), [9, 12]],
+        codes=[[0, 1], [0, 1], [-1, -1], [0, 1]],
+        names=["a", "b", "d", "c"],
+    )
+
+    res_a, res_b = unify_index_levels(idx_a, idx_b)
+
+    assert_index_equal_here(res_a, exp_a)
+    assert_index_equal_here(res_b, exp_b)
+
+
+def test_unify_index_non_intersecting():
+    idx_a = pd.MultiIndex.from_tuples(
+        [
+            (1, 2),
+            (3, 4),
+        ],
+        names=["a", "c"],
+    )
+
+    idx_b = pd.MultiIndex.from_tuples(
+        [
+            (5, 6),
+            (7, 8),
+        ],
+        names=["b", "d"],
+    )
+
+    exp_a = pd.MultiIndex(
+        levels=[
+            [1, 3],
+            [2, 4],
+            np.array([], dtype=np.int64),
+            np.array([], dtype=np.int64),
+        ],
+        codes=[[0, 1], [0, 1], [-1, -1], [-1, -1]],
+        names=["a", "c", "b", "d"],
+    )
+
+    exp_b = pd.MultiIndex(
+        levels=[
+            np.array([], dtype=np.int64),
+            np.array([], dtype=np.int64),
+            [5, 7],
+            [6, 8],
+        ],
+        codes=[[-1, -1], [-1, -1], [0, 1], [0, 1]],
+        names=["a", "c", "b", "d"],
+    )
+
+    res_a, res_b = unify_index_levels(idx_a, idx_b)
+
+    assert_index_equal_here(res_a, exp_a)
+    assert_index_equal_here(res_b, exp_b)
