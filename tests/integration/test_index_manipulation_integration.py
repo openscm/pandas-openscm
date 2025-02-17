@@ -281,3 +281,41 @@ def test_unify_index_non_intersecting():
 
     assert_index_equal_here(res_a, exp_a)
     assert_index_equal_here(res_b, exp_b)
+
+
+def test_unify_index_ordering():
+    idx_a = pd.MultiIndex.from_tuples(
+        [
+            (np.nan, 2, 1, np.nan),
+        ],
+        names=["a", "b", "c", "d"],
+    )
+
+    idx_b = pd.MultiIndex.from_tuples(
+        [
+            (11, 12),
+            (5, 4),
+            (7, 8),
+        ],
+        names=["b", "c"],
+    )
+
+    # Expect no change
+    exp_a = idx_a
+
+    exp_b = pd.MultiIndex(
+        levels=[
+            [],
+            [11, 5, 7],
+            [12, 4, 8],
+            [],
+            # np.array([], dtype=np.int64),
+        ],
+        codes=[[-1, -1, -1], [0, 1, 2], [0, 1, 2], [-1, -1, -1]],
+        names=["a", "b", "c", "d"],
+    )
+
+    res_a, res_b = unify_index_levels(idx_a, idx_b)
+
+    assert_index_equal_here(res_a, exp_a)
+    assert_index_equal_here(res_b, exp_b)
