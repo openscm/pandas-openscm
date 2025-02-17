@@ -76,20 +76,6 @@ class EmptyDBError(ValueError):
 
 
 @define
-class ReWriteAction:
-    """Description of a re-write action"""
-
-    from_file: Path
-    """File from which to load the data"""
-
-    to_file: Path
-    """File in which to write the re-written data"""
-
-    locator: pd.MultiIndex
-    """Locator which specifies which data to re-write"""
-
-
-@define
 class MovePlan:
     """Plan for how to move data to make way for an overwrite"""
 
@@ -104,6 +90,46 @@ class MovePlan:
 
     delete_paths: tuple[Path, ...] | None
     """Paths which can be deleted (after the data has been moved)"""
+
+
+@define
+class ReWriteAction:
+    """Description of a re-write action"""
+
+    from_file: Path
+    """File from which to load the data"""
+
+    to_file: Path
+    """File in which to write the re-written data"""
+
+    locator: pd.MultiIndex
+    """Locator which specifies which data to re-write"""
+
+
+class DBFileType(Enum):
+    """
+    Type of a database file
+
+    Really just a helper for [save_data][(m).]
+    """
+
+    DATA = auto()
+    INDEX = auto()
+    FILE_MAP = auto()
+
+
+@define
+class SaveAction:
+    """A database save action"""
+
+    info: pd.DataFrame | pd.Series[Any]
+    """Information to save"""
+
+    info_kind: DBFileType
+    """The kind of information that this is"""
+
+    save_path: Path
+    """Path in which to save the information"""
 
 
 class OpenSCMDBBackend(Protocol):
@@ -499,14 +525,6 @@ class OpenSCMDB:
             lock_context_manager = self.index_file_lock.acquire()
 
         with lock_context_manager:
-            # index_raw = self.backend.load_index(self.index_file)
-            #
-            # # Don't need to copy as index_raw is only used internally.
-            # # The different name is just to help understand the order of operations.
-            # index = index_raw
-            # index.index = pd.MultiIndex.from_frame(index_raw)
-            #
-            # index_to_load = index
             file_map = self.load_file_map(
                 # Already have the lock
                 lock_context_manager=contextlib.nullcontext(None)
@@ -531,7 +549,12 @@ class OpenSCMDB:
                 max_workers=max_workers,
             )
 
+        if self.backend.preserves_index:
+            # TODO: align indexes here before concat
+            ...
+
         res = pd.concat(loaded_l)
+
         if not self.backend.preserves_index:
             index_names: pandas.core.indexes.frozen.FrozenList = index.index.names  # type: ignore # pandas type hints wrong
             res = update_index_from_candidates(res, index_names.difference({"file_id"}))
@@ -708,6 +731,7 @@ class OpenSCMDB:
         grouper = in_data_to_write.groupby("file_id")
         no_overwrite = ~grouper.apply(np.any)
         if no_overwrite.all():
+            # Don't need to move anything, just return what we started with
             return MovePlan(
                 moved_index=index_start,
                 moved_file_map=file_map_start,
@@ -718,7 +742,11 @@ class OpenSCMDB:
         full_overwrite: pd.Series[bool] = grouper.apply(np.all)  # type: ignore # pandas type hints confused
         partial_overwrite = ~(full_overwrite | no_overwrite)
         if not partial_overwrite.any():
-            # Only keep the bits of the index which won't be overwritten
+            # Don't need to move anything,
+            # but do no need to delete some files
+            # to make way for the parts of the index that will be overwritten
+            # (would be even more efficient to just update the file IDs,
+            # but that would create a coupling I can't get my head around right now).
             delete_file_ids = full_overwrite.index[full_overwrite]
             delete_paths = file_map_start.loc[delete_file_ids]
             moved_index = index_start[~index_start["file_id"].isin(delete_file_ids)]
@@ -731,29 +759,24 @@ class OpenSCMDB:
                 delete_paths=tuple(delete_paths),
             )
 
-        to_rewrite = partial_overwrite & ~in_data_to_write
+        # Neither nothing to do or only deletions i.e. the fun part.
+        to_keep_via_rewrite = partial_overwrite & ~in_data_to_write
 
         full_overwrite_file_ids = full_overwrite.index[full_overwrite]
         partial_overwrite_file_ids = partial_overwrite.index[partial_overwrite]
         file_ids_to_delete = np.union1d(
-            full_overwrite_file_ids,
-            partial_overwrite_file_ids,
+            full_overwrite_file_ids, partial_overwrite_file_ids
         )
         delete_paths = file_map_start.loc[file_ids_to_delete]
 
-        index_moved = in_data_to_write[
-            ~in_data_to_write
-            & in_data_to_write.index.get_level_values("file_id").isin(
-                partial_overwrite_file_ids
-            )
-        ].reset_index("file_id")[["file_id"]]
-
         file_id_map = {}
-        file_map_out = file_map_start[no_overwrite].copy()
         max_file_id_start = file_map_start.index.max()
+        # Start just with the files that aren't affected by the overwrite
+        file_map_out = file_map_start[no_overwrite].copy()
         rewrite_actions_l = []
         for increment, (file_id_old, fiddf) in enumerate(
-            to_rewrite.loc[to_rewrite].groupby("file_id")
+            # Figure out where to rewrite the data that needs to be rewritten
+            to_keep_via_rewrite.loc[to_keep_via_rewrite].groupby("file_id")
         ):
             new_file_id = max_file_id_start + 1 + increment
 
@@ -768,8 +791,17 @@ class OpenSCMDB:
             )
             file_id_map[file_id_old] = new_file_id
 
-        index_moved["file_id"] = index_moved["file_id"].map(file_id_map)
-        if index_moved["file_id"].isnull().any():
+        index_keep_via_rewrite = in_data_to_write[
+            ~in_data_to_write
+            & in_data_to_write.index.get_level_values("file_id").isin(
+                partial_overwrite_file_ids
+            )
+        ].reset_index("file_id")[["file_id"]]
+
+        index_keep_via_rewrite["file_id"] = index_keep_via_rewrite["file_id"].map(
+            file_id_map
+        )
+        if index_keep_via_rewrite["file_id"].isnull().any():
             # Something has gone wrong, everything should be remapped somewhere
             raise AssertionError
 
@@ -777,8 +809,8 @@ class OpenSCMDB:
             [
                 # Bits of the index which won't be overwritten
                 index_start[~index_start["file_id"].isin(file_ids_to_delete)],
-                # Bits of the index which are being re-written
-                index_moved,
+                # Bits of the index which are being kept after a rewrite
+                index_keep_via_rewrite,
             ]
         )
         res = MovePlan(
@@ -1263,32 +1295,6 @@ def rewrite_files(
                 raise AssertionError
 
             parallel_op_config_use.executor.shutdown()
-
-
-class DBFileType(Enum):
-    """
-    Type of a database file
-
-    Really just a helper for [save_data][(m).]
-    """
-
-    DATA = auto()
-    INDEX = auto()
-    FILE_MAP = auto()
-
-
-@define
-class SaveAction:
-    """A database save action"""
-
-    info: pd.DataFrame | pd.Series[Any]
-    """Information to save"""
-
-    info_kind: DBFileType
-    """The kind of information that this is"""
-
-    save_path: Path
-    """Path in which to save the information"""
 
 
 def save_data(  # noqa: PLR0913
