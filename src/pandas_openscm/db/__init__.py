@@ -623,9 +623,14 @@ class OpenSCMDB:
                 max_workers=max_workers,
             )
 
-        if self.backend_data.preserves_index:
-            # TODO: align indexes here before concat
-            pass
+        if self.backend_data.preserves_index and any(
+            v.index.names != loaded_l[0].index.names for v in loaded_l
+        ):
+            base_idx = index.index[:1]
+            for i in range(len(loaded_l)):
+                # breakpoint()
+                new_index = unify_index_levels(base_idx, loaded_l[i].index)[1]
+                loaded_l[i].index = new_index
 
         res = pd.concat(loaded_l)
 

@@ -231,6 +231,7 @@ def unify_index_levels(
         return left, right.reorder_levels(left.names)
 
     if not set(left.names).intersection(set(right.names)):
+        # No intersection, have to roll this one ourselves
         n_left_names = len(left.names)
         n_right_names = len(right.names)
         out_names = [*left.names, *right.names]
@@ -259,12 +260,15 @@ def unify_index_levels(
 
         return left_unified, right_unified
 
-    joint_idx, left_idxer, right_idxer = left.join(
+    joint_idx, left_indexer, right_indexer = left.join(
         right, how="outer", return_indexers=True
     )
-    # Shouldn't be using where below as it breaks ordering.
-    # TODO: add failing test first.
-    left_aligned = joint_idx[np.where(left_idxer != -1)]
-    right_aligned = joint_idx[np.where(right_idxer != -1)]
+
+    def get_aligned_res(indexer):
+        tmp = indexer != -1
+        return joint_idx[tmp][np.argsort(indexer[tmp])]
+
+    left_aligned = get_aligned_res(left_indexer)
+    right_aligned = get_aligned_res(right_indexer)
 
     return left_aligned, right_aligned
