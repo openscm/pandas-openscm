@@ -14,9 +14,9 @@ def assert_index_equal_here(res: pd.MultiIndex, exp: pd.MultiIndex):
     """
     Assert that indexes are equal
 
-    We make our life a bit easier by removing unused levels from `res` before comparing.
+    Special function here in case we need to do any pre-processing.
     """
-    pd.testing.assert_index_equal(res.remove_unused_levels(), exp)
+    pd.testing.assert_index_equal(res, exp)
 
 
 def test_unify_index_levels_already_matching():
