@@ -140,6 +140,44 @@ def test_save_multiple_and_load(tmpdir, db_data_backend, db_index_backend):
 
 @db_data_backends
 @db_index_backends
+def test_save_multiple_grouped_and_load(tmpdir, db_data_backend, db_index_backend):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
+
+    all_saved_l = []
+    for variable in [
+        [("Emissions", "Gt")],
+        [("Concentrations", "ppm")],
+        [("Forcing", "W/m^2")],
+    ]:
+        to_save = create_test_df(
+            n_scenarios=10,
+            variables=variable,
+            n_runs=3,
+            timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
+        )
+
+        db.save(to_save, groupby=["scenario", "variable"])
+        all_saved_l.append(to_save)
+
+    all_saved = pix.concat(all_saved_l)
+
+    db_metadata = db.load_metadata()
+    metadata_compare = db_metadata.reorder_levels(all_saved.index.names)
+    pd.testing.assert_index_equal(
+        all_saved.index, metadata_compare, exact="equiv", check_order=False
+    )
+
+    loaded = db.load(out_columns_type=float)
+
+    assert_frame_alike(all_saved, loaded)
+
+
+@db_data_backends
+@db_index_backends
 def test_save_overwrite_error(tmpdir, db_data_backend, db_index_backend):
     db = OpenSCMDB(
         db_dir=Path(tmpdir),

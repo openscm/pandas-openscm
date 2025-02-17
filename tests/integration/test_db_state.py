@@ -29,9 +29,10 @@ from pandas_openscm.db import (
 )
 from pandas_openscm.testing import assert_frame_alike
 
+pytestmark = pytest.mark.slow
 
-# @hypothesis.settings(max_examples=30)
-@hypothesis.settings(max_examples=1)
+
+@hypothesis.settings(max_examples=100)
 class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
     def __init__(self):
         super().__init__()
@@ -69,10 +70,10 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
     def delete(self):
         self.data_exp = None
         for db in self.dbs:
-            # Should work irrespective of whether there is anything to delete or not
+            # Should work irrespective of whether
+            # there is anything to delete or not
             db.delete()
 
-    # Add new data
     @hypothesis.stateful.rule()
     def add_new_data(self):
         # TODO: split this out
@@ -89,7 +90,7 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
             elif col in self.data_exp.index.names:
                 min_index = (
                     max(
-                        int(v.replace(f"{col}_", ""))
+                        int(v.replace(f"{col}_", "")) if isinstance(v, str) else 0
                         for v in self.data_exp.pix.unique(col)
                     )
                     + 1
@@ -114,22 +115,46 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
             self.data_exp = data
         else:
             self.data_exp = pd.concat(
-                v.dropna() for v in self.data_exp.align(data, axis="rows")
+                v.dropna(axis="rows", how="all")
+                for v in self.data_exp.align(data, axis="rows")
             )
 
     # Add fully overlapping data
     # Add partially overlapping data
-    # Add data with different columns
-    # Add data with different time points
+    # Add grouped dated
+
+    @hypothesis.stateful.invariant()
+    def all_db_index_are_multiindex(self):
+        if self.data_exp is None:
+            return
+
+        assert isinstance(self.data_exp.index, pd.MultiIndex)
+        for db in self.dbs:
+            try:
+                index = db.load_index()
+                assert isinstance(index.index, pd.MultiIndex)
+            except AssertionError as exc:
+                msg = (
+                    f"{type(db.backend_data).__name__=}"
+                    f"{type(db.backend_index).__name__=}"
+                )
+                raise AssertionError(msg) from exc
 
     @hypothesis.stateful.invariant()
     def all_dbs_consistent_with_expected(self):
         for db in self.dbs:
             try:
                 if self.data_exp is not None:
-                    assert_frame_alike(db.load(), self.data_exp)
+                    loaded = db.load()
+                    assert isinstance(loaded.index, pd.MultiIndex)
+                    assert_frame_alike(loaded, self.data_exp)
+
+                    loaded_metadata = db.load_metadata()
+                    assert isinstance(loaded_metadata, pd.MultiIndex)
                     pd.testing.assert_index_equal(
-                        db.load_metadata(), self.data_exp.index, check_order=False
+                        loaded_metadata.reorder_levels(self.data_exp.index.names),
+                        self.data_exp.index,
+                        check_order=False,
                     )
 
                 else:

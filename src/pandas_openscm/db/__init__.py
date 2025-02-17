@@ -628,7 +628,6 @@ class OpenSCMDB:
         ):
             base_idx = index.index[:1]
             for i in range(len(loaded_l)):
-                # breakpoint()
                 new_index = unify_index_levels(base_idx, loaded_l[i].index)[1]
                 loaded_l[i].index = new_index
 
@@ -1488,7 +1487,7 @@ def save_data(  # noqa: PLR0913
         file_map_out.loc[file_id] = new_file_path  # type: ignore # pandas types confused about what they support
         index_out_l.append(
             pd.DataFrame(
-                np.full(len(df.index), file_id), index=df.index, columns=["file_id"]
+                np.full(df.index.shape[0], file_id), index=df.index, columns=["file_id"]
             )
         )
 
@@ -1501,25 +1500,11 @@ def save_data(  # noqa: PLR0913
             )
         )
 
-    if index_non_data is None:
-        index_out = pd.concat(index_out_l)
-
-    else:
-        # # I wonder if this would be faster.
-        # # Would have to test
-        # index_out = pd.concat(
-        #     v.dropna(how="all", axis="rows")
-        #     for v in index_non_data.align(index_out, axis="rows")
-        # )
-        _, index_non_data_index_unified = unify_index_levels(
-            index_out_l[0].index, index_non_data.index
-        )
-        index_non_data_aligned = pd.DataFrame(
-            index_non_data.values,
-            columns=index_non_data.columns,
-            index=index_non_data_index_unified,
-        )
-        index_out = pd.concat([index_non_data_aligned, *index_out_l])
+    index_out = get_final_index(
+        index_non_data=index_non_data,
+        index_data_l=index_out_l,
+        progress_grouping=progress_grouping,
+    )
 
     if file_map_non_data is not None:
         file_map_out = pd.concat([file_map_non_data, file_map_out])
@@ -1550,6 +1535,64 @@ def save_data(  # noqa: PLR0913
         progress=progress,
         max_workers=max_workers,
     )
+
+
+def get_final_index(
+    *,
+    index_non_data: pd.DataFrame | None,
+    index_data_l: list[pd.DataFrame],
+    progress_grouping: ProgressLike | None,
+) -> pd.DataFrame:
+    """
+    Get the final index, after grouping operations have been performed
+
+    Parameters
+    ----------
+    index_non_data
+        Index that is already in the database but isn't related to data.
+
+        If `None`, we know that there is no index to combine with.
+
+    index_data_l
+        Index for each data group.
+
+    progress_grouping
+
+
+    Returns
+    -------
+    :
+
+    """
+    if index_non_data is None:
+        return pd.concat(index_data_l)
+
+    if index_non_data.index.names == index_data_l[0].index.names:
+        return pd.concat([index_non_data, *index_data_l])
+
+    # Make sure everything lines up before we concatenate
+    # # I wonder if just replacing the index would be faster.
+    # # Would have to test
+    tmp = index_non_data.align(index_data_l[0])
+    index_non_data_index_unified = tmp[0].dropna()
+    index_data_l[0] = tmp[1].dropna()
+    if len(index_data_l) > 1:
+        iterator = range(1, len(index_data_l))
+        if progress_grouping:
+            iterator = progress_grouping(iterator)
+
+        for i in iterator:
+            tmp = index_non_data_index_unified.align(index_data_l[i])[1]
+            index_data_l[i] = tmp.dropna()
+            if (
+                index_data_l[i].index.names != index_non_data_index_unified.index.names
+            ):  # pragma: no cover
+                # Should be impossible to get here
+                raise AssertionError
+
+    index_out = pd.concat([index_non_data_index_unified, *index_data_l])
+
+    return index_out
 
 
 def save_files(
