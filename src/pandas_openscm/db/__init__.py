@@ -20,6 +20,7 @@ from attrs import define
 
 from pandas_openscm.db.csv import CSVDataBackend, CSVIndexBackend
 from pandas_openscm.db.feather import FeatherDataBackend, FeatherIndexBackend
+from pandas_openscm.db.in_memory import InMemoryDataBackend, InMemoryIndexBackend
 from pandas_openscm.db.netcdf import netCDFDataBackend, netCDFIndexBackend
 from pandas_openscm.index_manipulation import update_index_from_candidates
 from pandas_openscm.indexing import mi_loc, multi_index_match
@@ -1652,6 +1653,8 @@ __all__ = [
     "EmptyDBError",
     "FeatherDataBackend",
     "FeatherIndexBackend",
+    "InMemoryDataBackend",
+    "InMemoryIndexBackend",
     "OpenSCMDB",
     "OpenSCMDBBackend",
     "netCDFDataBackend",

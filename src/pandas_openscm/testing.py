@@ -20,6 +20,8 @@ from pandas_openscm.db import (
     CSVIndexBackend,
     FeatherDataBackend,
     FeatherIndexBackend,
+    InMemoryDataBackend,
+    InMemoryIndexBackend,
     MovePlan,
     netCDFDataBackend,
     netCDFIndexBackend,
@@ -45,6 +47,7 @@ def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
             for db_data_format in (
                 CSVDataBackend,
                 FeatherDataBackend,
+                InMemoryDataBackend,
                 netCDFDataBackend,
                 # Other back-end options to consider:
                 #
@@ -73,6 +76,7 @@ def get_parametrized_db_index_backends() -> pytest.MarkDecorator:
             for db_index_format in (
                 CSVIndexBackend,
                 FeatherIndexBackend,
+                InMemoryIndexBackend,
                 netCDFIndexBackend,
                 # Other back-end options to consider:
                 #

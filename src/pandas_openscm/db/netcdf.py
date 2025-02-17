@@ -1,5 +1,7 @@
 """
 netCDF backend
+
+Powered by [xarray](https://github.com/pydata/xarray)
 """
 
 from __future__ import annotations
