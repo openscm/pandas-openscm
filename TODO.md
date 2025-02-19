@@ -1,7 +1,6 @@
 - re-think the tests
     - ~clean up the hypothesis tests~
         - ~fill out the missing pieces~
-    - use the in-memory back-end for most things
     - tests:
         - rethink the naming schemes
             - test_database_integration/test_save_load
@@ -17,6 +16,7 @@
             - test_index_manpulation_integration/test_unify_index_levels
         - other bits and pieces
         - use code coverage to help guide this
+    - use the in-memory back-end for most things
 
 
 - add DBReader so we can do reads with an in-memory index
@@ -26,7 +26,9 @@
     - parallel tricks
     - progress tricks
 - create the speed benchmarking tool/notebook
-    - just dump results with operating system, date and commit used to make them
+    - double these up as key test of putting the different data and index back-ends together
+    - mark as superslow
+    - dump results with operating system, date and commit used to make them so they can be included in docs
 - parallel ops
     - [ ] tests of and docstrings for layers created in parallelisation and related stuff
 - push --doctest-report ndiff upstream in Makefile
