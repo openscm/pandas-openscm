@@ -13,6 +13,7 @@ import random
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import hypothesis
 import hypothesis.stateful
@@ -23,6 +24,8 @@ import pytest
 
 from pandas_openscm.db import (
     EmptyDBError,
+    InMemoryDataBackend,
+    InMemoryIndexBackend,
     OpenSCMDB,
 )
 from pandas_openscm.testing import (
@@ -34,39 +37,51 @@ from pandas_openscm.testing import (
 pytestmark = pytest.mark.slow
 
 
-# @hypothesis.settings(max_examples=50)
-@hypothesis.settings(max_examples=1)
-class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
+def get_new_data(
+    *,
+    n_ts_options: tuple[int, ...],
+    timepoint_options: tuple[np.typing.NDArray[float], ...],
+    metadata_options: tuple[tuple[str, ...]],
+    rng: Any,  # TODO: better typing
+    data_existing: pd.DataFrame | None,
+) -> pd.DataFrame:
+    n_ts = random.choice(n_ts_options)  # noqa: S311
+    timepoints = random.choice(timepoint_options)  # noqa: S311
+    metadata_cols = random.choice(metadata_options)  # noqa: S311
+
+    data_vals = rng.random((n_ts, timepoints.size))
+    multi_index_full = []
+    n_draws = int(np.ceil(n_ts ** (1 / len(metadata_cols))))
+    for col in metadata_cols:
+        if data_existing is None:
+            min_index = 0
+        elif col in data_existing.index.names:
+            min_index = (
+                max(
+                    int(v.replace(f"{col}_", "")) if isinstance(v, str) else 0
+                    for v in data_existing.pix.unique(col)
+                )
+                + 1
+            )
+        else:
+            min_index = 0
+
+        col_vals = [f"{col}_{i}" for i in range(min_index, min_index + n_draws)]
+        multi_index_full.append(col_vals)
+
+    data_index = pd.MultiIndex.from_product(multi_index_full, names=metadata_cols)
+    # Get the number of samples we're interested in
+    data_index = data_index[random.sample(range(data_index.shape[0]), n_ts)]
+
+    new_data = pd.DataFrame(data_vals, index=data_index, columns=timepoints)
+
+    return new_data
+
+
+class DBMofidierBase(hypothesis.stateful.RuleBasedStateMachine):
     def __init__(self):
         super().__init__()
-        self.dbs = tuple(
-            OpenSCMDB(
-                backend_data=backend_data(),
-                backend_index=backend_index(),
-                db_dir=Path(tempfile.mkdtemp()),
-            )
-            # TODO: split this out so we can do more examples with just memory backend
-            # for backend_data in [InMemoryDataBackend]
-            # for backend_index in [InMemoryIndexBackend]
-            # # # TODO: figure out how to do the type stuff with this.
-            # # # Serialising is lossy, so comparisons have to be done carefully.
-            for backend_data in get_db_data_backends()
-            for backend_index in get_db_index_backends()
-        )
         self.data_exp = None
-        self.n_ts_options = (1, 3, 5, 10)
-        self.timepoint_options = (
-            np.arange(2000.0, 2020.0 + 1.0),
-            np.arange(2000.0, 2010.0 + 1.0, 2.0),
-            np.arange(2010.0, 2020.0 + 1.0, 5.0),
-            np.arange(1995.0, 2005.0 + 1.0),
-            np.arange(2015.0, 2025.0 + 1.0),
-        )
-        self.column_options = (
-            ("variable", "unit"),
-            ("run_id", "variable", "unit"),
-            ("scenario", "variable", "unit", "run_id"),
-        )
         self.rng = np.random.default_rng()
 
     def teardown(self):
@@ -83,47 +98,24 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
 
     @hypothesis.stateful.rule()
     def add_new_data(self):
-        # TODO: split this out
-        n_ts = random.choice(self.n_ts_options)  # noqa: S311
-        timepoints = random.choice(self.timepoint_options)  # noqa: S311
-        metadata_cols = random.choice(self.column_options)  # noqa: S311
-        data_vals = self.rng.random((n_ts, timepoints.size))
-
-        mi_full = []
-        n_draws = int(np.ceil(n_ts ** (1 / len(metadata_cols))))
-        for col in metadata_cols:
-            if self.data_exp is None:
-                min_index = 0
-            elif col in self.data_exp.index.names:
-                min_index = (
-                    max(
-                        int(v.replace(f"{col}_", "")) if isinstance(v, str) else 0
-                        for v in self.data_exp.pix.unique(col)
-                    )
-                    + 1
-                )
-            else:
-                min_index = 0
-
-            col_vals = [f"{col}_{i}" for i in range(min_index, min_index + n_draws)]
-            mi_full.append(col_vals)
-
-        data_index = pd.MultiIndex.from_product(mi_full, names=metadata_cols)
-        # Get the number of samples we're interested in
-        data_index = data_index[random.sample(range(data_index.shape[0]), n_ts)]
-
-        data = pd.DataFrame(data_vals, index=data_index, columns=timepoints)
+        new_data = get_new_data(
+            n_ts_options=self.n_ts_options,
+            timepoint_options=self.timepoint_options,
+            metadata_options=self.metadata_options,
+            rng=self.rng,
+            data_existing=self.data_exp,
+        )
 
         for db in self.dbs:
             # Should be no overlap hence no overwrite needed
-            db.save(data)
+            db.save(new_data)
 
         if self.data_exp is None:
-            self.data_exp = data
+            self.data_exp = new_data
         else:
             self.data_exp = pd.concat(
                 v.dropna(axis="rows", how="all")
-                for v in self.data_exp.align(data, axis="rows")
+                for v in self.data_exp.align(new_data, axis="rows")
             )
 
     # TODO:
@@ -188,4 +180,55 @@ class DBMofidier(hypothesis.stateful.RuleBasedStateMachine):
                 raise AssertionError(msg) from exc
 
 
-DBModifierTest = DBMofidier.TestCase
+@hypothesis.settings(max_examples=5)
+class DBMofidier(DBMofidierBase):
+    dbs = tuple(
+        OpenSCMDB(
+            backend_data=backend_data(),
+            backend_index=backend_index(),
+            db_dir=Path(tempfile.mkdtemp()),
+        )
+        for backend_data in get_db_data_backends()
+        for backend_index in get_db_index_backends()
+    )
+    n_ts_options = (1, 3)
+    timepoint_options = (
+        np.arange(1995.0, 2005.0 + 1.0),
+        np.arange(2000.0, 2020.0 + 1.0),
+        np.arange(2015.0, 2025.0 + 1.0),
+    )
+    metadata_options = (
+        ("variable", "unit"),
+        ("run_id", "variable", "unit"),
+    )
+
+
+# @hypothesis.settings(max_examples=20)
+@hypothesis.settings(max_examples=1)
+class DBMofidierInMemory(DBMofidierBase):
+    dbs = tuple(
+        OpenSCMDB(
+            backend_data=backend_data(),
+            backend_index=backend_index(),
+            db_dir=Path(tempfile.mkdtemp()),
+        )
+        for backend_data in [InMemoryDataBackend]
+        for backend_index in [InMemoryIndexBackend]
+    )
+    n_ts_options = (1, 3, 5, 10)
+    timepoint_options = (
+        np.arange(2000.0, 2020.0 + 1.0),
+        np.arange(2000.0, 2010.0 + 1.0, 2.0),
+        np.arange(2010.0, 2020.0 + 1.0, 5.0),
+        np.arange(1995.0, 2005.0 + 1.0),
+        np.arange(2015.0, 2025.0 + 1.0),
+    )
+    metadata_options = (
+        ("variable", "unit"),
+        ("run_id", "variable", "unit"),
+        ("scenario", "variable", "unit", "run_id"),
+    )
+
+
+DBModifierTest = pytest.mark.superslow(DBMofidier.TestCase)
+DBModifierInMemoryTest = DBMofidierInMemory.TestCase

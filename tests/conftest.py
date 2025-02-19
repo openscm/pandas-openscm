@@ -10,6 +10,13 @@ import pytest
 import pandas_openscm.accessors
 
 
+def pytest_runtest_setup(item):
+    if any(
+        item.iter_markers(name="superslow")
+    ) and "superslow" not in item.config.getoption("-m"):
+        pytest.skip("skip superslow by default")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def pandas_terminal_width():
     # Set pandas terminal width so that doctests don't depend on terminal width.
