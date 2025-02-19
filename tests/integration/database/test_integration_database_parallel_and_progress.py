@@ -1,5 +1,5 @@
 """
-Tests of parallelisation with `pandas_openscm.OpenSCMDB`
+Tests of parallelisation and progress bars with `pandas_openscm.OpenSCMDB`
 """
 
 from __future__ import annotations
@@ -13,7 +13,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas_openscm.db import CSVDataBackend, CSVIndexBackend, EmptyDBError, OpenSCMDB
+from pandas_openscm.db import (
+    EmptyDBError,
+    FeatherDataBackend,
+    FeatherIndexBackend,
+    OpenSCMDB,
+)
 from pandas_openscm.parallelisation import ParallelOpConfig
 from pandas_openscm.testing import assert_frame_alike, create_test_df
 
@@ -34,11 +39,12 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
     (pytest.param(False, id="no-progress"), pytest.param(True, id="progress")),
 )
 def test_save_load_delete_parallel(tmpdir, progress, max_workers):
-    # TODO: switch to InMemoryDataBackend
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
-        backend_data=CSVDataBackend(),
-        backend_index=CSVIndexBackend(),
+        # Have to use a file backed thing here
+        # as memory backed stuff doesn't work in parallel.
+        backend_data=FeatherDataBackend(),
+        backend_index=FeatherIndexBackend(),
     )
 
     df = create_test_df(
@@ -131,11 +137,12 @@ def test_save_load_delete_parallel_custom_progress(
     executor_ctx_manager,
     executor_ctx_manager_kwargs,
 ):
-    # TODO: switch to InMemoryDataBackend
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
-        backend_data=CSVDataBackend(),
-        backend_index=CSVIndexBackend(),
+        # Have to use a file backed thing here
+        # as memory backed stuff doesn't work in parallel.
+        backend_data=FeatherDataBackend(),
+        backend_index=FeatherIndexBackend(),
     )
 
     df = create_test_df(
