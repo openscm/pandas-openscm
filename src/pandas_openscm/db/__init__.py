@@ -1000,7 +1000,7 @@ class OpenSCMDB:
         if data.index.duplicated().any():
             duplicate_rows = data.index.duplicated(keep=False)
             duplicates = data.loc[duplicate_rows, :]
-            # TODO: more helpful error message
+            # TODO: test and more helpful error message
             raise ValueError(duplicates)
 
         if lock_context_manager is None:

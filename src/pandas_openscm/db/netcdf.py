@@ -251,6 +251,8 @@ def metadata_df_to_xr(
     metadata: pd.DataFrame,
     timeseries_id_coord: xr.Coordinates | None = None,
     timeseries_dim: str = "ts_id",
+    map_suffix: str = "_map",
+    int_suffix: str = "_int",
 ) -> xr.Dataset:
     """
     Convert metadata to a format that can be used with xarray
@@ -280,6 +282,12 @@ def metadata_df_to_xr(
     timeseries_dim
         Name of the dimension to use to label timeseries in the output
 
+    map_suffix
+        Suffix to add to metadata names to get their mapping variable
+
+    int_suffix
+        Suffix to add to metadata names to get their integer equivalent.
+
     Returns
     -------
     :
@@ -297,8 +305,35 @@ def metadata_df_to_xr(
     See Also
     --------
     metadata_xr_to_df
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>>
+    >>> metadata = pd.DataFrame(
+    ...     [
+    ...         ["scen_a", "mod_a", "var_a"],
+    ...         ["scen_b", "mod_b", "var_b"],
+    ...         ["scen_a", "mod_b", "var_a"],
+    ...     ],
+    ...     columns=["scenario", "model", "variable"],
+    ... )
+    >>> metadata_df_to_xr(metadata)  # doctest: +ELLIPSIS
+    <xarray.Dataset> Size: ...B
+    Dimensions:       (scenario_map: 2, ts_id: 3, model_map: 2, variable_map: 2)
+    Coordinates:
+      * scenario_map  (scenario_map) int64 16B 0 1
+      * ts_id         (ts_id) int64 24B 0 1 2
+      * model_map     (model_map) int64 16B 0 1
+      * variable_map  (variable_map) int64 16B 0 1
+    Data variables:
+        scenario      (scenario_map) <U6 48B 'scen_a' 'scen_b'
+        scenario_int  (ts_id) int64 24B 0 1 0
+        model         (model_map) <U5 40B 'mod_a' 'mod_b'
+        model_int     (ts_id) int64 24B 0 1 1
+        variable      (variable_map) <U5 40B 'var_a' 'var_b'
+        variable_int  (ts_id) int64 24B 0 1 0
     """
-    # TODO: doctests/examples
     try:
         import xarray as xr
     except ImportError as exc:
@@ -324,9 +359,8 @@ def metadata_df_to_xr(
 
         metadata_map_xr = xr.DataArray(
             metadata_col_unique_vals,
-            # make naming injectable (?)
-            dims=[f"{metadata_col}_map"],
-            coords={f"{metadata_col}_map": metadata_col_mapped_values},
+            dims=[f"{metadata_col}{map_suffix}"],
+            coords={f"{metadata_col}{map_suffix}": metadata_col_mapped_values},
         )
         metadata_int_xr = xr.DataArray(
             # Not sure if converting to category first then mapping
@@ -337,8 +371,7 @@ def metadata_df_to_xr(
         )
 
         index_darrays[metadata_col] = metadata_map_xr
-        # make naming injectable (?)
-        index_darrays[f"{metadata_col}_int"] = metadata_int_xr
+        index_darrays[f"{metadata_col}{int_suffix}"] = metadata_int_xr
 
     index_xr = xr.Dataset(index_darrays)
 
@@ -348,6 +381,8 @@ def metadata_df_to_xr(
 def metadata_xr_to_df(
     metadata: xr.Dataset,
     category_index: bool = False,
+    map_suffix: str = "_map",
+    int_suffix: str = "_int",
 ) -> pd.DataFrame:
     """
     Convert metadata in [xarray][] form to [pandas][]
@@ -360,6 +395,12 @@ def metadata_xr_to_df(
     category_index
         Should the index be returned as category type?
 
+    map_suffix
+        Suffix to add to metadata names to get their mapping variable
+
+    int_suffix
+        Suffix to add to metadata names to get their integer equivalent.
+
     Returns
     -------
     :
@@ -368,17 +409,47 @@ def metadata_xr_to_df(
     See Also
     --------
     metadata_df_to_xr
+
+    Examples
+    --------
+    >>> import xarray as xr
+    >>>
+    >>> # You'd almost never write this by hand.
+    >>> # However, if you need to, now you see how.
+    >>> metadata_xr = xr.Dataset(
+    ...     data_vars=dict(
+    ...         scenario=xr.DataArray(["scen_a", "scen_b"], dims=("scenario_map",)),
+    ...         scenario_int=xr.DataArray([0, 1, 0], dims=("ts_id",)),
+    ...         model=xr.DataArray(["mod_a", "mod_b"], dims=("model_map",)),
+    ...         model_int=xr.DataArray([0, 1, 1], dims=("ts_id",)),
+    ...         variable=xr.DataArray(["var_a", "var_b"], dims=("variable_map",)),
+    ...         variable_int=xr.DataArray([0, 1, 0], dims=("ts_id",)),
+    ...     ),
+    ...     coords=dict(
+    ...         scenario_map=[0, 1],
+    ...         ts_id=[0, 1, 2],
+    ...         model_map=[0, 1],
+    ...         variable_map=[0, 1],
+    ...     ),
+    ... )
+    >>>
+    >>> metadata_xr_to_df(metadata_xr)
+          scenario  model variable
+    ts_id
+    0       scen_a  mod_a    var_a
+    1       scen_b  mod_b    var_b
+    2       scen_a  mod_b    var_a
     """
-    # TODO: doctests/examples
-    # make naming injectable (?)
     metadata_columns = [
-        str(v).replace("_map", "") for v in metadata.coords if str(v).endswith("_map")
+        str(v).replace(map_suffix, "")
+        for v in metadata.coords
+        if str(v).endswith(map_suffix)
     ]
 
     index_cols = {}
     for metadata_col in metadata_columns:
         # make naming injectable (?)
-        metadata_col_series_int = metadata[f"{metadata_col}_int"].to_pandas()
+        metadata_col_series_int = metadata[f"{metadata_col}{int_suffix}"].to_pandas()
         if category_index:
             metadata_col_series_int = metadata_col_series_int.astype("category")
 
