@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
 import filelock
 import numpy as np
 import pandas as pd
-from attrs import define
+from attrs import define, field
 
 from pandas_openscm.db.csv import CSVDataBackend, CSVIndexBackend
 from pandas_openscm.db.feather import FeatherDataBackend, FeatherIndexBackend
@@ -349,17 +349,17 @@ class OpenSCMDB:
     would be required to make something truly backend agnostic.
     """
 
-    backend_data: OpenSCMDBDataBackend
+    backend_data: OpenSCMDBDataBackend = field(kw_only=True)
     """
     The backend for serialising data to disk
     """
 
-    backend_index: OpenSCMDBIndexBackend
+    backend_index: OpenSCMDBIndexBackend = field(kw_only=True)
     """
     The backend for serialising the database index to disk
     """
 
-    db_dir: Path
+    db_dir: Path = field(kw_only=True)
     """
     Path in which the database is stored
 
@@ -799,7 +799,11 @@ class OpenSCMDB:
             Plan for moving data to make room for the new data
         """
         if not isinstance(data_to_write.index, pd.MultiIndex):
-            raise TypeError
+            msg = (
+                "`index_start` must be an instance of `pd.MultiIndex`. "
+                f"Received {type(index_start)=}"
+            )
+            raise TypeError(msg)
 
         index_start_index_unified, data_to_write_index_unified = unify_index_levels(
             index_start.index, data_to_write.index
@@ -882,7 +886,7 @@ class OpenSCMDB:
         index_keep_via_rewrite["file_id"] = index_keep_via_rewrite["file_id"].map(
             file_id_map
         )
-        if index_keep_via_rewrite["file_id"].isnull().any():
+        if index_keep_via_rewrite["file_id"].isnull().any():  # pragma: no cover
             # Something has gone wrong, everything should be remapped somewhere
             raise AssertionError
 
@@ -994,14 +998,21 @@ class OpenSCMDB:
             for the operation is `None`.
         """
         if not isinstance(data.index, pd.MultiIndex):
-            msg = f"data must have a MultiIndex, received {type(data.index)=}"
+            msg = (
+                "`data.index` must be an instance of `pd.MultiIndex`. "
+                f"Received {type(data.index)=}"
+            )
             raise TypeError(msg)
 
         if data.index.duplicated().any():
             duplicate_rows = data.index.duplicated(keep=False)
             duplicates = data.loc[duplicate_rows, :]
-            # TODO: test and more helpful error message
-            raise ValueError(duplicates)
+            msg = (
+                "`data` contains rows with the same metadata. "
+                f"duplicates=\n{duplicates}"
+            )
+
+            raise ValueError(msg)
 
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()

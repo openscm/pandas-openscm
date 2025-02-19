@@ -28,6 +28,8 @@ from pandas_openscm.index_manipulation import unify_index_levels
 from pandas_openscm.testing import (
     assert_frame_alike,
     create_test_df,
+    get_parametrized_db_data_backends,
+    get_parametrized_db_index_backends,
 )
 
 
@@ -56,6 +58,21 @@ def test_save_and_load(tmpdir):
     loaded = db.load(out_columns_type=start.columns.dtype)
 
     assert_frame_alike(start, loaded)
+
+    # Check the file map, index and metadata too
+    file_map = db.load_file_map()
+    assert file_map.size == 1, "should only be one file"
+
+    index = db.load_index()
+    assert index.columns.tolist() == ["file_id"]
+    pd.testing.assert_index_equal(
+        index.index, start.index.reorder_levels(index.index.names), check_order=False
+    )
+
+    metadata = db.load_metadata()
+    pd.testing.assert_index_equal(
+        metadata, start.index.reorder_levels(metadata.names), check_order=False
+    )
 
 
 def test_save_multiple_and_load(tmpdir):
@@ -283,12 +300,75 @@ def test_save_overwrite_force(tmpdir):
     ),
 )
 def test_save_overwrite_force_half_overlap(
-    warn_on_partial_overwrite, expectation_overwrite_warning, tmpdir
+    warn_on_partial_overwrite,
+    expectation_overwrite_warning,
+    tmpdir,
 ):
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+    )
+
+    cdf = partial(
+        create_test_df,
+        variables=[(f"v_{i}", "m") for i in range(5)],
+        n_runs=3,
+        timepoints=np.array([2010.0, 2020.0, 2025.0, 2030.0]),
+    )
+
+    original = cdf(n_scenarios=6)
+    db.save(original)
+
+    original_overwrite = cdf(n_scenarios=3)
+
+    # Check that the data was overwritten with new data
+    overlap_idx = original.index.isin(original_overwrite.index)
+    overlap = original.loc[overlap_idx]
+    try:
+        assert_frame_alike(overlap, original_overwrite)
+    except AssertionError:
+        pass
+    else:
+        # Somehow got the same values,
+        # so there won't be any difference in the db.
+        msg = "Test won't do anything"
+        raise AssertionError(msg)
+
+    call_kwargs = {}
+    if warn_on_partial_overwrite is not None:
+        call_kwargs["warn_on_partial_overwrite"] = warn_on_partial_overwrite
+
+    with expectation_overwrite_warning:
+        db.save(original_overwrite, allow_overwrite=True, **call_kwargs)
+
+    update_exp = pix.concat([original.loc[~overlap_idx], original_overwrite])
+    db_metadata = db.load_metadata()
+    metadata_compare = db_metadata.reorder_levels(update_exp.index.names)
+    pd.testing.assert_index_equal(
+        update_exp.index, metadata_compare, exact="equiv", check_order=False
+    )
+
+    loaded = db.load(out_columns_type=float)
+
+    assert_frame_alike(update_exp, loaded)
+
+
+# Parameterise here because this is so fundamental.
+# For rest of checking backend combos,
+# rely on state tests and design of the codebase
+# (where backend isn't involved in determining groupings for data).
+@get_parametrized_db_data_backends()
+@get_parametrized_db_index_backends()
+def test_save_overwrite_force_half_overlap_all_backends(
+    db_data_backend,
+    db_index_backend,
+    tmpdir,
+):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
     )
 
     cdf = partial(
@@ -327,13 +407,7 @@ def test_save_overwrite_force_half_overlap(
         msg = "Test won't do anything"
         raise AssertionError(msg)
 
-    # With force, we can overwrite
-    call_kwargs = {}
-    if warn_on_partial_overwrite is not None:
-        call_kwargs["warn_on_partial_overwrite"] = warn_on_partial_overwrite
-
-    with expectation_overwrite_warning:
-        db.save(original_overwrite, allow_overwrite=True, **call_kwargs)
+    db.save(original_overwrite, allow_overwrite=True, warn_on_partial_overwrite=False)
 
     update_exp = pix.concat([original.loc[~overlap_idx], original_overwrite])
     db_metadata = db.load_metadata()

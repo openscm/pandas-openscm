@@ -11,6 +11,8 @@ from functools import partial
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
+import pandas_indexing as pix
 import pytest
 
 from pandas_openscm.db import (
@@ -38,7 +40,7 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
     "progress",
     (pytest.param(False, id="no-progress"), pytest.param(True, id="progress")),
 )
-def test_save_load_delete_parallel(tmpdir, progress, max_workers):
+def test_save_load_overwrite_delete_parallel(tmpdir, progress, max_workers):
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         # Have to use a file backed thing here
@@ -66,6 +68,30 @@ def test_save_load_delete_parallel(tmpdir, progress, max_workers):
         out_columns_type=df.columns.dtype, progress=progress, max_workers=max_workers
     )
     assert_frame_alike(loaded, df)
+
+    partial_rewrite_loc = pix.isin(
+        scenario=["scenario_1"], variable=["variable_1"], run=range(20)
+    )
+    partial_rewrite = df.loc[partial_rewrite_loc]
+    db.save(
+        partial_rewrite,
+        groupby=["scenario", "variable"],
+        progress=progress,
+        max_workers=max_workers,
+        allow_overwrite=True,
+        warn_on_partial_overwrite=False,
+    )
+
+    exp_after_rewrite = pd.concat(
+        [
+            df.loc[~partial_rewrite_loc],
+            partial_rewrite,
+        ]
+    )
+    loaded = db.load(
+        out_columns_type=df.columns.dtype, progress=progress, max_workers=max_workers
+    )
+    assert_frame_alike(loaded, exp_after_rewrite)
 
     db.delete(progress=progress, max_workers=max_workers)
 
@@ -174,6 +200,29 @@ def test_save_load_delete_parallel_custom_progress(
             out_columns_type=df.columns.dtype, parallel_op_config=load_progress
         )
         assert_frame_alike(loaded, df)
+
+        partial_rewrite_loc = pix.isin(
+            scenario=["scenario_1"], variable=["variable_1"], run=range(20)
+        )
+        partial_rewrite = df.loc[partial_rewrite_loc]
+        db.save(
+            partial_rewrite,
+            groupby=["scenario", "variable"],
+            **save_progress_kwargs,
+            allow_overwrite=True,
+            warn_on_partial_overwrite=False,
+        )
+
+        exp_after_rewrite = pd.concat(
+            [
+                df.loc[~partial_rewrite_loc],
+                partial_rewrite,
+            ]
+        )
+        loaded = db.load(
+            out_columns_type=df.columns.dtype, parallel_op_config=load_progress
+        )
+        assert_frame_alike(loaded, exp_after_rewrite)
 
         db.delete(parallel_op_config=save_progress_kwargs["parallel_op_config_delete"])
 
