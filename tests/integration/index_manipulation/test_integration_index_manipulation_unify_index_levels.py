@@ -1,5 +1,5 @@
 """
-Tests of `pandas_openscm.index_manipulation`
+Test `pandas_openscm.index_manipulation.unify_index_levels`
 """
 
 from __future__ import annotations
@@ -201,7 +201,7 @@ def test_unify_index_levels_a_outside_b_skip_level():
     assert_index_equal_here(res_b, exp_b)
 
 
-def test_unify_index_partial_intersecting():
+def test_unify_index_levels_partial_intersecting():
     idx_a = pd.MultiIndex.from_tuples(
         [
             (1, 2, 3),
@@ -236,7 +236,7 @@ def test_unify_index_partial_intersecting():
     assert_index_equal_here(res_b, exp_b)
 
 
-def test_unify_index_non_intersecting():
+def test_unify_index_levels_non_intersecting():
     idx_a = pd.MultiIndex.from_tuples(
         [
             (1, 2),
@@ -281,7 +281,7 @@ def test_unify_index_non_intersecting():
     assert_index_equal_here(res_b, exp_b)
 
 
-def test_unify_index_ordering():
+def test_unify_index_levels_ordering():
     idx_a = pd.MultiIndex.from_tuples(
         [
             (np.nan, 2, 1, np.nan),
@@ -318,7 +318,7 @@ def test_unify_index_ordering():
     assert_index_equal_here(res_b, exp_b)
 
 
-def test_unify_index_overlap():
+def test_unify_index_levels_overlap():
     idx_a = pd.MultiIndex.from_tuples(
         [
             ("scenario_a", "model_1", "variable_1"),
