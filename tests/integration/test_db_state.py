@@ -141,8 +141,36 @@ class DBMofidierBase(hypothesis.stateful.RuleBasedStateMachine):
             ]
         )
 
+    @hypothesis.stateful.precondition(lambda self: self.data_exp is not None)
+    @hypothesis.stateful.rule()
+    def add_partially_overlapping_data(self):
+        existing_idx = self.dbs[0].load_index()
+
+        file_ids_unique = existing_idx["file_id"].unique()
+        n_file_ids = len(file_ids_unique)
+        to_dup_idx = None
+        for i in range(min(3, n_file_ids)):
+            tmp = existing_idx[existing_idx["file_id"] == file_ids_unique[i]].index
+            tmp = tmp[: min(3, tmp.size)]
+            if to_dup_idx is None:
+                to_dup_idx = tmp
+            else:
+                to_dup_idx = to_dup_idx.append(tmp)
+
+        to_dup_loc = self.data_exp.index.isin(to_dup_idx)
+        dup = self.data_exp.loc[to_dup_loc, :] * 1.1
+
+        for db in self.dbs:
+            db.save(dup, allow_overwrite=True, warn_on_partial_overwrite=False)
+
+        self.data_exp = pd.concat(
+            [
+                self.data_exp.loc[~to_dup_loc, :],
+                dup,
+            ]
+        )
+
     # TODO:
-    # - Add partially overlapping data
     # - Add grouped dated
 
     @hypothesis.stateful.invariant()
