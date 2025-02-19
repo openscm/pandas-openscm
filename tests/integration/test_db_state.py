@@ -13,7 +13,6 @@ import random
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any
 
 import hypothesis
 import hypothesis.stateful
@@ -42,7 +41,7 @@ def get_new_data(
     n_ts_options: tuple[int, ...],
     timepoint_options: tuple[np.typing.NDArray[float], ...],
     metadata_options: tuple[tuple[str, ...]],
-    rng: Any,  # TODO: better typing
+    rng: np.random.Generator,
     data_existing: pd.DataFrame | None,
 ) -> pd.DataFrame:
     n_ts = random.choice(n_ts_options)  # noqa: S311
@@ -118,6 +117,31 @@ class DBMofidierBase(hypothesis.stateful.RuleBasedStateMachine):
                 for v in self.data_exp.align(new_data, axis="rows")
             )
 
+    @hypothesis.stateful.rule()
+    def add_new_data_grouped(self):
+        metadata_options = self.metadata_options
+
+        new_data = get_new_data(
+            n_ts_options=self.n_ts_options,
+            timepoint_options=self.timepoint_options,
+            metadata_options=metadata_options,
+            rng=self.rng,
+            data_existing=self.data_exp,
+        )
+
+        groupby = random.sample(new_data.index.names, len(new_data.index.names) - 1)
+        for db in self.dbs:
+            # Should be no overlap hence no overwrite needed
+            db.save(new_data, groupby=groupby)
+
+        if self.data_exp is None:
+            self.data_exp = new_data
+        else:
+            self.data_exp = pd.concat(
+                v.dropna(axis="rows", how="all")
+                for v in self.data_exp.align(new_data, axis="rows")
+            )
+
     @hypothesis.stateful.precondition(lambda self: self.data_exp is not None)
     @hypothesis.stateful.rule()
     def add_fully_overlapping_data(self):
@@ -169,9 +193,6 @@ class DBMofidierBase(hypothesis.stateful.RuleBasedStateMachine):
                 dup,
             ]
         )
-
-    # TODO:
-    # - Add grouped dated
 
     @hypothesis.stateful.invariant()
     def all_db_index_are_multiindex(self):

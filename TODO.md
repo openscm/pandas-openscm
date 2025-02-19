@@ -1,6 +1,6 @@
 - re-think the tests
-    - clean up the hypothesis tests
-        - fill out the missing pieces
+    - ~clean up the hypothesis tests~
+        - ~fill out the missing pieces~
     - use the in-memory back-end for most things
     - tests:
         - rethink the naming schemes
