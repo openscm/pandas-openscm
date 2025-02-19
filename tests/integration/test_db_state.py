@@ -118,8 +118,30 @@ class DBMofidierBase(hypothesis.stateful.RuleBasedStateMachine):
                 for v in self.data_exp.align(new_data, axis="rows")
             )
 
+    @hypothesis.stateful.precondition(lambda self: self.data_exp is not None)
+    @hypothesis.stateful.rule()
+    def add_fully_overlapping_data(self):
+        existing_idx = self.dbs[0].load_index()
+        to_dup_idx = existing_idx[
+            existing_idx["file_id"] == existing_idx["file_id"].min()
+        ].index
+
+        to_dup_loc = self.data_exp.index.isin(to_dup_idx)
+        dup = self.data_exp.loc[to_dup_loc, :] * 1.1
+
+        for db in self.dbs:
+            # Should not need warn_on_partial_overwrite
+            # here as we're doing a complete overwrite.
+            db.save(dup, allow_overwrite=True)
+
+        self.data_exp = pd.concat(
+            [
+                self.data_exp.loc[~to_dup_loc, :],
+                dup,
+            ]
+        )
+
     # TODO:
-    # - Add fully overlapping data
     # - Add partially overlapping data
     # - Add grouped dated
 
@@ -203,8 +225,8 @@ class DBMofidier(DBMofidierBase):
     )
 
 
-# @hypothesis.settings(max_examples=20)
-@hypothesis.settings(max_examples=1)
+@hypothesis.settings(max_examples=20)
+# @hypothesis.settings(max_examples=1)
 class DBMofidierInMemory(DBMofidierBase):
     dbs = tuple(
         OpenSCMDB(
