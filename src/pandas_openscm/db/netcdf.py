@@ -157,8 +157,8 @@ class netCDFIndexBackend:
             ) from exc
 
         res = xr.load_dataset(file_map_file).to_pandas()
-        if isinstance(res, pd.Series):
-            raise TypeError
+        if isinstance(res, pd.Series):  # pragma: no cover
+            raise TypeError(res)
 
         return res
 
@@ -338,7 +338,7 @@ def metadata_df_to_xr(
         import xarray as xr
     except ImportError as exc:
         raise MissingOptionalDependencyError(
-            "metadata_to_xr", requirement="xarray"
+            "metadata_df_to_xr", requirement="xarray"
         ) from exc
 
     if timeseries_id_coord is None:
@@ -433,12 +433,28 @@ def metadata_xr_to_df(
     ...     ),
     ... )
     >>>
-    >>> metadata_xr_to_df(metadata_xr)
+    >>> res = metadata_xr_to_df(metadata_xr)
+    >>> res
           scenario  model variable
     ts_id
     0       scen_a  mod_a    var_a
     1       scen_b  mod_b    var_b
     2       scen_a  mod_b    var_a
+
+    >>> # you can make the result smaller in memory is you use
+    >>> # the `category_index` argument.
+    >>> metadata_xr_to_df(metadata_xr, category_index=True).dtypes
+    scenario    category
+    model       category
+    variable    category
+    dtype: object
+    >>>
+    >>> # Compared to
+    >>> res.dtypes
+    scenario    object
+    model       object
+    variable    object
+    dtype: object
     """
     metadata_columns = [
         str(v).replace(map_suffix, "")
