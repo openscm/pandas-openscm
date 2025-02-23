@@ -111,12 +111,12 @@ def multi_index_match(
         unusable = locator.names.difference(idx.names)
         if unusable:
             msg = (
-                f"The following levels in `idx` are not in `locator`: {unusable}. "
-                f"{idx.names=} {locator.names=}"
+                f"The following levels in `locator` are not in `idx`: {unusable}. "
+                f"{locator.names=} {idx.names=}"
             )
             raise KeyError(msg) from exc
 
-        raise
+        raise  # pragma: no cover
 
     return idx_reordered.isin(locator)
 
@@ -176,7 +176,7 @@ def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> P:
     if not isinstance(pandas_obj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is a `MultiIndex`. "
+            "when `df`'s index is an instance of `MultiIndex`. "
             f"Received {type(pandas_obj.index)=}"
         )
         raise TypeError(msg)
@@ -280,7 +280,7 @@ def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
     if not isinstance(pandas_obj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is a `MultiIndex`. "
+            "when `df`'s index is an instance of `MultiIndex`. "
             f"Received {type(pandas_obj.index)=}"
         )
         raise TypeError(msg)

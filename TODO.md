@@ -1,24 +1,15 @@
-- re-think the tests
-    - ~clean up the hypothesis tests~
-        - ~fill out the missing pieces~
-    - tests:
-        - other bits and pieces
-        - use code coverage to help guide this
-    - use the in-memory back-end for most things
-
-
+- parallel ops
+    - [ ] tests of and docstrings for layers created in parallelisation and related stuff
 - add DBReader so we can do reads with an in-memory index
     - include a context manager so the lock is auto-released
 - database docs
     - regroup demo in docs (not in core API so we don't take responsibility for deletion)
     - parallel tricks
     - progress tricks
-- create the speed benchmarking tool/notebook
+- create the speed benchmarking tool/notebook(s)
     - double these up as key test of putting the different data and index back-ends together
     - mark as superslow
     - dump results with operating system, date and commit used to make them so they can be included in docs
-- parallel ops
-    - [ ] tests of and docstrings for layers created in parallelisation and related stuff
 - push --doctest-report ndiff upstream in Makefile
 - push dependency pinning and testing section in docs' navigation upstream
 - push footnotes extension upstream
