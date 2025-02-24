@@ -439,10 +439,10 @@ class OpenSCMDB:
         self,
     ) -> (
         filelock.SoftFileLock
-    ):  # TODO: check why return type hint isn't filelock.FileLock
+        # filelock.BaseFileLock
+    ):  # TODO: check why return type hint isn't filelock.BaseFileLock
         """Lock for the back-end's index file"""
         return filelock.FileLock(self.index_file_lock_path)
-        # return filelock.SoftFileLock(self.index_file_lock_path)
 
     @property
     def index_file_lock_path(self) -> Path:
