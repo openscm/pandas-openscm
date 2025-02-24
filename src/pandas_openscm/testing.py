@@ -263,3 +263,12 @@ def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
             raise AssertionError(msg)
 
         assert set(res.delete_paths) == set(exp.delete_paths)
+
+
+def changer(inv: float, factor: float, *, exponent: float = 1.0) -> float:
+    """
+    Change a value
+
+    This is just meant as a helper for our tests
+    """
+    return (inv * 2.0) ** exponent

@@ -1,5 +1,3 @@
-- parallel ops
-    - [ ] tests of and docstrings for layers created in parallelisation and related stuff
 - add DBReader so we can do reads with an in-memory index
     - include a context manager so the lock is auto-released
 - database docs
