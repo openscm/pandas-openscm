@@ -57,6 +57,11 @@ def test_locking(tmpdir, meth, args):
     #   until we have an answer in https://github.com/tox-dev/filelock/issues/402
     # - hence only support a reader within a context manager for now
     # - update tests accordingly
+    #
+    # - the issue is that __del__ releases the lock
+    # - hence, your lock depends on whether you keep references around or not
+    #   (__del__ is called after the garbage collection occurs)
+    # - hence, to 'hold' the lock, we have to keep a reference around
 
     # This behaves
     with db.index_file_lock.acquire():
