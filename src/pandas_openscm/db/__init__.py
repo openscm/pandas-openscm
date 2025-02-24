@@ -35,6 +35,8 @@ from pandas_openscm.parallelisation import (
 )
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     import pandas.core.groupby.generic
     import pandas.core.indexes.frozen
     import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
@@ -337,6 +339,45 @@ class OpenSCMDBDataBackend(Protocol):
 
 
 @define
+class OpenSCMDBReader:
+    """
+    Reader for reading data out of a database created with `OpenSCMDB`
+
+    Holds the database index in memory,
+    so this can be faster for repeated reads.
+    """
+
+    index: pd.DataFrame
+    """
+    The index of the database from which we are reading.
+
+    This is held in-memory to speed up subsequent reads.
+    """
+
+    lock: filelock.SoftFileLock
+    """
+    Lock for the database from which data is being read
+    """
+
+    def __enter__(self) -> OpenSCMDBReader:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.release_lock()
+
+    def acquire_lock(self) -> None:
+        self.lock.acquire()
+
+    def release_lock(self) -> None:
+        self.lock.release()
+
+
+@define
 class OpenSCMDB:
     """
     Database for storing OpenSCM-style data
@@ -394,9 +435,14 @@ class OpenSCMDB:
         return self.db_dir / f"index{self.backend_index.ext}"
 
     @property
-    def index_file_lock(self) -> filelock.SoftFileLock:
+    def index_file_lock(
+        self,
+    ) -> (
+        filelock.SoftFileLock
+    ):  # TODO: check why return type hint isn't filelock.FileLock
         """Lock for the back-end's index file"""
         return filelock.FileLock(self.index_file_lock_path)
+        # return filelock.SoftFileLock(self.index_file_lock_path)
 
     @property
     def index_file_lock_path(self) -> Path:
@@ -414,6 +460,24 @@ class OpenSCMDB:
             `True` if the database is empty, `False` otherwise
         """
         return not self.index_file.exists()
+
+    @contextlib.contextmanager
+    def create_reader(
+        self,
+        *,
+        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+    ) -> OpenSCMDBReader:
+        if lock_context_manager is None:
+            lock_context_manager = self.index_file_lock.acquire()
+
+        with lock_context_manager:
+            index = self.load_index(
+                # Already have the lock
+                lock_context_manager=contextlib.nullcontext(None)
+            )
+            res = OpenSCMDBReader(index=index)
+
+            yield res
 
     def delete(
         self,

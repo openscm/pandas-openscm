@@ -32,8 +32,9 @@ def test_load_via_reader_context_manager(tmpdir):
 
     db.save(start)
 
+    db_metadata = db.load_metadata()
+
     with db.create_reader() as reader:
-        db_metadata = db.load_metadata()
         reader_metadata = reader.metadata
 
         metadata_compare = reader_metadata.reorder_levels(db_metadata.index.names)
@@ -106,10 +107,20 @@ def test_reader_locking(tmpdir):
     # If we use the context manager,
     # the created object holds the lock
     # so we can't read/write with the db anymore.
-    # There is deliberately no bypass for this
-    # (if you want to bypass, don't use the context manager).
     with db.create_reader():
         with pytest.raises(filelock.Timeout):
+            assert db.index_file_lock.is_locked
+            db.index_file_lock.acquire(timeout=0.02)
+
+    # Once we're out of the context block, the lock is released
+    with does_not_raise():
+        db.index_file_lock.acquire(timeout=0.02)
+
+    # You can bypass holding the lock within the context manager
+    # (doesn't make much sense, just don't use the context manager in this case,
+    # but at least it doesn't explode).
+    with db.create_reader(acquire_lock=False):
+        with does_not_raise():
             db.index_file_lock.acquire(timeout=0.02)
 
     # By default, using `create_reader` also holds the lock.
@@ -134,3 +145,6 @@ def test_reader_locking(tmpdir):
     # This is a no op,
     # but this checks that calling again doesn't cause anything to explode
     reader.release_lock()
+
+
+# Test creating a reader within a context block that is already managing the lock
