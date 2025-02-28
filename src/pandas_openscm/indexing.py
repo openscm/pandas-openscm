@@ -17,7 +17,7 @@ import pandas as pd
 if TYPE_CHECKING:
     P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
-    import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
+    import pandas_indexing as pix
 
 
 def multi_index_match(
@@ -105,10 +105,10 @@ def multi_index_match(
     """
     try:
         idx_reordered: pd.MultiIndex = idx.reorder_levels(  # type: ignore # reorder_levels untyped
-            [*locator.names, *idx.names.difference(locator.names)]
+            [*locator.names, *idx.names.difference(locator.names)]  # type: ignore # pandas-stubs confused about difference
         )
     except KeyError as exc:
-        unusable = locator.names.difference(idx.names)
+        unusable = locator.names.difference(idx.names)  # type: ignore # pandas-stubs confused about difference
         if unusable:
             msg = (
                 f"The following levels in `locator` are not in `idx`: {unusable}. "
@@ -288,7 +288,7 @@ def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
     return pandas_obj.loc[index_name_aware_match(pandas_obj.index, locator)]
 
 
-def mi_loc(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues
+def mi_loc(
     pandas_obj: P,
     locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
 ) -> P:
@@ -314,6 +314,7 @@ def mi_loc(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues
     :
         Selected data
     """
+    # TODO: remove this and use new pandas_indexing functionality instead
     if isinstance(locator, pd.MultiIndex):
         res: P = multi_index_lookup(pandas_obj, locator)
 

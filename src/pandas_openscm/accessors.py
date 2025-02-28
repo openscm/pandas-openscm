@@ -27,7 +27,7 @@ from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
 
 if TYPE_CHECKING:
-    import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
+    import pandas_indexing as pix
 
 
 class DataFramePandasOpenSCMAccessor:
@@ -51,7 +51,7 @@ class DataFramePandasOpenSCMAccessor:
         # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
 
-    def mi_loc(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues
+    def mi_loc(
         self,
         locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
     ) -> pd.DataFrame:

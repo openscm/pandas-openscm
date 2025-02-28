@@ -8,7 +8,7 @@ import concurrent.futures
 import contextlib
 import os
 import warnings
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
     import pandas.core.groupby.generic
     import pandas.core.indexes.frozen
-    import pandas_indexing as pix  # type: ignore # see https://github.com/coroa/pandas-indexing/pull/63
+    import pandas_indexing as pix
 
 
 class AlreadyInDBError(ValueError):
@@ -466,7 +466,7 @@ class OpenSCMDB:
         self,
         *,
         lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
-    ) -> OpenSCMDBReader:
+    ) -> Iterator[OpenSCMDBReader]:
         if lock_context_manager is None:
             lock_context_manager = self.index_file_lock.acquire()
 
@@ -561,7 +561,7 @@ class OpenSCMDB:
 
         return file_path
 
-    def load(  # type: ignore[no-any-unimported] # type ignore b/c of pix issues # noqa: PLR0913
+    def load(  # noqa: PLR0913
         self,
         selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
         *,
@@ -888,7 +888,7 @@ class OpenSCMDB:
                 delete_paths=None,
             )
 
-        full_overwrite: pd.Series[bool] = grouper.apply(np.all)  # type: ignore # pandas type hints confused
+        full_overwrite: pd.Series[bool] = grouper.apply(np.all)
         partial_overwrite = ~(full_overwrite | no_overwrite)
         if not partial_overwrite.any():
             # Don't need to move anything,
@@ -1573,7 +1573,9 @@ def save_data(  # noqa: PLR0913
         if index_non_data_unified_index is None:
             df_index_unified = df.index
         else:
-            _, df_index_unified = unify_index_levels(index_non_data.index[:1], df.index)
+            _, df_index_unified = unify_index_levels(
+                index_non_data_unified_index.index[:1], df.index
+            )
 
         index_data_out_l.append(
             pd.DataFrame(

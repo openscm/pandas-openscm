@@ -148,7 +148,7 @@ tests-full = [
 tests = [
     {include-group = "tests-min"},
     {include-group = "tests-full"},
-    "pandas-indexing>=0.6.1",
+    "pandas-indexing>=0.6.2",
 ]
 all-dev = [
     {include-group = "dev"},

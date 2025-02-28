@@ -230,20 +230,20 @@ def unify_index_levels(
     if left.names == right.names:
         return left, right
 
-    if (not left.names.difference(right.names)) and (
-        not right.names.difference(left.names)
+    if (not left.names.difference(right.names)) and (  # type: ignore # pandas-stubs confused
+        not right.names.difference(left.names)  # type: ignore # pandas-stubs confused
     ):
-        return left, right.reorder_levels(left.names)
+        return left, right.reorder_levels(left.names)  # type: ignore # pandas-stubs missing reorder_levels
 
     out_names = [*left.names, *[v for v in right.names if v not in left.names]]
     out_names_s = set(out_names)
     left_to_add = out_names_s.difference(left.names)
     right_to_add = out_names_s.difference(right.names)
 
-    left_unified = pd.MultiIndex(
+    left_unified = pd.MultiIndex(  # type: ignore # pandas-stubs missing reorder_levels
         levels=[
             *left.levels,
-            *[np.array([], dtype=right.get_level_values(c).dtype) for c in left_to_add],
+            *[np.array([], dtype=right.get_level_values(c).dtype) for c in left_to_add],  # type: ignore # pandas-stubs confused
         ],
         codes=[
             *left.codes,
@@ -255,9 +255,9 @@ def unify_index_levels(
         ],
     ).reorder_levels(out_names)
 
-    right_unified = pd.MultiIndex(
+    right_unified = pd.MultiIndex(  # type: ignore # pandas-stubs missing reorder_levels
         levels=[
-            *[np.array([], dtype=left.get_level_values(c).dtype) for c in right_to_add],
+            *[np.array([], dtype=left.get_level_values(c).dtype) for c in right_to_add],  # type: ignore # pandas-stubs confused
             *right.levels,
         ],
         codes=[

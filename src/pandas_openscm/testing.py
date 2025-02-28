@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Collection
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import pandas as pd
@@ -23,8 +23,6 @@ from pandas_openscm.db import (
     InMemoryDataBackend,
     InMemoryIndexBackend,
     MovePlan,
-    OpenSCMDBDataBackend,
-    OpenSCMDBIndexBackend,
     netCDFDataBackend,
     netCDFIndexBackend,
 )
@@ -34,7 +32,7 @@ if TYPE_CHECKING:
     import pytest
 
 
-def get_db_data_backends() -> tuple[OpenSCMDBDataBackend, ...]:
+def get_db_data_backends() -> tuple[type[object], ...]:
     return (
         CSVDataBackend,
         FeatherDataBackend,
@@ -50,7 +48,7 @@ def get_db_data_backends() -> tuple[OpenSCMDBDataBackend, ...]:
     )
 
 
-def get_db_index_backends() -> tuple[OpenSCMDBIndexBackend, ...]:
+def get_db_index_backends() -> tuple[type[object], ...]:
     return (
         CSVIndexBackend,
         FeatherIndexBackend,
@@ -271,4 +269,4 @@ def changer(inv: float, factor: float, *, exponent: float = 1.0) -> float:
 
     This is just meant as a helper for our tests
     """
-    return (inv * 2.0) ** exponent
+    return cast(float, (inv * 2.0) ** exponent)

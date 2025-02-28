@@ -24,7 +24,7 @@ class InMemoryDataBackend:
     Extension to use with files saved by this backend.
     """
 
-    data: dict[Path, pd.DataFrame] | None = None
+    data: dict[str, pd.DataFrame] | None = None
     """
     Data store
     """
@@ -50,6 +50,9 @@ class InMemoryDataBackend:
         :
             Loaded data
         """
+        if self.data is None:
+            raise TypeError
+
         return self.data[str(data_file)]
 
     def save_data(self, data: pd.DataFrame, data_file: Path) -> None:
@@ -84,10 +87,10 @@ class InMemoryIndexBackend:
     Extension to use with files saved by this backend.
     """
 
-    index: pd.Series | None = None
+    index: pd.DataFrame | None = None
     """Index store"""
 
-    file_map: pd.Series | None = None
+    file_map: pd.DataFrame | None = None
     """File map store"""
 
     @property
@@ -111,6 +114,9 @@ class InMemoryIndexBackend:
         :
             Loaded file map
         """
+        if self.file_map is None:
+            raise TypeError
+
         return self.file_map
 
     def load_index(self, index_file: Path) -> pd.DataFrame:
@@ -127,6 +133,9 @@ class InMemoryIndexBackend:
         :
             Loaded index
         """
+        if self.index is None:
+            raise TypeError
+
         return self.index
 
     def save_file_map(

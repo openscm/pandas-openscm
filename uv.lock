@@ -2340,16 +2340,16 @@ wheels = [
 
 [[package]]
 name = "pandas-indexing"
-version = "0.6.1"
+version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "deprecated" },
     { name = "pandas" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/24/e4dde61f2f0dbc83f5b6b6b0fbc33ae7b88e3f056854ecde6891c2c9e2be/pandas_indexing-0.6.1.tar.gz", hash = "sha256:4f1fb7563f730d328fcc46e2c2f573ecc0ef3ede1a552b6c5bf04951bfda3176", size = 75847 }
+sdist = { url = "https://files.pythonhosted.org/packages/84/f8/f59b9c8e3a91457760ec79ad787fd8296d5486ddb24be8157f925aec2193/pandas_indexing-0.6.2.tar.gz", hash = "sha256:e9463ecf58e5ff6f7f514b050563d200fcb44cce8963a5596e7d17657a794a99", size = 76104 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/6e/aebcae22b888ee028efa65edaa79e89b0c9359ae2d75bcf6184a24234365/pandas_indexing-0.6.1-py3-none-any.whl", hash = "sha256:8256b6237ccbb42690d9de7c2298d812cf9687e5609d0bcaff862c90e84a1abd", size = 32250 },
+    { url = "https://files.pythonhosted.org/packages/32/96/297086c7082444437ccdf8362fe1c2e7e307f0ab4a851afcf188beecf37c/pandas_indexing-0.6.2-py3-none-any.whl", hash = "sha256:389d8888591194529ae30f705ec28736ea918f71ba173ae19f2d3a2d8a4bb9f3", size = 32536 },
 ]
 
 [[package]]
@@ -2556,7 +2556,7 @@ all-dev = [
     { name = "mypy-extensions", specifier = "==1.0.0" },
     { name = "nodeenv", specifier = "==1.9.1" },
     { name = "packaging", specifier = "==24.2" },
-    { name = "pandas-indexing", specifier = ">=0.6.1" },
+    { name = "pandas-indexing", specifier = ">=0.6.2" },
     { name = "pandas-stubs", specifier = ">=2.2.2.240807" },
     { name = "pip", specifier = "==24.3.1" },
     { name = "platformdirs", specifier = "==4.3.6" },
@@ -2625,7 +2625,7 @@ tests = [
     { name = "hypothesis", specifier = ">=6.125.3" },
     { name = "iniconfig", specifier = "==2.0.0" },
     { name = "packaging", specifier = "==24.2" },
-    { name = "pandas-indexing", specifier = ">=0.6.1" },
+    { name = "pandas-indexing", specifier = ">=0.6.2" },
     { name = "pluggy", specifier = "==1.5.0" },
     { name = "pytest", specifier = "==8.3.4" },
     { name = "pytest-cov", specifier = "==6.0.0" },
