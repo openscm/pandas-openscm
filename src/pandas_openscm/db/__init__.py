@@ -418,11 +418,12 @@ class OpenSCMDB:
     Both the index and the data files will be written in this directory.
     """
 
-    index_file_lock: filelock.BaseFileLock | None = field(kw_only=True)
+    index_file_lock: filelock.BaseFileLock = field(kw_only=True)
     """
     Lock for the index file
     """
-    # Note to devs: filelock releases the lock when __del__ is called.
+    # Note to devs: filelock releases the lock when __del__ is called
+    # (i.e. when the lock instance is garbage collected).
     # Hence, you have to keep a reference to this around
     # if you want it to do anything.
     # For a while, we made this a property that created the lock when requested.
@@ -482,16 +483,13 @@ class OpenSCMDB:
     def create_reader(
         self,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
     ) -> Iterator[OpenSCMDBReader]:
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
-            index = self.load_index(
-                # Already have the lock
-                lock_context_manager=contextlib.nullcontext(None)
-            )
+        with index_file_lock:
+            index = self.load_index(index_file_lock=index_file_lock)
             res = OpenSCMDBReader(index=index)
 
             yield res
@@ -499,7 +497,7 @@ class OpenSCMDB:
     def delete(
         self,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
         parallel_op_config: ParallelOpConfig | None = None,
         progress: bool = False,
         max_workers: int | None = None,
@@ -509,11 +507,10 @@ class OpenSCMDB:
 
         Parameters
         ----------
-        lock_context_manager
-            Context manager to use to acquire the lock file.
+        index_file_lock
+            Lock for the database's index file
 
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
+            If not supplied, we use [`self.index_file_lock`][(c)].
 
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
@@ -537,10 +534,10 @@ class OpenSCMDB:
 
             Only used if `parallel_op_config` is `None`.
         """
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
+        with index_file_lock:
             files_to_delete = {
                 *self.db_dir.glob(f"*{self.backend_data.ext}"),
                 *self.db_dir.glob(f"*{self.backend_index.ext}"),
@@ -582,7 +579,7 @@ class OpenSCMDB:
         self,
         selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
         out_columns_type: type | None = None,
         parallel_op_config: ParallelOpConfig | None = None,
         progress: bool = False,
@@ -596,11 +593,10 @@ class OpenSCMDB:
         selector
             Selector to use to choose the data to load
 
-        lock_context_manager
-            Context manager to use to acquire the lock file.
+        index_file_lock
+            Lock for the database's index file
 
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
+            If not supplied, we use [`self.index_file_lock`][(c)].
 
         out_columns_type
             Type to set the output columns to.
@@ -676,18 +672,12 @@ class OpenSCMDB:
         if self.is_empty:
             raise EmptyDBError(self)
 
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
-            file_map = self.load_file_map(
-                # Already have the lock
-                lock_context_manager=contextlib.nullcontext(None)
-            )
-            index = self.load_index(
-                # Already have the lock
-                lock_context_manager=contextlib.nullcontext(None)
-            )
+        with index_file_lock:
+            file_map = self.load_file_map(index_file_lock=index_file_lock)
+            index = self.load_index(index_file_lock=index_file_lock)
             if selector is None:
                 index_to_load = index
             else:
@@ -733,18 +723,17 @@ class OpenSCMDB:
     def load_file_map(
         self,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
     ) -> pd.Series[Path]:  # type: ignore # pandas type hints confused about what they support
         """
         Load the file map
 
         Parameters
         ----------
-        lock_context_manager
-            Context manager to use to acquire the lock file.
+        index_file_lock
+            Lock for the database's index file
 
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
+            If not supplied, we use [`self.index_file_lock`][(c)].
 
         Returns
         -------
@@ -759,10 +748,10 @@ class OpenSCMDB:
         if self.is_empty:
             raise EmptyDBError(self)
 
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
+        with index_file_lock:
             file_map_raw = self.backend_index.load_file_map(self.file_map_file)
             if not self.backend_index.preserves_index:
                 file_map_indexed = file_map_raw.set_index("file_id")
@@ -776,18 +765,17 @@ class OpenSCMDB:
     def load_index(
         self,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
     ) -> pd.DataFrame:
         """
         Load the index
 
         Parameters
         ----------
-        lock_context_manager
-            Context manager to use to acquire the lock file.
+        index_file_lock
+            Lock for the database's index file
 
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
+            If not supplied, we use [`self.index_file_lock`][(c)].
 
         Returns
         -------
@@ -802,10 +790,10 @@ class OpenSCMDB:
         if self.is_empty:
             raise EmptyDBError(self)
 
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
+        with index_file_lock:
             index = self.backend_index.load_index(self.index_file)
 
         if not self.backend_index.preserves_index:
@@ -816,18 +804,17 @@ class OpenSCMDB:
     def load_metadata(
         self,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
     ) -> pd.MultiIndex:
         """
         Load the database's metadata
 
         Parameters
         ----------
-        lock_context_manager
-            Context manager to use to acquire the lock file.
+        index_file_lock
+            Lock for the database's index file
 
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
+            If not supplied, we use [`self.index_file_lock`][(c)].
 
         Returns
         -------
@@ -837,14 +824,11 @@ class OpenSCMDB:
         if not self.index_file.exists():
             raise EmptyDBError(self)
 
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
-            db_index = self.load_index(
-                # Already have the lock
-                lock_context_manager=contextlib.nullcontext(None)
-            )
+        with index_file_lock:
+            db_index = self.load_index(index_file_lock=index_file_lock)
 
         if not isinstance(db_index.index, pd.MultiIndex):  # pragma: no cover
             # Should be impossible to get here
@@ -992,7 +976,7 @@ class OpenSCMDB:
         self,
         data: pd.DataFrame,
         *,
-        lock_context_manager: contextlib.AbstractContextManager[Any] | None = None,
+        index_file_lock: filelock.BaseFileLock | None = None,
         groupby: list[str] | None = None,
         allow_overwrite: bool = False,
         warn_on_partial_overwrite: bool = True,
@@ -1015,11 +999,10 @@ class OpenSCMDB:
         data
             Data to add to the database
 
-        lock_context_manager
-            Context manager to use to acquire the lock file.
+        index_file_lock
+            Lock for the database's index file
 
-            If not supplied, we use
-            [`self.index_file_lock.acquire`][(c)].
+            If not supplied, we use [`self.index_file_lock`][(c)].
 
         groupby
             Metadata columns to use to group the data.
@@ -1095,10 +1078,10 @@ class OpenSCMDB:
 
             raise ValueError(msg)
 
-        if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+        if index_file_lock is None:
+            index_file_lock = self.index_file_lock
 
-        with lock_context_manager:
+        with index_file_lock:
             if self.is_empty:
                 save_data(
                     data,
@@ -1113,14 +1096,8 @@ class OpenSCMDB:
 
                 return
 
-            file_map_db = self.load_file_map(
-                # Already have the lock
-                lock_context_manager=contextlib.nullcontext(None)
-            )
-            index_db = self.load_index(
-                # Already have the lock
-                lock_context_manager=contextlib.nullcontext(None)
-            )
+            file_map_db = self.load_file_map(index_file_lock=index_file_lock)
+            index_db = self.load_index(index_file_lock=index_file_lock)
             if not allow_overwrite:
                 if not isinstance(index_db.index, pd.MultiIndex):  # pragma: no cover
                     # Should be impossible to get here

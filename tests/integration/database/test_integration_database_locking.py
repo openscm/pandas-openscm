@@ -118,9 +118,7 @@ def test_locking_multi_step(tmpdir, meth, kwargs):
     with pytest.raises(filelock.Timeout):
         # But a different lock will fail.
         getattr(db, meth)(
-            lock_context_manager=filelock.FileLock(
-                db.index_file_lock_path, timeout=0.02
-            ),
+            index_file_lock=filelock.FileLock(db.index_file_lock_path, timeout=0.02),
             **kwargs,
         )
 
@@ -130,9 +128,13 @@ def test_locking_multi_step(tmpdir, meth, kwargs):
     db.index_file_lock.release()
     assert not db.index_file_lock.is_locked
 
-    filelock.FileLock(db.index_file_lock_path).acquire(timeout=0.02)
+    # Can releaes and acquire
+    new_lock = filelock.FileLock(db.index_file_lock_path)
+    new_lock.acquire(timeout=0.02)
+    new_lock.release()
+    # Can run methods
     getattr(db, meth)(
-        lock_context_manager=filelock.FileLock(db.index_file_lock_path, timeout=0.02),
+        index_file_lock=filelock.FileLock(db.index_file_lock_path, timeout=0.02),
         **kwargs,
     )
 
@@ -153,7 +155,7 @@ def test_locking_multi_step(tmpdir, meth, kwargs):
         with pytest.raises(filelock.Timeout):
             getattr(db, meth)(
                 # Can't use defaults here as default is no timeout
-                lock_context_manager=(
+                index_file_lock=(
                     filelock.FileLock(db.index_file_lock_path, timeout=0.02)
                 ),
                 **kwargs,
@@ -164,6 +166,6 @@ def test_locking_multi_step(tmpdir, meth, kwargs):
     filelock.FileLock(db.index_file_lock_path).acquire(timeout=0.02)
     getattr(db, meth)(
         # Can't use defaults here as default is no timeout
-        lock_context_manager=(filelock.FileLock(db.index_file_lock_path, timeout=0.02)),
+        index_file_lock=filelock.FileLock(db.index_file_lock_path, timeout=0.02),
         **kwargs,
     )
