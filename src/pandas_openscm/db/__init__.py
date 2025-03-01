@@ -1,6 +1,17 @@
 """
-Database definition
+Database API
 """
+# TODO: split into:
+# core.py
+# - exceptions
+# - DB back end protocols
+# - OpenSCMDB
+# deleting.py
+# loading.py
+# reader.py
+# rewriting.py/moving.py
+# - move plan stuff in here too
+# saving.py
 
 from __future__ import annotations
 
@@ -407,6 +418,22 @@ class OpenSCMDB:
     Both the index and the data files will be written in this directory.
     """
 
+    index_file_lock: filelock.BaseFileLock | None = field(kw_only=True)
+    """
+    Lock for the index file
+    """
+    # Note to devs: filelock releases the lock when __del__ is called.
+    # Hence, you have to keep a reference to this around
+    # if you want it to do anything.
+    # For a while, we made this a property that created the lock when requested.
+    # That was super confusing as, if the reference to the created lock wasn't kept,
+    # the lock would immediately be released.
+
+    @index_file_lock.default
+    def default_index_file_lock(self) -> filelock.BaseFileLock:
+        """Get default lock for the back-end's index file"""
+        return filelock.FileLock(self.index_file_lock_path)
+
     @property
     def file_map_file(self) -> Path:
         """
@@ -433,16 +460,6 @@ class OpenSCMDB:
             Path to the index file
         """
         return self.db_dir / f"index{self.backend_index.ext}"
-
-    @property
-    def index_file_lock(
-        self,
-    ) -> (
-        filelock.SoftFileLock
-        # filelock.BaseFileLock
-    ):  # TODO: check why return type hint isn't filelock.BaseFileLock
-        """Lock for the back-end's index file"""
-        return filelock.FileLock(self.index_file_lock_path)
 
     @property
     def index_file_lock_path(self) -> Path:
@@ -521,7 +538,7 @@ class OpenSCMDB:
             Only used if `parallel_op_config` is `None`.
         """
         if lock_context_manager is None:
-            lock_context_manager = self.index_file_lock.acquire()
+            lock_context_manager = self.index_file_lock
 
         with lock_context_manager:
             files_to_delete = {
