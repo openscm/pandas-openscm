@@ -578,11 +578,13 @@ class OpenSCMDB:
         :
             Database reader
         """
-        if not lock:
-            lock = None
-        elif isinstance(lock, bool) and lock:
-            # Create a new lock for the reader
-            lock = filelock.FileLock(self.index_file_lock_path)
+        if isinstance(lock, bool):
+            if lock:
+                # Create a new lock for the reader
+                lock = filelock.FileLock(self.index_file_lock_path)
+            else:
+                # Convert to None
+                lock = None
 
         db_index = self.load_index(index_file_lock=index_file_lock)
         db_file_map = self.load_file_map(index_file_lock=index_file_lock)
