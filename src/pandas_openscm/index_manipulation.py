@@ -96,8 +96,8 @@ def unify_index_levels(
     The levels are unified by simply adding NaN to any level in either `left` or `right`
     that is not in the level of the other index.
 
-    This is differnt to [`pd.DataFrame.align`][pandas.DataFrame.align].
-    [`pd.DataFrame.align`][pandas.DataFrame.align]
+    This is differnt to [pd.DataFrame.align][pandas.DataFrame.align].
+    [pd.DataFrame.align][pandas.DataFrame.align]
     will fill missing values with values from the other index if it can.
     We don't want that here.
     We want any non-aligned levels to be filled with NaN.
@@ -279,8 +279,8 @@ def unify_index_levels_check_index_types(
     """
     Unify the levels on two indexes
 
-    This is just a thin wrapper around [`unify_index_levels`][(m).]
-    that checks the the inputs are both [`pd.MultiIndex`][pandas.MultiIndex]
+    This is just a thin wrapper around [unify_index_levels][(m).]
+    that checks the the inputs are both [pd.MultiIndex][pandas.MultiIndex]
     before unifying the indices.
 
     Parameters

@@ -81,8 +81,20 @@ plugins:
             - https://numpy.org/doc/stable/objects.inv
             - https://openscm-units.readthedocs.io/en/stable/objects.inv
             - https://pandas.pydata.org/docs/objects.inv
+            - https://pandas-indexing.readthedocs.io/en/stable/objects.inv
             - https://pint.readthedocs.io/en/stable/objects.inv
             - https://www.fatiando.org/pooch/latest/objects.inv
+            # There is a crazy situation, where concurrent.futures
+            # lazy imports ProcessPoolExecutor and ThreadPoolExecutor,
+            # so griffe thinks they're not part of the module.
+            # However, in the objects below,
+            # only the references in concurrent.futures are provided.
+            # So, to cross-reference concurrent.futures.ProcessPoolExecutor
+            # without warnings, you have to use the full URL.
+            # You can't use the full path (which griffe would understand)
+            # because it's not in `objects.inv`,
+            # but you can't use the actual API because griffe doesn't recognise this.
+            # Everything I've tried with preload_modules doesn't work.
             - https://docs.python.org/3/objects.inv
             - https://docs.scipy.org/doc/scipy/objects.inv
             - https://scitools-iris.readthedocs.io/en/stable/objects.inv

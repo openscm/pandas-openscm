@@ -15,7 +15,7 @@ class OpenSCMDBIndexBackend(Protocol):
     """
     Backend for (de-)serialising the index (and file map)
 
-    Designed to be used with [`OpenSCMDB`][(m)]
+    Designed to be used with [OpenSCMDB][(m)]
     """
 
     ext: str
@@ -50,8 +50,8 @@ class OpenSCMDBIndexBackend(Protocol):
 
         Notes
         -----
-        This returns a [`pd.DataFrame`][pandas.DataFrame].
-        It is up to the user to cast this to a [`pd.Series`][pandas.Series]
+        This returns a [pd.DataFrame][pandas.DataFrame].
+        It is up to the user to cast this to a [pd.Series][pandas.Series]
         if they wish.
         """
 
@@ -138,7 +138,7 @@ class OpenSCMDBDataBackend(Protocol):
     """
     Backend for (de-)serialising data
 
-    Designed to be used with [`OpenSCMDB`][(m)]
+    Designed to be used with [OpenSCMDB][(m)]
     """
 
     ext: str

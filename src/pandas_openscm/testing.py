@@ -102,7 +102,7 @@ def assert_frame_alike(
     res: pd.DataFrame, exp: pd.DataFrame, check_like: bool = True, **kwargs: Any
 ) -> None:
     """
-    Assert that two [pd.DataFrame][`pandas.DataFrame`] are alike
+    Assert that two [pd.DataFrame][pandas.DataFrame] are alike
 
     Here, alike means that they have the same data,
     just potentially not in the same order.
@@ -117,10 +117,10 @@ def assert_frame_alike(
         Expected result
 
     check_like
-        Passed to [`assert_frame_equal`][pandas.testing.assert_frame_equal]
+        Passed to [assert_frame_equal][pandas.testing.assert_frame_equal]
 
     **kwargs
-        Passed to [`assert_frame_equal`][pandas.testing.assert_frame_equal]
+        Passed to [assert_frame_equal][pandas.testing.assert_frame_equal]
     """
     pd.testing.assert_frame_equal(
         res.reorder_levels(exp.index.names),
@@ -138,7 +138,7 @@ def create_test_df(
     timepoints: np.typing.NDArray[np.floating],
 ) -> pd.DataFrame:
     """
-    Create a [`pd.DataFrame`][pandas.DataFrame] to use in testing
+    Create a [pd.DataFrame][pandas.DataFrame] to use in testing
 
     This uses the idea of simple climate model runs,
     where you have a number of scenarios,
@@ -171,7 +171,7 @@ def create_test_df(
     Returns
     -------
     :
-        Generated test [`pd.DataFrame`][pandas.DataFrame].
+        Generated test [pd.DataFrame][pandas.DataFrame].
     """
     idx = pd.MultiIndex.from_frame(
         pd.DataFrame(
@@ -206,7 +206,7 @@ def create_test_df(
 
 def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
     """
-    Assert that two [`MovePlan`][(p).db.MovePlan] are equal
+    Assert that two [MovePlan][(p).db.rewriting.] are equal
 
     Parameters
     ----------

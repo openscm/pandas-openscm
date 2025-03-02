@@ -75,7 +75,7 @@ def load_data(  # noqa: PLR0913
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ProcessPoolExecutor][]
+        [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor)
         with the provided number of workers.
         A process pool seems to be the sensible default from our experimentation,
         but it is not a universally better choice.
@@ -168,7 +168,7 @@ def load_data_files(
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ProcessPoolExecutor][]
+        [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor)
         with the provided number of workers.
         A process pool seems to be the sensible default from our experimentation,
         but it is not a universally better choice.
@@ -187,7 +187,7 @@ def load_data_files(
 
     See Also
     --------
-    [`load_data`][(m).], which loads data while applying selectors
+    [load_data][(m).], which loads data while applying selectors
     (in contrast to this function which just loads all data).
     """
     iterable_input: Iterable[Path] | list[Path] = files_to_load

@@ -1,4 +1,3 @@
-- mypy and other clean ups
 - database docs
     - regroup demo in docs (not in core API so we don't take responsibility for deletion)
     - parallel tricks

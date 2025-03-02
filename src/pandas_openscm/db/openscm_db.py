@@ -1,5 +1,5 @@
 """
-Definition of our key [`OpenSCMDB`][(m).] class
+Definition of our key [OpenSCMDB][(m).] class
 """
 
 from __future__ import annotations
@@ -189,7 +189,7 @@ class OpenSCMDB:
 
             Used while loading the index from disk.
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         Returns
         -------
@@ -232,7 +232,7 @@ class OpenSCMDB:
         index_file_lock
             Lock for the database's index file
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
@@ -248,7 +248,7 @@ class OpenSCMDB:
             Maximum number of workers to use for parallel processing.
 
             If supplied, we create an instance of
-            [concurrent.futures.ThreadPoolExecutor][]
+            [concurrent.futures.ThreadPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)
             with the provided number of workers
             (a thread pool makes sense as deletion is I/O-bound).
 
@@ -318,7 +318,7 @@ class OpenSCMDB:
         index_file_lock
             Lock for the database's index file
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         out_columns_type
             Type to set the output columns to.
@@ -339,7 +339,7 @@ class OpenSCMDB:
             Maximum number of workers to use for parallel processing.
 
             If supplied, we create an instance of
-            [concurrent.futures.ProcessPoolExecutor][]
+            [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor)
             with the provided number of workers.
             A process pool seems to be the sensible default from our experimentation,
             but it is not a universally better choice.
@@ -397,7 +397,7 @@ class OpenSCMDB:
         index_file_lock
             Lock for the database's index file
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         Returns
         -------
@@ -435,7 +435,7 @@ class OpenSCMDB:
         index_file_lock
             Lock for the database's index file
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         Returns
         -------
@@ -474,7 +474,7 @@ class OpenSCMDB:
         index_file_lock
             Lock for the database's index file
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         Returns
         -------
@@ -520,7 +520,7 @@ class OpenSCMDB:
         index_file_lock
             Lock for the database's index file
 
-            If not supplied, we use [`self.index_file_lock`][(c)].
+            If not supplied, we use [self.index_file_lock][(c)].
 
         groupby
             Metadata columns to use to group the data.

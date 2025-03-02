@@ -125,7 +125,7 @@ def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> P:
     """
     Perform a multi-index look up
 
-    For the problem this is solving, see [`multi_index_match`][(m)].
+    For the problem this is solving, see [multi_index_match][(m)].
 
     Parameters
     ----------
@@ -235,7 +235,7 @@ def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
     """
     Perform a look up with an index, being aware of the index's name.
 
-    For the problem this is solving, see [`index_name_aware_match`][(m)].
+    For the problem this is solving, see [index_name_aware_match][(m)].
 
     Parameters
     ----------
@@ -304,7 +304,7 @@ def mi_loc(
         Locator to apply
 
         If this is a multi-index, we use
-        [`multi_index_lookup`][(m).] to ensure correct alignment.
+        [multi_index_lookup][(m).] to ensure correct alignment.
 
         If this is an index that has a name,
         we use the name to ensure correct alignment.
@@ -316,7 +316,7 @@ def mi_loc(
 
     Notes
     -----
-    If you have [`pandas_indexing`][pandas_indexing] installed,
+    If you have [pandas_indexing][] installed,
     you can get the same (perhaps even better) functionality
     using something like the following instead
 

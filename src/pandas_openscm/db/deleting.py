@@ -43,7 +43,8 @@ def delete_files(
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ThreadPoolExecutor] with the provided number of workers
+        [concurrent.futures.ThreadPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor)
+        with the provided number of workers
         (a thread pool makes sense as deletion is I/O-bound).
 
         If not supplied, the deletions are executed serially.

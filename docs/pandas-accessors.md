@@ -1,6 +1,6 @@
 # Pandas accessors
 
-Pandas-OpenSCM also provides a [`pandas`][pandas] accessor.
+Pandas-OpenSCM also provides a [pandas][] accessor.
 For details of the implementation of this pattern, see
 [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
 
@@ -8,12 +8,12 @@ The accessors must be registered before they can be used
 (we do this to avoid imports of any of our modules having side effects,
 which is a pattern we have had bad experiences with in the past).
 This is done with
-[`register_pandas_accessor`][pandas_openscm.accessors.register_pandas_accessor],
+[register_pandas_accessor][pandas_openscm.accessors.register_pandas_accessor],
 
 By default, the accessors are provided under the "openscm" namespace
 and this is how the accessors are documented below.
 However, the namespace can be customised when using
-[`register_pandas_accessor`][pandas_openscm.accessors.register_pandas_accessor],
+[register_pandas_accessor][pandas_openscm.accessors.register_pandas_accessor],
 should you wish to use a different namespace for the accessor.
 
 For the avoidance of doubt, in order to register/activate the accessors,

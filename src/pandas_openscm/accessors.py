@@ -1,5 +1,5 @@
 """
-API for [`pandas`][pandas] accessors.
+API for [pandas][] accessors.
 
 As a general note to developers,
 we try and keep the accessors as a super-thin layer.
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 class DataFramePandasOpenSCMAccessor:
     """
-    [`pd.DataFrame`][pandas.DataFrame] accessors
+    [pd.DataFrame][pandas.DataFrame] accessors
 
     For details, see
     [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
@@ -64,7 +64,7 @@ class DataFramePandasOpenSCMAccessor:
             Locator to apply
 
             If this is a multi-index, we use
-            [`multi_index_lookup`][(m).] to ensure correct alignment.
+            [multi_index_lookup][(p).indexing.] to ensure correct alignment.
 
             If this is an index that has a name,
             we use the name to ensure correct alignment.
@@ -76,7 +76,7 @@ class DataFramePandasOpenSCMAccessor:
 
         Notes
         -----
-        If you have [`pandas_indexing`][pandas_indexing] installed,
+        If you have [pandas_indexing][] installed,
         you can get the same (perhaps even better) functionality
         using something like the following instead
 
@@ -102,7 +102,7 @@ class DataFramePandasOpenSCMAccessor:
         Returns
         -------
         :
-            [`pd.DataFrame`][pandas.DataFrame] with all index columns
+            [pd.DataFrame][pandas.DataFrame] with all index columns
             converted to category type.
         """
         return convert_index_to_category_index(self._df)

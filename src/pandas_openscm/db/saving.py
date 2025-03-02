@@ -124,7 +124,7 @@ def save_data(  # noqa: PLR0913
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ProcessPoolExecutor][]
+        [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor)
         with the provided number of workers.
         A process pool seems to be the sensible default from our experimentation,
         but it is not a universally better choice.
@@ -266,7 +266,7 @@ def save_files(
         Maximum number of workers to use for parallel processing.
 
         If supplied, we create an instance of
-        [concurrent.futures.ProcessPoolExecutor][]
+        [concurrent.futures.ProcessPoolExecutor](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ProcessPoolExecutor)
         with the provided number of workers.
         A process pool seems to be the sensible default from our experimentation,
         but it is not a universally better choice.
