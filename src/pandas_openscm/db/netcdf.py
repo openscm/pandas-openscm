@@ -344,7 +344,7 @@ def metadata_df_to_xr(
     if timeseries_id_coord is None:
         if metadata.index.duplicated().any():
             dups = metadata.index[metadata.index.duplicated(keep=False)]
-            msg = "Index values should be unique. " f"Received these duplicates: {dups}"
+            msg = f"Index values should be unique. Received these duplicates: {dups}"
             raise AssertionError(msg)
 
     metadata_columns = metadata.columns.tolist()

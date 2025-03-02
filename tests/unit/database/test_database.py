@@ -86,27 +86,6 @@ def test_raise_if_empty(tmpdir, meth, args, expecation):
         getattr(db, meth)(*args)
 
 
-def test_make_move_plan_index_start_not_multi_error(tmpdir):
-    db = OpenSCMDB(
-        db_dir=Path(tmpdir),
-        backend_data=InMemoryDataBackend(),
-        backend_index=InMemoryIndexBackend(),
-    )
-
-    with pytest.raises(
-        TypeError,
-        match=re.escape(
-            "`index_start` must be an instance of `pd.MultiIndex`. "
-            "Received type(index_start)=<class 'pandas.core.indexes.base.Index'>"
-        ),
-    ):
-        db.make_move_plan(
-            index_start=pd.Index([1, 2, 3]),
-            file_map_start="not used",
-            data_to_write="not used",
-        )
-
-
 def test_save_data_index_not_multi_error(tmpdir):
     db = OpenSCMDB(
         db_dir=Path(tmpdir),

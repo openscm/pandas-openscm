@@ -12,10 +12,9 @@ import pandas as pd
 from pandas_openscm.db import (
     InMemoryDataBackend,
     InMemoryIndexBackend,
-    MovePlan,
     OpenSCMDB,
-    ReWriteAction,
 )
+from pandas_openscm.db.rewriting import MovePlan, ReWriteAction, make_move_plan
 from pandas_openscm.testing import assert_move_plan_equal
 
 
@@ -61,7 +60,12 @@ def test_make_move_plan_no_overwrite(tmpdir):
         delete_paths=None,
     )
 
-    res = db.make_move_plan(index_start, file_map_start, data_to_write)
+    res = make_move_plan(
+        index_start=index_start,
+        file_map_start=file_map_start,
+        data_to_write=data_to_write,
+        get_new_data_file_path=db.get_new_data_file_path,
+    )
 
     assert_move_plan_equal(res, exp)
 
@@ -126,7 +130,12 @@ def test_make_move_plan_full_overwrite(tmpdir):
         delete_paths=(file_map_start.loc[1],),
     )
 
-    res = db.make_move_plan(index_start, file_map_start, data_to_write)
+    res = make_move_plan(
+        index_start=index_start,
+        file_map_start=file_map_start,
+        data_to_write=data_to_write,
+        get_new_data_file_path=db.get_new_data_file_path,
+    )
 
     assert_move_plan_equal(res, exp)
 
@@ -219,6 +228,11 @@ def test_make_move_plan_partial_overwrite(tmpdir):
         delete_paths=(file_map_start.loc[1], file_map_start.loc[2]),
     )
 
-    res = db.make_move_plan(index_start, file_map_start, data_to_write)
+    res = make_move_plan(
+        index_start=index_start,
+        file_map_start=file_map_start,
+        data_to_write=data_to_write,
+        get_new_data_file_path=db.get_new_data_file_path,
+    )
 
     assert_move_plan_equal(res, exp)

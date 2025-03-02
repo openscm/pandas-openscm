@@ -22,10 +22,10 @@ from pandas_openscm.db import (
     FeatherIndexBackend,
     InMemoryDataBackend,
     InMemoryIndexBackend,
-    MovePlan,
     netCDFDataBackend,
     netCDFIndexBackend,
 )
+from pandas_openscm.db.rewriting import MovePlan
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:

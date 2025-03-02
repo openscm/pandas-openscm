@@ -310,7 +310,7 @@ def apply_op_parallel_progress(
     return res
 
 
-# # This is how you could abstract out the pattern we repeat in db.__init__
+# # This is how you could abstract out the pattern we repeat elsewhere
 # # It's not that helpful though, it just saves line of code.
 # # I also can't make the type hints work.
 # def hard_to_describe(
