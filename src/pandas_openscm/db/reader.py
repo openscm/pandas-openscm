@@ -23,8 +23,6 @@ from pandas_openscm.parallelisation import (
 if TYPE_CHECKING:
     from types import TracebackType
 
-    import pandas.core.groupby.generic
-    import pandas.core.indexes.frozen
     import pandas_indexing as pix
 
 

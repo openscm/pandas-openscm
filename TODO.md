@@ -1,5 +1,3 @@
-- add DBReader so we can do reads with an in-memory index
-    - include a context manager so the lock is auto-released
 - mypy and other clean ups
 - database docs
     - regroup demo in docs (not in core API so we don't take responsibility for deletion)

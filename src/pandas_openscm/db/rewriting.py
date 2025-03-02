@@ -25,7 +25,6 @@ from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import ParallelOpConfig, apply_op_parallel_progress
 
 if TYPE_CHECKING:
-    import pandas.core.groupby.generic
     import pandas.core.indexes.frozen
 
 
