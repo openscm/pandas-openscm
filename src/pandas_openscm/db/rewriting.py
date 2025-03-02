@@ -18,7 +18,7 @@ from attrs import define
 
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend
 from pandas_openscm.index_manipulation import (
-    unify_index_levels,
+    unify_index_levels_check_index_types,
     update_index_from_candidates,
 )
 from pandas_openscm.indexing import mi_loc, multi_index_match
@@ -201,15 +201,8 @@ def make_move_plan(
     :
         Plan for moving data to make room for the new data
     """
-    if not isinstance(data_to_write.index, pd.MultiIndex):
-        msg = (
-            "`index_start` must be an instance of `pd.MultiIndex`. "
-            f"Received {type(index_start)=}"
-        )
-        raise TypeError(msg)
-
-    index_start_index_unified, data_to_write_index_unified = unify_index_levels(
-        index_start.index, data_to_write.index
+    index_start_index_unified, data_to_write_index_unified = (
+        unify_index_levels_check_index_types(index_start.index, data_to_write.index)
     )
     in_data_to_write = pd.Series(
         multi_index_match(index_start_index_unified, data_to_write_index_unified),  # type: ignore # pandas type hints confused

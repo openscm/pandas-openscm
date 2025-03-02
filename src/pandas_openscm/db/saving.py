@@ -15,7 +15,9 @@ import pandas as pd
 from attrs import define
 
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend, OpenSCMDBIndexBackend
-from pandas_openscm.index_manipulation import unify_index_levels
+from pandas_openscm.index_manipulation import (
+    unify_index_levels_check_index_types,
+)
 from pandas_openscm.parallelisation import (
     ParallelOpConfig,
     ProgressLike,
@@ -154,7 +156,9 @@ def save_data(  # noqa: PLR0913
     if index_non_data is None:
         index_non_data_unified_index = None
     else:
-        unified_index = unify_index_levels(index_non_data.index, data.index[:1])[0]
+        unified_index = unify_index_levels_check_index_types(
+            index_non_data.index, data.index[:1]
+        )[0]
         index_non_data_unified_index = pd.DataFrame(
             index_non_data.values,
             index=unified_index,
@@ -177,7 +181,7 @@ def save_data(  # noqa: PLR0913
         if index_non_data_unified_index is None:
             df_index_unified = df.index
         else:
-            _, df_index_unified = unify_index_levels(
+            _, df_index_unified = unify_index_levels_check_index_types(
                 index_non_data_unified_index.index[:1], df.index
             )
 

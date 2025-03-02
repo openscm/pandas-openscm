@@ -23,7 +23,7 @@ from pandas_openscm.db.loading import (
 from pandas_openscm.db.reader import OpenSCMDBReader
 from pandas_openscm.db.rewriting import make_move_plan, rewrite_files
 from pandas_openscm.db.saving import save_data
-from pandas_openscm.index_manipulation import unify_index_levels
+from pandas_openscm.index_manipulation import unify_index_levels_check_index_types
 from pandas_openscm.indexing import multi_index_match
 from pandas_openscm.parallelisation import (
     ParallelOpConfig,
@@ -610,14 +610,8 @@ class OpenSCMDB:
                 file_map_db = self.load_file_map(index_file_lock=index_file_lock)
                 index_db = self.load_index(index_file_lock=index_file_lock)
                 if not allow_overwrite:
-                    if not isinstance(
-                        index_db.index, pd.MultiIndex
-                    ):  # pragma: no cover
-                        # Should be impossible to get here
-                        raise TypeError
-
-                    data_index_unified, index_db_index_unified = unify_index_levels(
-                        data.index, index_db.index
+                    data_index_unified, index_db_index_unified = (
+                        unify_index_levels_check_index_types(data.index, index_db.index)
                     )
                     overwrite_required = multi_index_match(
                         data_index_unified, index_db_index_unified

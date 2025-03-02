@@ -13,7 +13,7 @@ import pandas as pd
 
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend, OpenSCMDBIndexBackend
 from pandas_openscm.index_manipulation import (
-    unify_index_levels,
+    unify_index_levels_check_index_types,
     update_index_from_candidates,
 )
 from pandas_openscm.indexing import mi_loc
@@ -111,7 +111,9 @@ def load_data(  # noqa: PLR0913
     ):
         base_idx = index_to_load.index[:1]
         for i in range(len(loaded_l)):
-            new_index = unify_index_levels(base_idx, loaded_l[i].index)[1]
+            new_index = unify_index_levels_check_index_types(
+                base_idx, loaded_l[i].index
+            )[1]
             loaded_l[i].index = new_index
 
     res = pd.concat(loaded_l)
@@ -310,7 +312,7 @@ def convert_db_index_to_metadata(db_index: pd.DataFrame) -> pd.MultiIndex:
         Metadata
     """
     if not isinstance(db_index.index, pd.MultiIndex):  # pragma: no cover
-        # Should be impossible to enter this branch
+        # Should be impossible to get here
         raise TypeError(db_index.index)
 
     res: pd.MultiIndex = db_index.index
@@ -322,7 +324,7 @@ def load_db_metadata(
     *,
     backend_index: OpenSCMDBIndexBackend,
     index_file: Path,
-) -> pd.DataFrame:
+) -> pd.MultiIndex:
     """
     Load database metadata from file
 

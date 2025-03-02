@@ -271,3 +271,38 @@ def unify_index_levels(
     ).reorder_levels(out_names)
 
     return left_unified, right_unified
+
+
+def unify_index_levels_check_index_types(
+    left: pd.Index[Any], right: pd.Index[Any]
+) -> tuple[pd.MultiIndex, pd.MultiIndex]:
+    """
+    Unify the levels on two indexes
+
+    This is just a thin wrapper around [`unify_index_levels`][(m).]
+    that checks the the inputs are both [`pd.MultiIndex`][pandas.MultiIndex]
+    before unifying the indices.
+
+    Parameters
+    ----------
+    left
+        First index to unify
+
+    right
+        Second index to unify
+
+    Returns
+    -------
+    left_aligned :
+        Left after alignment
+
+    right_aligned :
+        Right after alignment
+    """
+    if not isinstance(left, pd.MultiIndex):
+        raise TypeError(left)
+
+    if not isinstance(right, pd.MultiIndex):
+        raise TypeError(right)
+
+    return unify_index_levels(left, right)
