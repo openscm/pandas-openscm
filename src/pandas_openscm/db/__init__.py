@@ -16,10 +16,9 @@ Database API
 from __future__ import annotations
 
 import concurrent.futures
-import contextlib
 import os
 import warnings
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from enum import Enum, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
@@ -354,23 +353,36 @@ class OpenSCMDBReader:
     """
     Reader for reading data out of a database created with `OpenSCMDB`
 
-    Holds the database index in memory,
+    Holds the database file map and index in memory,
     so this can be faster for repeated reads.
     """
 
-    index: pd.DataFrame
+    backend_data: OpenSCMDBDataBackend = field(kw_only=True)
+    """
+    The backend for reading data from disk
+    """
+
+    db_file_map: pd.Series[Path] = field(kw_only=True)  # type: ignore # pandas type hints confused about what they support
+    """
+    The file map of the database from which we are reading.
+    """
+
+    db_index: pd.DataFrame = field(kw_only=True)
     """
     The index of the database from which we are reading.
-
-    This is held in-memory to speed up subsequent reads.
     """
 
-    lock: filelock.SoftFileLock
+    lock: filelock.BaseFileLock | None = field(kw_only=True)
     """
     Lock for the database from which data is being read
+
+    If `None`, we don't hold the lock and automatic locking is not enabled.
     """
 
     def __enter__(self) -> OpenSCMDBReader:
+        if self.lock is not None:
+            self.lock.acquire()
+
         return self
 
     def __exit__(
@@ -379,13 +391,68 @@ class OpenSCMDBReader:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        self.release_lock()
+        if self.lock is not None:
+            self.lock.release()
 
-    def acquire_lock(self) -> None:
-        self.lock.acquire()
+    @property
+    def metadata(self) -> pd.MultiIndex:
+        """
+        Database's metadata
+        """
+        return self.db_index.index
 
-    def release_lock(self) -> None:
-        self.lock.release()
+    def load(
+        self,
+        selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
+        out_columns_type: type | None = None,
+        parallel_op_config: ParallelOpConfig | None = None,
+        progress: bool = False,
+        max_workers: int | None = None,
+    ) -> pd.DataFrame:
+        # TODO: de-dup with OpenSCMDB.load
+        if selector is None:
+            index_to_load = self.db_index
+        else:
+            index_to_load = mi_loc(self.db_index, selector)
+
+        files_to_load = (
+            Path(v) for v in self.db_file_map[index_to_load["file_id"].unique()]
+        )
+        loaded_l = load_data_files(
+            files_to_load=files_to_load,
+            backend_data=self.backend_data,
+            parallel_op_config=parallel_op_config,
+            progress=progress,
+            max_workers=max_workers,
+        )
+
+        if self.backend_data.preserves_index and any(
+            v.index.names != loaded_l[0].index.names for v in loaded_l
+        ):
+            base_idx = index_to_load.index[:1]
+            for i in range(len(loaded_l)):
+                new_index = unify_index_levels(base_idx, loaded_l[i].index)[1]
+                loaded_l[i].index = new_index
+
+        res = pd.concat(loaded_l)
+
+        if not self.backend_data.preserves_index:
+            index_names: pandas.core.indexes.frozen.FrozenList = (
+                index_to_load.index.names
+            )  # type: ignore # pandas type hints wrong
+            res = update_index_from_candidates(res, index_names.difference({"file_id"}))
+
+        # Look up only the indexes we want
+        # just in case the data we loaded had more than we asked for
+        # (because the files aren't saved with exactly the right granularity
+        # for the query that has been requested).
+        if selector is not None:
+            res = mi_loc(res, selector)
+
+        if out_columns_type is not None:
+            res.columns = res.columns.astype(out_columns_type)
+
+        return res
 
 
 @define
@@ -403,12 +470,12 @@ class OpenSCMDB:
 
     backend_data: OpenSCMDBDataBackend = field(kw_only=True)
     """
-    The backend for serialising data to disk
+    The backend for (de-)serialising data (from) to disk
     """
 
     backend_index: OpenSCMDBIndexBackend = field(kw_only=True)
     """
-    The backend for serialising the database index to disk
+    The backend for (de-)serialising the database index (from) to disk
     """
 
     db_dir: Path = field(kw_only=True)
@@ -479,20 +546,55 @@ class OpenSCMDB:
         """
         return not self.index_file.exists()
 
-    @contextlib.contextmanager
     def create_reader(
         self,
         *,
+        lock: bool | filelock.BaseFileLock | None = True,
         index_file_lock: filelock.BaseFileLock | None = None,
-    ) -> Iterator[OpenSCMDBReader]:
-        if index_file_lock is None:
-            index_file_lock = self.index_file_lock
+    ) -> OpenSCMDBReader:
+        """
+        Create a database reader
 
-        with index_file_lock:
-            index = self.load_index(index_file_lock=index_file_lock)
-            res = OpenSCMDBReader(index=index)
+        Parameters
+        ----------
+        lock
+            Lock to give to the reader.
 
-            yield res
+            If `True`, we create a new lock for the database, such that,
+            if the reader is holding the lock,
+            no operations can be performed on the database.
+
+            If `False`, the reader is not given any lock.
+
+        index_file_lock
+            Lock for the database's index file
+
+            Used while loading the index from disk.
+
+            If not supplied, we use [`self.index_file_lock`][(c)].
+
+        Returns
+        -------
+        :
+            Database reader
+        """
+        if not lock:
+            lock = None
+        elif isinstance(lock, bool) and lock:
+            # Create a new lock for the reader
+            lock = filelock.FileLock(self.index_file_lock_path)
+
+        db_index = self.load_index(index_file_lock=index_file_lock)
+        db_file_map = self.load_file_map(index_file_lock=index_file_lock)
+
+        res = OpenSCMDBReader(
+            backend_data=self.backend_data,
+            db_index=db_index,
+            db_file_map=db_file_map,
+            lock=lock,
+        )
+
+        return res
 
     def delete(
         self,
@@ -697,7 +799,7 @@ class OpenSCMDB:
         if self.backend_data.preserves_index and any(
             v.index.names != loaded_l[0].index.names for v in loaded_l
         ):
-            base_idx = index.index[:1]
+            base_idx = index_to_load.index[:1]
             for i in range(len(loaded_l)):
                 new_index = unify_index_levels(base_idx, loaded_l[i].index)[1]
                 loaded_l[i].index = new_index
@@ -705,7 +807,9 @@ class OpenSCMDB:
         res = pd.concat(loaded_l)
 
         if not self.backend_data.preserves_index:
-            index_names: pandas.core.indexes.frozen.FrozenList = index.index.names  # type: ignore # pandas type hints wrong
+            index_names: pandas.core.indexes.frozen.FrozenList = (
+                index_to_load.index.names
+            )  # type: ignore # pandas type hints wrong
             res = update_index_from_candidates(res, index_names.difference({"file_id"}))
 
         # Look up only the indexes we want
