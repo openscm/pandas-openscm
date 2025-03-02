@@ -290,7 +290,7 @@ def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
 
 def mi_loc(
     pandas_obj: P,
-    locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
+    locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector,
 ) -> P:
     """
     Select data, being slightly smarter than the default [pandas.DataFrame.loc][].
@@ -313,8 +313,19 @@ def mi_loc(
     -------
     :
         Selected data
+
+    Notes
+    -----
+    If you have [`pandas_indexing`][pandas_indexing] installed,
+    you can get the same (perhaps even better) functionality
+    using something like the following instead
+
+    ```python
+    ...
+    pandas_obj.loc[pandas_indexing.isin(locator)]
+    ...
+    ```
     """
-    # TODO: remove this and use new pandas_indexing functionality instead
     if isinstance(locator, pd.MultiIndex):
         res: P = multi_index_lookup(pandas_obj, locator)
 

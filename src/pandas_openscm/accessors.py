@@ -53,7 +53,7 @@ class DataFramePandasOpenSCMAccessor:
 
     def mi_loc(
         self,
-        locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
+        locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector,
     ) -> pd.DataFrame:
         """
         Select data, being slightly smarter than the default [pandas.DataFrame.loc][].
@@ -73,6 +73,18 @@ class DataFramePandasOpenSCMAccessor:
         -------
         :
             Selected data
+
+        Notes
+        -----
+        If you have [`pandas_indexing`][pandas_indexing] installed,
+        you can get the same (perhaps even better) functionality
+        using something like the following instead
+
+        ```python
+        ...
+        pandas_obj.loc[pandas_indexing.isin(locator)]
+        ...
+        ```
         """
         return mi_loc(self._df, locator)
 
