@@ -1,7 +1,3 @@
-- database docs
-    - regroup demo in docs (not in core API so we don't take responsibility for deletion)
-    - parallel tricks
-    - progress tricks
 - create the speed benchmarking tool/notebook(s)
     - double these up as key test of putting the different data and index back-ends together
     - mark as superslow
