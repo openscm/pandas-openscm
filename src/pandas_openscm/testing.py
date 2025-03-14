@@ -15,16 +15,7 @@ from typing import TYPE_CHECKING, Any, cast
 import numpy as np
 import pandas as pd
 
-from pandas_openscm.db import (
-    CSVDataBackend,
-    CSVIndexBackend,
-    FeatherDataBackend,
-    FeatherIndexBackend,
-    InMemoryDataBackend,
-    InMemoryIndexBackend,
-    netCDFDataBackend,
-    netCDFIndexBackend,
-)
+from pandas_openscm.db import DATA_BACKENDS, INDEX_BACKENDS
 from pandas_openscm.db.rewriting import MovePlan
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
@@ -33,35 +24,11 @@ if TYPE_CHECKING:
 
 
 def get_db_data_backends() -> tuple[type[object], ...]:
-    return (
-        CSVDataBackend,
-        FeatherDataBackend,
-        InMemoryDataBackend,
-        netCDFDataBackend,
-        # Other back-end options to consider:
-        #
-        # pretty netCDF, where we try and save the data with dimensions
-        # where possible
-        #
-        # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-        # HDF5 = auto()
-    )
+    return tuple(v[1] for v in DATA_BACKENDS.options)
 
 
 def get_db_index_backends() -> tuple[type[object], ...]:
-    return (
-        CSVIndexBackend,
-        FeatherIndexBackend,
-        InMemoryIndexBackend,
-        netCDFIndexBackend,
-        # Other back-end options to consider:
-        #
-        # pretty netCDF, where we try and save the data with dimensions
-        # where possible
-        #
-        # HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-        # HDF5 = auto()
-    )
+    return tuple(v[1] for v in INDEX_BACKENDS.options)
 
 
 def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
@@ -75,8 +42,8 @@ def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         "db_data_backend",
         tuple(
-            pytest.param(db_data_format, id=str(db_data_format))
-            for db_data_format in get_db_data_backends()
+            pytest.param(db_data_format, id=f"backend_data_{short_name}")
+            for short_name, db_data_format in DATA_BACKENDS.options
         ),
     )
 
@@ -92,8 +59,8 @@ def get_parametrized_db_index_backends() -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         "db_index_backend",
         tuple(
-            pytest.param(db_index_format, id=str(db_index_format))
-            for db_index_format in get_db_index_backends()
+            pytest.param(db_data_format, id=f"backend_index_{short_name}")
+            for short_name, db_data_format in INDEX_BACKENDS.options
         ),
     )
 

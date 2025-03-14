@@ -33,6 +33,61 @@ from pandas_openscm.testing import (
 )
 
 
+@get_parametrized_db_data_backends()
+@get_parametrized_db_index_backends()
+def test_save_and_load_basic(tmpdir, db_data_backend, db_index_backend):
+    df_timeseries_like = pd.DataFrame(
+        np.arange(12).reshape(4, 3),
+        columns=[2010, 2015, 2025],
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("scenario_a", "climate_model_a", "Temperature", "K"),
+                ("scenario_b", "climate_model_a", "Temperature", "K"),
+                ("scenario_b", "climate_model_b", "Temperature", "K"),
+                ("scenario_b", "climate_model_b", "Ocean Heat Uptake", "J"),
+            ],
+            names=["scenario", "climate_model", "variable", "unit"],
+        ),
+    )
+
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=db_data_backend(),
+        backend_index=db_index_backend(),
+    )
+
+    db.save(df_timeseries_like)
+
+    db_metadata = db.load_metadata()
+    metadata_compare = db_metadata.reorder_levels(df_timeseries_like.index.names)
+    pd.testing.assert_index_equal(
+        df_timeseries_like.index, metadata_compare, exact="equiv", check_order=False
+    )
+
+    loaded = db.load(out_columns_type=df_timeseries_like.columns.dtype)
+
+    assert_frame_alike(df_timeseries_like, loaded)
+
+    # Check the file map, index and metadata too
+    file_map = db.load_file_map()
+    assert file_map.size == 1, "should only be one file"
+
+    index = db.load_index()
+    assert index.columns.tolist() == ["file_id"]
+    pd.testing.assert_index_equal(
+        index.index,
+        df_timeseries_like.index.reorder_levels(index.index.names),
+        check_order=False,
+    )
+
+    metadata = db.load_metadata()
+    pd.testing.assert_index_equal(
+        metadata,
+        df_timeseries_like.index.reorder_levels(metadata.names),
+        check_order=False,
+    )
+
+
 def test_save_and_load(tmpdir):
     start = create_test_df(
         n_scenarios=10,
