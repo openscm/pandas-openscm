@@ -12,6 +12,7 @@ TODO: push the dependency-pinning-and-testing fix upstream
 - [Tutorials](tutorials/index.md)
 - [Further background](further-background/index.md)
     - [Dependency pinning and testing](further-background/dependency-pinning-and-testing.md)
+    - [OpenSCMDB back-end speed](further-background/openscmdb-backend-speed.md)
 - [Development](development.md)
 - [Pandas accessors](pandas-accessors.md)
 - [API reference](api/pandas_openscm/)

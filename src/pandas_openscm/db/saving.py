@@ -145,7 +145,8 @@ def save_data(  # noqa: PLR0913
             ]
         ) = [((None,), data)]
     else:
-        grouper = data.groupby(groupby)
+        # Only want combos that are actually in the data
+        grouper = data.groupby(groupby, observed=True)
 
     if progress_grouping or progress:
         if progress_grouping is None:
