@@ -243,7 +243,7 @@ def run_test(  # noqa: PLR0913, PLR0915
 def run_tests() -> None:
     """Run the analysis"""
     # Fine to hard-code for now, we test enough other dimensions
-    max_workers = 4
+    max_workers = 8
     groupby = ["scenario", "variable"]
     n_variables = 5
 
