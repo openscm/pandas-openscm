@@ -390,7 +390,7 @@ def write_summaries() -> None:
 
 def main() -> None:
     """Run the main script"""
-    # run_tests()
+    run_tests()
     write_summaries()
 
 
