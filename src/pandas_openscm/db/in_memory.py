@@ -90,7 +90,7 @@ class InMemoryIndexBackend:
     index: pd.DataFrame | None = None
     """Index store"""
 
-    file_map: pd.DataFrame | None = None
+    file_map: pd.Series[Path] | None = None  # type: ignore # pandas confused about what it supports
     """File map store"""
 
     @property
@@ -117,7 +117,7 @@ class InMemoryIndexBackend:
         if self.file_map is None:
             raise TypeError
 
-        return self.file_map
+        return self.file_map.to_frame()
 
     def load_index(self, index_file: Path) -> pd.DataFrame:
         """
@@ -154,7 +154,7 @@ class InMemoryIndexBackend:
         file_map_file
             File in which to save the file map
         """
-        self.file_map = file_map.to_frame()
+        self.file_map = file_map
         # Have to do this as, even though it's in-memory,
         # the layer above expects to have files to check
         file_map_file.touch()

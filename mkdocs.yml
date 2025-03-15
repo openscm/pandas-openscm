@@ -58,7 +58,13 @@ plugins:
       allow_errors: false
       # theme: dark
       include_source: True
-      ignore: ["*.ipynb", "*.md", "docs/gen_doc_stubs.py", "scratch.py"]
+      ignore: [
+        "*.ipynb",
+        "*.md",
+        "docs/gen_doc_stubs.py",
+        "docs/further-background/openscmdb-backend-speed-tests.py",
+        "scratch.py", "d",
+      ]
       remove_tag_config:
         remove_input_tags:
           - remove_input
