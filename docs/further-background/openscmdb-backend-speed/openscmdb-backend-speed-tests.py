@@ -257,6 +257,7 @@ def run_tests() -> None:
         ("magicc_future_quantiles", 100),
         ("magicc_future_quantiles", 300),
         ("magicc_future_quantiles", 1000),
+        ("magicc_future_quantiles", 10000),
     ):
         for backend in [v[0] for v in DATA_BACKENDS.options]:
             for index_as_category_type in [True, False]:

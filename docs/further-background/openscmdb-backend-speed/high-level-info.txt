@@ -1,5 +1,5 @@
 - pandas-openscm version: 0.1.1a1
-- pandas-openscm commit: 33bcf592aad6d4cbe4d066bff30e2c8c8c02bbf9-dirty
+- pandas-openscm commit: a5026e61e99f746e86e6a5b951762c7cc6c130ff
 - python version: 3.11.11
 - platform information: macOS-14.3-arm64-arm-64bit
 - number of workers used in parallel tests: 4
