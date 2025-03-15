@@ -6,6 +6,10 @@ We consider use cases that mirror the use cases we have.
 If you have a use case that you would like us to include in this analysis,
 please [raise an issue](https://github.com/openscm/pandas-openscm/issues/new/choose).
 
+## Test information
+
+---8<--- "docs/further-background/high-level-info.txt"
+
 ## Simple climate model full output
 
 Here we consider the case of output that mirrors the output produced by simple climate models.

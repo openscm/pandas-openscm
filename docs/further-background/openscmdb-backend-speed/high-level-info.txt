@@ -1,0 +1,5 @@
+- pandas-openscm version:
+- pandas-openscm commit:
+- python version:
+- platform:
+- number of workers used in parallel tests:

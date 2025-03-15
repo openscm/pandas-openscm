@@ -46,7 +46,7 @@ class Timer:
         self.time = perf_counter() - self.start
 
 
-def run_test(  # noqa: PLR0913
+def run_test(  # noqa: PLR0913, PLR0915
     *,
     test_case: str,
     n_scenarios: int,
@@ -143,37 +143,47 @@ def run_test(  # noqa: PLR0913
             progress=True,
         )
 
-    # Delete before writing in parallel
-    db.delete()
+    if backend == "in_memory":
+        # Parallel not relevant
+        timer_db_groups_write_parallel = Timer()
+        timer_db_groups_write_parallel.time = None
+    else:
+        # Delete before writing in parallel
+        db.delete()
 
-    with Timer() as timer_db_groups_write_parallel:
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=max_workers
-        ) as executor:
-            db.save(
-                big_df,
-                groupby=groupby,
-                parallel_op_config_save=ParallelOpConfig(
-                    executor=executor,
-                    progress_results=tqdm.auto.tqdm,
-                    progress_parallel_submission=tqdm.auto.tqdm,
-                ),
-            )
+        with Timer() as timer_db_groups_write_parallel:
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                db.save(
+                    big_df,
+                    groupby=groupby,
+                    parallel_op_config_save=ParallelOpConfig(
+                        executor=executor,
+                        progress_results=tqdm.auto.tqdm,
+                        progress_parallel_submission=tqdm.auto.tqdm,
+                    ),
+                )
 
     with Timer() as timer_db_load:
         db.load(progress=True)
 
-    with Timer() as timer_db_load_parallel:
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=max_workers
-        ) as executor:
-            db.load(
-                parallel_op_config=ParallelOpConfig(
-                    executor=executor,
-                    progress_results=tqdm.auto.tqdm,
-                    progress_parallel_submission=tqdm.auto.tqdm,
-                ),
-            )
+    if backend == "in_memory":
+        # Parallel not relevant
+        timer_db_load_parallel = Timer()
+        timer_db_load_parallel.time = None
+    else:
+        with Timer() as timer_db_load_parallel:
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
+                db.load(
+                    parallel_op_config=ParallelOpConfig(
+                        executor=executor,
+                        progress_results=tqdm.auto.tqdm,
+                        progress_parallel_submission=tqdm.auto.tqdm,
+                    ),
+                )
 
     with Timer() as timer_delete:
         db.delete()
@@ -184,6 +194,7 @@ def run_test(  # noqa: PLR0913
 
     res = {
         "platform_info": platform_info,
+        "python_version": platform.python_version(),
         "pandas-openscm_commit": commit,
         "pandas-openscm_version": pandas_openscm.__version__,
         "test_case": test_case,
@@ -229,7 +240,7 @@ def run_test(  # noqa: PLR0913
     return res, out_json_path
 
 
-def main() -> None:
+def run_tests() -> None:
     """Run the analysis"""
     # Fine to hard-code for now, we test enough other dimensions
     max_workers = 4
@@ -238,12 +249,14 @@ def main() -> None:
 
     test_res_l = []
     for test_case, n_scenarios in (
-        ("magicc_full_output", 10),
-        ("magicc_full_output", 30),
-        ("magicc_full_output", 100),
-        ("magicc_future_quantiles", 100),
-        ("magicc_future_quantiles", 300),
-        ("magicc_future_quantiles", 1000),
+        ("magicc_full_output", 1),
+        # ("magicc_full_output", 10),
+        # ("magicc_full_output", 30),
+        # ("magicc_full_output", 100),
+        ("magicc_future_quantiles", 1),
+        # ("magicc_future_quantiles", 100),
+        # ("magicc_future_quantiles", 300),
+        # ("magicc_future_quantiles", 1000),
     ):
         for backend in [v[0] for v in DATA_BACKENDS.options]:
             for index_as_category_type in [True, False]:
@@ -272,6 +285,12 @@ def main() -> None:
             fh.write("\n")
 
         print(f"Wrote {out_json_path}")
+
+
+def main() -> None:
+    """Run the main script"""
+    run_tests()
+    # write_summaries()
 
 
 if __name__ == "__main__":
