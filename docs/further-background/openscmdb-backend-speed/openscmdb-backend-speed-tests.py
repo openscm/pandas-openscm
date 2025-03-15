@@ -250,13 +250,13 @@ def run_tests() -> None:
     test_res_l = []
     for test_case, n_scenarios in (
         ("magicc_full_output", 1),
-        # ("magicc_full_output", 10),
-        # ("magicc_full_output", 30),
-        # ("magicc_full_output", 100),
+        ("magicc_full_output", 10),
+        ("magicc_full_output", 30),
+        ("magicc_full_output", 100),
         ("magicc_future_quantiles", 1),
-        # ("magicc_future_quantiles", 100),
-        # ("magicc_future_quantiles", 300),
-        # ("magicc_future_quantiles", 1000),
+        ("magicc_future_quantiles", 100),
+        ("magicc_future_quantiles", 300),
+        ("magicc_future_quantiles", 1000),
     ):
         for backend in [v[0] for v in DATA_BACKENDS.options]:
             for index_as_category_type in [True, False]:
@@ -287,10 +287,111 @@ def run_tests() -> None:
         print(f"Wrote {out_json_path}")
 
 
+def get_col_expect_unique(indf: pd.DataFrame, col: str) -> Any:
+    """Get a column value, expecting it to be unique"""
+    col_vs = indf[col].unique().tolist()
+    if len(col_vs) != 1:
+        raise AssertionError(col_vs)
+
+    return col_vs[0]
+
+
+def write_high_level_info(db: pd.DataFrame, out_file: Path) -> None:
+    """Write the high-level information"""
+    pandas_openscm_version = get_col_expect_unique(db, "pandas-openscm_version")
+    pandas_openscm_commit = get_col_expect_unique(db, "pandas-openscm_commit")
+    python_version = get_col_expect_unique(db, "python_version")
+    platform_info = get_col_expect_unique(db, "platform_info")
+    n_workers = get_col_expect_unique(db, "max_workers")
+
+    with open(out_file, "w") as fh:
+        fh.write(
+            "\n".join(
+                [
+                    f"- pandas-openscm version: {pandas_openscm_version}",
+                    f"- pandas-openscm commit: {pandas_openscm_commit}",
+                    f"- python version: {python_version}",
+                    f"- platform information: {platform_info}",
+                    f"- number of workers used in parallel tests: {n_workers}",
+                ]
+            )
+        )
+
+
+def write_performance_tables(res: pd.DataFrame, out_file: Path) -> None:
+    """Write tables about the performance of different operations"""
+    res = res.copy()
+
+    values_cols_map = {
+        "time_db_grouped_write": "Grouped write time",
+        "time_db_grouped_write_parallel": "Parallel grouped write time",
+        "time_db_load": "Load time",
+        "time_db_load_parallel": "Parallel load time",
+        "time_delete": "Deletion time",
+    }
+
+    res[list(values_cols_map.keys())] = (
+        res[list(values_cols_map.keys())].astype(float).round(2)
+    )
+    res["data_size_in_memory_MB"] = res["data_size_in_memory_MB"].round(1)
+
+    index_col_renamings = {
+        "data_size_in_memory_MB": "In-memory size (MB)",
+        "n_timeseries": "Timeseries",
+        "n_time_points": "Time points",
+        "backend": "Back-end",
+    }
+    res = res.rename({**index_col_renamings}, axis="columns")
+    res = res.set_index([*index_col_renamings.values()])
+
+    with open(out_file, "w") as fh:
+        for value_col, header in values_cols_map.items():
+            disp = res[value_col].unstack("Back-end")
+
+            fh.write(f"### {header}")
+            fh.write("\n\n")
+            disp.reset_index().to_markdown(buf=fh, index=False, tablefmt="pipe")
+            fh.write("\n\n")
+
+            if disp.isnull().any().any():
+                fh.write(
+                    "*Note that there are no values for parallel operations "
+                    "with an in-memory back-end "
+                    "because such a setup doesn't make sense "
+                    "(you just duplicate the Python process for no gain)."
+                )
+                fh.write("\n\n")
+
+
+def write_summaries() -> None:
+    """Write our summary files for the docs"""
+    db_l = []
+    for file in HERE.glob("*.json"):
+        with open(file) as fh:
+            db_l.append(json.load(fh))
+
+    db = pd.DataFrame(db_l)
+
+    write_high_level_info(db, HERE / "high-level-info.txt")
+
+    write_performance_tables(
+        db[(db["test_case"] == "magicc_full_output") & db["index_as_category_type"]],
+        HERE / "magicc-full-output.txt",
+    )
+
+    write_performance_tables(
+        db[
+            (db["test_case"] == "magicc_future_quantiles")
+            & db["index_as_category_type"]
+        ],
+        HERE / "magicc-future-quantiles.txt",
+    )
+
+
 def main() -> None:
     """Run the main script"""
-    run_tests()
-    # write_summaries()
+    # run_tests()
+    write_summaries()
 
 
 if __name__ == "__main__":

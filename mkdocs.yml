@@ -62,7 +62,7 @@ plugins:
         "*.ipynb",
         "*.md",
         "docs/gen_doc_stubs.py",
-        "docs/further-background/openscmdb-backend-speed-tests.py",
+        "docs/further-background/openscmdb-backend-speed/openscmdb-backend-speed-tests.py",
         "scratch.py", "d",
       ]
       remove_tag_config:

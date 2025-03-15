@@ -1,0 +1,30 @@
+{
+  "backend": "in_memory",
+  "data_size_in_memory_MB": 91.94691753387451,
+  "groupby": [
+    "scenario",
+    "variable"
+  ],
+  "index_as_category_type": false,
+  "index_size_as_frame_in_memory_kb": 5865.36328125,
+  "index_size_in_memory_kb": 169.2685546875,
+  "max_workers": 4,
+  "n_scenarios": 10,
+  "n_time_points": 401,
+  "n_timeseries": 30000,
+  "n_variables": 5,
+  "pandas-openscm_commit": "33bcf592aad6d4cbe4d066bff30e2c8c8c02bbf9-dirty",
+  "pandas-openscm_version": "0.1.1a1",
+  "platform_info": "macOS-14.3-arm64-arm-64bit",
+  "python_version": "3.11.11",
+  "test_case": "magicc_full_output",
+  "time_all_in_one_write": 6.566662341356277e-05,
+  "time_db_grouped_write": 0.03783779218792915,
+  "time_db_grouped_write_parallel": null,
+  "time_db_load": 0.04414591612294316,
+  "time_db_load_parallel": null,
+  "time_delete": 0.0015879170969128609,
+  "time_groupby_write": 0.01503258291631937,
+  "time_save_file_map_not_db": 4.4084154069423676e-05,
+  "time_save_index_not_db": 9.9958386272192e-05
+}

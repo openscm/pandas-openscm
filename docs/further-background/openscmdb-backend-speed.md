@@ -6,9 +6,9 @@ We consider use cases that mirror the use cases we have.
 If you have a use case that you would like us to include in this analysis,
 please [raise an issue](https://github.com/openscm/pandas-openscm/issues/new/choose).
 
-## Test information
+## Run-time conditions
 
----8<--- "docs/further-background/high-level-info.txt"
+---8<--- "docs/further-background/openscmdb-backend-speed/high-level-info.txt"
 
 ## Simple climate model full output
 
@@ -16,14 +16,9 @@ Here we consider the case of output that mirrors the output produced by simple c
 We have a number of scenarios and variables, each of which has hundreds of ensemble members.
 The output also spans a relatively long time period.
 
-- n scenarios
-- n variables
-- n timeseries
-- n time points
-- data size in memory
+---8<--- "docs/further-background/openscmdb-backend-speed/magicc-full-output.txt"
 
-- rows: back-ends
-- columns: operations (write, write parallel, load, load parallel, delete)
+!!! Up to here
 
 For comparison, we include the time it takes to do things similar to the above
 directly via pandas (i.e. bypassing the database processing).
@@ -50,14 +45,7 @@ Here we consider the case of output that mirrors processed output produced from 
 We have a number of scenarios and variables, each of which has been processed to a few quantiles.
 The output is restricted to the future time period.
 
-- n scenarios
-- n variables
-- n timeseries
-- n time points
-- data size in memory
-
-- rows: back-ends
-- columns: operations (write, write parallel, load, load parallel, delete)
+---8<--- "docs/further-background/openscmdb-backend-speed/magicc-future-quantiles.txt"
 
 For comparison, we include the time it takes to do things similar to the above
 directly via pandas (i.e. bypassing the database processing).

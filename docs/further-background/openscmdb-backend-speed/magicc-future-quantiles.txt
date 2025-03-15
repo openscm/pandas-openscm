@@ -1,0 +1,38 @@
+### Grouped write time
+
+|   In-memory size (MB) |   Timeseries |   Time points |   csv |   feather |   in_memory |   netCDF |
+|----------------------:|-------------:|--------------:|------:|----------:|------------:|---------:|
+|                   0.1 |           75 |           126 |  0.01 |      0.03 |        0    |     0.04 |
+|                   7.3 |         7500 |           126 |  1.01 |      2.55 |        0.12 |     3.19 |
+
+### Parallel grouped write time
+
+|   In-memory size (MB) |   Timeseries |   Time points |   csv |   feather |   in_memory |   netCDF |
+|----------------------:|-------------:|--------------:|------:|----------:|------------:|---------:|
+|                   0.1 |           75 |           126 |  0.46 |      0.49 |         nan |     0.51 |
+|                   7.3 |         7500 |           126 |  0.81 |      1.19 |         nan |     1.65 |
+
+*Note that there are no values for parallel operations with an in-memory back-end because such a setup doesn't make sense (you just duplicate the Python process for no gain).
+
+### Load time
+
+|   In-memory size (MB) |   Timeseries |   Time points |   csv |   feather |   in_memory |   netCDF |
+|----------------------:|-------------:|--------------:|------:|----------:|------------:|---------:|
+|                   0.1 |           75 |           126 |  0.01 |      0.02 |        0    |     0.03 |
+|                   7.3 |         7500 |           126 |  0.61 |      0.9  |        0.02 |     2.12 |
+
+### Parallel load time
+
+|   In-memory size (MB) |   Timeseries |   Time points |   csv |   feather |   in_memory |   netCDF |
+|----------------------:|-------------:|--------------:|------:|----------:|------------:|---------:|
+|                   0.1 |           75 |           126 |  0.47 |      0.57 |         nan |     0.51 |
+|                   7.3 |         7500 |           126 |  0.6  |      0.7  |         nan |     1.14 |
+
+*Note that there are no values for parallel operations with an in-memory back-end because such a setup doesn't make sense (you just duplicate the Python process for no gain).
+
+### Deletion time
+
+|   In-memory size (MB) |   Timeseries |   Time points |   csv |   feather |   in_memory |   netCDF |
+|----------------------:|-------------:|--------------:|------:|----------:|------------:|---------:|
+|                   0.1 |           75 |           126 |  0    |      0    |        0    |     0    |
+|                   7.3 |         7500 |           126 |  0.02 |      0.02 |        0.01 |     0.03 |
