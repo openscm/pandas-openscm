@@ -1,4 +1,0 @@
-- create the speed benchmarking tool/notebook(s)
-    - double these up as key test of putting the different data and index back-ends together
-    - mark as superslow
-    - dump results with operating system, date and commit used to make them so they can be included in docs
