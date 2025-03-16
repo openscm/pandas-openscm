@@ -198,7 +198,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      # TODO: push this change upstream
       - name: Set up Python "${{ matrix.python-version }}"
         id: setup-python
         uses: actions/setup-python@v4
