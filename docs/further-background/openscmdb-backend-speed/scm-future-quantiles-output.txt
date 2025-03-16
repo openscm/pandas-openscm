@@ -2,16 +2,16 @@
 
     <style type="text/css">
     </style>
-    <table id="T_13968">
+    <table id="T_9d92b">
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="index_name level0" >Back-end</th>
-          <th id="T_13968_level0_col0" class="col_heading level0 col0" >In memory</th>
-          <th id="T_13968_level0_col1" class="col_heading level0 col1" >feather</th>
-          <th id="T_13968_level0_col2" class="col_heading level0 col2" >netCDF</th>
+          <th id="T_9d92b_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_9d92b_level0_col1" class="col_heading level0 col1" >feather</th>
+          <th id="T_9d92b_level0_col2" class="col_heading level0 col2" >netCDF</th>
         </tr>
         <tr>
           <th class="index_name level0" >In-memory size (MB)</th>
@@ -25,13 +25,13 @@
       </thead>
       <tbody>
         <tr>
-          <th id="T_13968_level0_row0" class="row_heading level0 row0" >725.5</th>
-          <th id="T_13968_level1_row0" class="row_heading level1 row0" >750,000</th>
-          <th id="T_13968_level2_row0" class="row_heading level2 row0" >126</th>
-          <th id="T_13968_level3_row0" class="row_heading level3 row0" >5</th>
-          <td id="T_13968_row0_col0" class="data row0 col0" >0.17</td>
-          <td id="T_13968_row0_col1" class="data row0 col1" >2.21</td>
-          <td id="T_13968_row0_col2" class="data row0 col2" >1.58</td>
+          <th id="T_9d92b_level0_row0" class="row_heading level0 row0" >725.5</th>
+          <th id="T_9d92b_level1_row0" class="row_heading level1 row0" >750,000</th>
+          <th id="T_9d92b_level2_row0" class="row_heading level2 row0" >126</th>
+          <th id="T_9d92b_level3_row0" class="row_heading level3 row0" >5</th>
+          <td id="T_9d92b_row0_col0" class="data row0 col0" >0.19</td>
+          <td id="T_9d92b_row0_col1" class="data row0 col1" >1.98</td>
+          <td id="T_9d92b_row0_col2" class="data row0 col2" >1.75</td>
         </tr>
       </tbody>
     </table>
@@ -41,16 +41,16 @@
 
     <style type="text/css">
     </style>
-    <table id="T_81d9e">
+    <table id="T_fe4c2">
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="index_name level0" >Back-end</th>
-          <th id="T_81d9e_level0_col0" class="col_heading level0 col0" >In memory</th>
-          <th id="T_81d9e_level0_col1" class="col_heading level0 col1" >feather</th>
-          <th id="T_81d9e_level0_col2" class="col_heading level0 col2" >netCDF</th>
+          <th id="T_fe4c2_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_fe4c2_level0_col1" class="col_heading level0 col1" >feather</th>
+          <th id="T_fe4c2_level0_col2" class="col_heading level0 col2" >netCDF</th>
         </tr>
         <tr>
           <th class="index_name level0" >In-memory size (MB)</th>
@@ -64,13 +64,13 @@
       </thead>
       <tbody>
         <tr>
-          <th id="T_81d9e_level0_row0" class="row_heading level0 row0" >725.5</th>
-          <th id="T_81d9e_level1_row0" class="row_heading level1 row0" >750,000</th>
-          <th id="T_81d9e_level2_row0" class="row_heading level2 row0" >126</th>
-          <th id="T_81d9e_level3_row0" class="row_heading level3 row0" >5</th>
-          <td id="T_81d9e_row0_col0" class="data row0 col0" >nan</td>
-          <td id="T_81d9e_row0_col1" class="data row0 col1" >3.91</td>
-          <td id="T_81d9e_row0_col2" class="data row0 col2" >3.31</td>
+          <th id="T_fe4c2_level0_row0" class="row_heading level0 row0" >725.5</th>
+          <th id="T_fe4c2_level1_row0" class="row_heading level1 row0" >750,000</th>
+          <th id="T_fe4c2_level2_row0" class="row_heading level2 row0" >126</th>
+          <th id="T_fe4c2_level3_row0" class="row_heading level3 row0" >5</th>
+          <td id="T_fe4c2_row0_col0" class="data row0 col0" >nan</td>
+          <td id="T_fe4c2_row0_col1" class="data row0 col1" >4.14</td>
+          <td id="T_fe4c2_row0_col2" class="data row0 col2" >3.70</td>
         </tr>
       </tbody>
     </table>
@@ -82,16 +82,16 @@
 
     <style type="text/css">
     </style>
-    <table id="T_dcf89">
+    <table id="T_d3cd6">
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="index_name level0" >Back-end</th>
-          <th id="T_dcf89_level0_col0" class="col_heading level0 col0" >In memory</th>
-          <th id="T_dcf89_level0_col1" class="col_heading level0 col1" >feather</th>
-          <th id="T_dcf89_level0_col2" class="col_heading level0 col2" >netCDF</th>
+          <th id="T_d3cd6_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_d3cd6_level0_col1" class="col_heading level0 col1" >feather</th>
+          <th id="T_d3cd6_level0_col2" class="col_heading level0 col2" >netCDF</th>
         </tr>
         <tr>
           <th class="index_name level0" >In-memory size (MB)</th>
@@ -105,13 +105,13 @@
       </thead>
       <tbody>
         <tr>
-          <th id="T_dcf89_level0_row0" class="row_heading level0 row0" >725.5</th>
-          <th id="T_dcf89_level1_row0" class="row_heading level1 row0" >750,000</th>
-          <th id="T_dcf89_level2_row0" class="row_heading level2 row0" >126</th>
-          <th id="T_dcf89_level3_row0" class="row_heading level3 row0" >5</th>
-          <td id="T_dcf89_row0_col0" class="data row0 col0" >0.00</td>
-          <td id="T_dcf89_row0_col1" class="data row0 col1" >739.57</td>
-          <td id="T_dcf89_row0_col2" class="data row0 col2" >788.20</td>
+          <th id="T_d3cd6_level0_row0" class="row_heading level0 row0" >725.5</th>
+          <th id="T_d3cd6_level1_row0" class="row_heading level1 row0" >750,000</th>
+          <th id="T_d3cd6_level2_row0" class="row_heading level2 row0" >126</th>
+          <th id="T_d3cd6_level3_row0" class="row_heading level3 row0" >5</th>
+          <td id="T_d3cd6_row0_col0" class="data row0 col0" >0.00</td>
+          <td id="T_d3cd6_row0_col1" class="data row0 col1" >739.57</td>
+          <td id="T_d3cd6_row0_col2" class="data row0 col2" >788.20</td>
         </tr>
       </tbody>
     </table>
@@ -121,16 +121,16 @@
 
     <style type="text/css">
     </style>
-    <table id="T_02d38">
+    <table id="T_502fd">
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="index_name level0" >Back-end</th>
-          <th id="T_02d38_level0_col0" class="col_heading level0 col0" >In memory</th>
-          <th id="T_02d38_level0_col1" class="col_heading level0 col1" >feather</th>
-          <th id="T_02d38_level0_col2" class="col_heading level0 col2" >netCDF</th>
+          <th id="T_502fd_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_502fd_level0_col1" class="col_heading level0 col1" >feather</th>
+          <th id="T_502fd_level0_col2" class="col_heading level0 col2" >netCDF</th>
         </tr>
         <tr>
           <th class="index_name level0" >In-memory size (MB)</th>
@@ -144,13 +144,13 @@
       </thead>
       <tbody>
         <tr>
-          <th id="T_02d38_level0_row0" class="row_heading level0 row0" >725.5</th>
-          <th id="T_02d38_level1_row0" class="row_heading level1 row0" >750,000</th>
-          <th id="T_02d38_level2_row0" class="row_heading level2 row0" >126</th>
-          <th id="T_02d38_level3_row0" class="row_heading level3 row0" >5</th>
-          <td id="T_02d38_row0_col0" class="data row0 col0" >0.15</td>
-          <td id="T_02d38_row0_col1" class="data row0 col1" >0.81</td>
-          <td id="T_02d38_row0_col2" class="data row0 col2" >1.80</td>
+          <th id="T_502fd_level0_row0" class="row_heading level0 row0" >725.5</th>
+          <th id="T_502fd_level1_row0" class="row_heading level1 row0" >750,000</th>
+          <th id="T_502fd_level2_row0" class="row_heading level2 row0" >126</th>
+          <th id="T_502fd_level3_row0" class="row_heading level3 row0" >5</th>
+          <td id="T_502fd_row0_col0" class="data row0 col0" >0.18</td>
+          <td id="T_502fd_row0_col1" class="data row0 col1" >0.68</td>
+          <td id="T_502fd_row0_col2" class="data row0 col2" >1.89</td>
         </tr>
       </tbody>
     </table>
@@ -160,16 +160,16 @@
 
     <style type="text/css">
     </style>
-    <table id="T_d316e">
+    <table id="T_fef1b">
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="index_name level0" >Back-end</th>
-          <th id="T_d316e_level0_col0" class="col_heading level0 col0" >In memory</th>
-          <th id="T_d316e_level0_col1" class="col_heading level0 col1" >feather</th>
-          <th id="T_d316e_level0_col2" class="col_heading level0 col2" >netCDF</th>
+          <th id="T_fef1b_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_fef1b_level0_col1" class="col_heading level0 col1" >feather</th>
+          <th id="T_fef1b_level0_col2" class="col_heading level0 col2" >netCDF</th>
         </tr>
         <tr>
           <th class="index_name level0" >In-memory size (MB)</th>
@@ -183,13 +183,13 @@
       </thead>
       <tbody>
         <tr>
-          <th id="T_d316e_level0_row0" class="row_heading level0 row0" >725.5</th>
-          <th id="T_d316e_level1_row0" class="row_heading level1 row0" >750,000</th>
-          <th id="T_d316e_level2_row0" class="row_heading level2 row0" >126</th>
-          <th id="T_d316e_level3_row0" class="row_heading level3 row0" >5</th>
-          <td id="T_d316e_row0_col0" class="data row0 col0" >nan</td>
-          <td id="T_d316e_row0_col1" class="data row0 col1" >3.23</td>
-          <td id="T_d316e_row0_col2" class="data row0 col2" >3.53</td>
+          <th id="T_fef1b_level0_row0" class="row_heading level0 row0" >725.5</th>
+          <th id="T_fef1b_level1_row0" class="row_heading level1 row0" >750,000</th>
+          <th id="T_fef1b_level2_row0" class="row_heading level2 row0" >126</th>
+          <th id="T_fef1b_level3_row0" class="row_heading level3 row0" >5</th>
+          <td id="T_fef1b_row0_col0" class="data row0 col0" >nan</td>
+          <td id="T_fef1b_row0_col1" class="data row0 col1" >3.36</td>
+          <td id="T_fef1b_row0_col2" class="data row0 col2" >3.51</td>
         </tr>
       </tbody>
     </table>
@@ -201,16 +201,16 @@
 
     <style type="text/css">
     </style>
-    <table id="T_73a4f">
+    <table id="T_11999">
       <thead>
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="blank" >&nbsp;</th>
           <th class="index_name level0" >Back-end</th>
-          <th id="T_73a4f_level0_col0" class="col_heading level0 col0" >In memory</th>
-          <th id="T_73a4f_level0_col1" class="col_heading level0 col1" >feather</th>
-          <th id="T_73a4f_level0_col2" class="col_heading level0 col2" >netCDF</th>
+          <th id="T_11999_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_11999_level0_col1" class="col_heading level0 col1" >feather</th>
+          <th id="T_11999_level0_col2" class="col_heading level0 col2" >netCDF</th>
         </tr>
         <tr>
           <th class="index_name level0" >In-memory size (MB)</th>
@@ -224,13 +224,13 @@
       </thead>
       <tbody>
         <tr>
-          <th id="T_73a4f_level0_row0" class="row_heading level0 row0" >725.5</th>
-          <th id="T_73a4f_level1_row0" class="row_heading level1 row0" >750,000</th>
-          <th id="T_73a4f_level2_row0" class="row_heading level2 row0" >126</th>
-          <th id="T_73a4f_level3_row0" class="row_heading level3 row0" >5</th>
-          <td id="T_73a4f_row0_col0" class="data row0 col0" >0.00</td>
-          <td id="T_73a4f_row0_col1" class="data row0 col1" >0.04</td>
-          <td id="T_73a4f_row0_col2" class="data row0 col2" >0.02</td>
+          <th id="T_11999_level0_row0" class="row_heading level0 row0" >725.5</th>
+          <th id="T_11999_level1_row0" class="row_heading level1 row0" >750,000</th>
+          <th id="T_11999_level2_row0" class="row_heading level2 row0" >126</th>
+          <th id="T_11999_level3_row0" class="row_heading level3 row0" >5</th>
+          <td id="T_11999_row0_col0" class="data row0 col0" >0.00</td>
+          <td id="T_11999_row0_col1" class="data row0 col1" >0.01</td>
+          <td id="T_11999_row0_col2" class="data row0 col2" >0.02</td>
         </tr>
       </tbody>
     </table>

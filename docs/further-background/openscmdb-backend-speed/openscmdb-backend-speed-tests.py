@@ -303,6 +303,8 @@ def run_tests(test_cases: tuple[TestCase, ...], force: bool) -> tuple[Path, ...]
     for test_case in test_cases:
         res_file = run_test(test_case, force=force)
         res_l.append(res_file)
+        print()
+        print()
 
     return tuple(res_l)
 
@@ -468,7 +470,7 @@ def main() -> None:
     )
 
     scm_future_quantiles_output_kwargs = dict(
-        n_runs=15,  # approx no. of quantiles
+        n_runs=15,  # approx no. of quantiles we normally carry around
         n_variables=5,
         time_points=np.arange(2025.0, 2150.0 + 1.0),
         max_workers=max_workers,
@@ -492,7 +494,8 @@ def main() -> None:
         ]
     )
     force = False
-    test_cases = [*test_cases[:3], *test_cases[-3:]]
+    # # Fast running set up
+    # test_cases = [*test_cases[:3], *test_cases[-3:]]
     # force = True
     results_files = run_tests(test_cases, force=force)
     write_summaries(results_files)
@@ -500,9 +503,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-# - backend (columns)
-# - operation (tabs)
-# - data size (rows)
-# - grouping (rows)
