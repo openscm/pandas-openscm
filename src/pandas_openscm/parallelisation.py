@@ -23,18 +23,20 @@ from __future__ import annotations
 import concurrent.futures
 from collections.abc import Iterable, Iterator
 from functools import partial
-from typing import Any, Callable, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
 
 from attrs import define
-from typing_extensions import Concatenate, ParamSpec
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
-P = ParamSpec("P")
-T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-U = TypeVar("U")
-V = TypeVar("V")
+if TYPE_CHECKING:
+    from typing_extensions import Concatenate, ParamSpec
+
+    P = ParamSpec("P")
+    T = TypeVar("T")
+    T_co = TypeVar("T_co", covariant=True)
+    U = TypeVar("U")
+    V = TypeVar("V")
 
 
 class ProgressLike(Protocol):
