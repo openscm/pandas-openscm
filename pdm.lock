@@ -5,7 +5,7 @@
 groups = ["default", "all-dev", "db", "db-full", "dev", "docs", "full", "plots", "progress", "tests", "tests-full", "tests-min"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:a69c707159dbf07cf6dd7de8444c2b6f220344f255acdd72c159512babc6b63a"
+content_hash = "sha256:1737890f6e82922abfe77bb20af56e026a623cfe5135ba4b2e329366c1a22c0c"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -105,16 +105,16 @@ files = [
 
 [[package]]
 name = "async-lru"
-version = "2.0.4"
-requires_python = ">=3.8"
+version = "2.0.5"
+requires_python = ">=3.9"
 summary = "Simple LRU cache for asyncio"
 groups = ["all-dev", "docs"]
 dependencies = [
     "typing-extensions>=4.0.0; python_version < \"3.11\"",
 ]
 files = [
-    {file = "async-lru-2.0.4.tar.gz", hash = "sha256:b8a59a5df60805ff63220b2a0c5b5393da5521b113cd5465a44eb037d81a5627"},
-    {file = "async_lru-2.0.4-py3-none-any.whl", hash = "sha256:ff02944ce3c288c5be660c42dbcca0742b32c3b279d6dceda655190240b99224"},
+    {file = "async_lru-2.0.5-py3-none-any.whl", hash = "sha256:ab95404d8d2605310d345932697371a5f40def0487c03d6d0ad9138de52c9943"},
+    {file = "async_lru-2.0.5.tar.gz", hash = "sha256:481d52ccdd27275f42c43a928b4a50c3bfb2d67af4e78b170e3e0bb39c66e5bb"},
 ]
 
 [[package]]
@@ -733,7 +733,7 @@ name = "deprecated"
 version = "1.2.18"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
 summary = "Python @deprecated decorator to deprecate old python classes, functions or methods."
-groups = ["all-dev", "tests"]
+groups = ["all-dev", "docs", "tests"]
 dependencies = [
     "wrapt<2,>=1.10",
 ]
@@ -966,7 +966,7 @@ files = [
 
 [[package]]
 name = "hypothesis"
-version = "6.129.2"
+version = "6.129.3"
 requires_python = ">=3.9"
 summary = "A library for property-based testing"
 groups = ["all-dev", "tests", "tests-full"]
@@ -976,8 +976,8 @@ dependencies = [
     "sortedcontainers<3.0.0,>=2.1.0",
 ]
 files = [
-    {file = "hypothesis-6.129.2-py3-none-any.whl", hash = "sha256:a3b4c9087806c1f5650a538b6acd781b5f3856ebaf64aac20a10c226c9e7c3a8"},
-    {file = "hypothesis-6.129.2.tar.gz", hash = "sha256:23f180782dbbbcb6e59051794295d75783ad59241e6629a5bf700936c28a995b"},
+    {file = "hypothesis-6.129.3-py3-none-any.whl", hash = "sha256:95f8f1f0d6cd29b272ae4b42c5c5d9768aa1f2be3ab1834a961a9d0c2fc4d652"},
+    {file = "hypothesis-6.129.3.tar.gz", hash = "sha256:8a0cbc7612861f603af3838d282e2f7c47f362e7093fabf3ce928d2c7e3480e3"},
 ]
 
 [[package]]
@@ -2201,7 +2201,7 @@ name = "numpy"
 version = "2.0.2"
 requires_python = ">=3.9"
 summary = "Fundamental package for array computing in Python"
-groups = ["default", "all-dev", "db-full", "dev", "full", "plots", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests"]
 files = [
     {file = "numpy-2.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:51129a29dbe56f9ca83438b706e2e69a39892b5eda6cedcb6b0c9fdc9b0d3ece"},
     {file = "numpy-2.0.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f15975dfec0cf2239224d80e32c3170b1d168335eaedee69da84fbe9f1f9cd04"},
@@ -2290,7 +2290,7 @@ name = "pandas"
 version = "2.2.3"
 requires_python = ">=3.9"
 summary = "Powerful data structures for data analysis, time series, and statistics"
-groups = ["default", "all-dev", "db-full", "tests"]
+groups = ["default", "all-dev", "db-full", "docs", "tests"]
 dependencies = [
     "numpy>=1.22.4; python_version < \"3.11\"",
     "numpy>=1.23.2; python_version == \"3.11\"",
@@ -2349,7 +2349,7 @@ name = "pandas-indexing"
 version = "0.6.3"
 requires_python = "<4,>=3.9"
 summary = "Helpers to facilitate working with pandas indices in particular multiindices"
-groups = ["all-dev", "tests"]
+groups = ["all-dev", "docs", "tests"]
 dependencies = [
     "attrs",
     "deprecated",
@@ -2781,7 +2781,7 @@ files = [
 name = "pytz"
 version = "2025.1"
 summary = "World timezone definitions, modern and historical"
-groups = ["default", "all-dev", "db-full", "tests"]
+groups = ["default", "all-dev", "db-full", "docs", "tests"]
 files = [
     {file = "pytz-2025.1-py2.py3-none-any.whl", hash = "sha256:89dd22dca55b46eac6eda23b2d72721bf1bdfef212645d81513ef5d03038de57"},
     {file = "pytz-2025.1.tar.gz", hash = "sha256:c2db42be2a2518b28e65f9207c4d05e6ff547d1efa4086469ef855e4ab70178e"},
@@ -3596,7 +3596,7 @@ name = "tzdata"
 version = "2025.1"
 requires_python = ">=2"
 summary = "Provider of IANA time zone data"
-groups = ["default", "all-dev", "db-full", "tests"]
+groups = ["default", "all-dev", "db-full", "docs", "tests"]
 files = [
     {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
     {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
@@ -3741,7 +3741,7 @@ name = "wrapt"
 version = "1.17.2"
 requires_python = ">=3.8"
 summary = "Module for decorators, wrappers and monkey patching."
-groups = ["all-dev", "tests"]
+groups = ["all-dev", "docs", "tests"]
 files = [
     {file = "wrapt-1.17.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3d57c572081fed831ad2d26fd430d565b76aa277ed1d30ff4d40670b1c0dd984"},
     {file = "wrapt-1.17.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b5e251054542ae57ac7f3fba5d10bfff615b6c2fb09abeb37d2f1463f841ae22"},

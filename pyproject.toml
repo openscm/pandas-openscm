@@ -124,6 +124,7 @@ docs = [
     "jupyterlab==4.3.4",
     "jupytext==1.16.6",
     "mkdocs-jupyter==0.25.1",
+    "pandas-indexing>=0.6.2",
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.

@@ -2509,6 +2509,7 @@ docs = [
     { name = "mkdocstrings-python" },
     { name = "mkdocstrings-python-accessors" },
     { name = "mkdocstrings-python-xref" },
+    { name = "pandas-indexing" },
     { name = "pymdown-extensions" },
     { name = "ruff" },
 ]
@@ -2648,6 +2649,7 @@ docs = [
     { name = "mkdocstrings-python", specifier = "==1.13.0" },
     { name = "mkdocstrings-python-accessors", specifier = ">=0.1.1" },
     { name = "mkdocstrings-python-xref", specifier = "==1.6.2" },
+    { name = "pandas-indexing", specifier = ">=0.6.2" },
     { name = "pymdown-extensions", specifier = "==10.13" },
     { name = "ruff", specifier = "==0.8.6" },
 ]
