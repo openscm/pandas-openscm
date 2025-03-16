@@ -2,8 +2,3 @@
     - double these up as key test of putting the different data and index back-ends together
     - mark as superslow
     - dump results with operating system, date and commit used to make them so they can be included in docs
-- push --doctest-report ndiff upstream in Makefile
-- push dependency pinning and testing section in docs' navigation upstream
-- push footnotes extension upstream
-- push fixes to dependency pinning text upstream
-- push tqdm lack of intersphinx upstream

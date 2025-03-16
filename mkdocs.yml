@@ -133,7 +133,6 @@ plugins:
 markdown_extensions:
   # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#attribute-lists
   - attr_list
-  # TODO: push upstream
   - footnotes
   # https://squidfunk.github.io/mkdocs-material/reference/math/#katex-mkdocsyml
   - pymdownx.arithmatex:

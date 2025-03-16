@@ -2,8 +2,6 @@
 Navigation specification
 
 See https://oprypin.github.io/mkdocs-literate-nav/
-
-TODO: push the dependency-pinning-and-testing fix upstream
 -->
 - [Home](index.md)
 - [Installation](installation.md)
