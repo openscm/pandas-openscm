@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import filelock
 import pandas as pd
 from attrs import define, field
 
@@ -23,6 +22,7 @@ from pandas_openscm.parallelisation import (
 if TYPE_CHECKING:
     from types import TracebackType
 
+    import filelock
     import pandas_indexing as pix
 
 

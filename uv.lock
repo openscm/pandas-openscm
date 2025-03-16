@@ -2497,6 +2497,7 @@ dev = [
 ]
 docs = [
     { name = "attrs" },
+    { name = "filelock" },
     { name = "ipywidgets" },
     { name = "jupyterlab" },
     { name = "jupytext" },
@@ -2564,6 +2565,7 @@ all-dev = [
     { name = "coverage", specifier = "==7.6.10" },
     { name = "distlib", specifier = "==0.3.9" },
     { name = "filelock", specifier = "==3.16.1" },
+    { name = "filelock", specifier = ">=3.16.1" },
     { name = "gitpython", specifier = ">=3.1.44" },
     { name = "hypothesis", specifier = ">=6.125.3" },
     { name = "identify", specifier = "==2.6.5" },
@@ -2638,6 +2640,7 @@ dev = [
 ]
 docs = [
     { name = "attrs", specifier = "==24.3.0" },
+    { name = "filelock", specifier = ">=3.16.1" },
     { name = "ipywidgets", specifier = ">=8.1.5" },
     { name = "jupyterlab", specifier = "==4.3.4" },
     { name = "jupytext", specifier = "==1.16.6" },

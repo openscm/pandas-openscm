@@ -126,6 +126,7 @@ docs = [
     "jupytext==1.16.6",
     "mkdocs-jupyter==0.25.1",
     "pandas-indexing>=0.6.2",
+    "filelock>=3.16.1",
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.

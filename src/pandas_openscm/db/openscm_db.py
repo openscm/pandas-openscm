@@ -8,7 +8,6 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import filelock
 import pandas as pd
 from attrs import define, field
 
@@ -23,6 +22,7 @@ from pandas_openscm.db.loading import (
 from pandas_openscm.db.reader import OpenSCMDBReader
 from pandas_openscm.db.rewriting import make_move_plan, rewrite_files
 from pandas_openscm.db.saving import save_data
+from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.index_manipulation import unify_index_levels_check_index_types
 from pandas_openscm.indexing import multi_index_match
 from pandas_openscm.parallelisation import (
@@ -31,6 +31,7 @@ from pandas_openscm.parallelisation import (
 )
 
 if TYPE_CHECKING:
+    import filelock
     import pandas_indexing as pix
 
 
@@ -118,6 +119,14 @@ class OpenSCMDB:
     @index_file_lock.default
     def default_index_file_lock(self) -> filelock.BaseFileLock:
         """Get default lock for the back-end's index file"""
+        try:
+            import filelock
+        except ImportError as exc:
+            # TODO: test this
+            raise MissingOptionalDependencyError(
+                "default_index_file_lock", requirement="filelock"
+            ) from exc
+
         return filelock.FileLock(self.index_file_lock_path)
 
     @property
@@ -198,8 +207,17 @@ class OpenSCMDB:
         """
         if isinstance(lock, bool):
             if lock:
+                try:
+                    import filelock
+                except ImportError as exc:
+                    # TODO: test this
+                    raise MissingOptionalDependencyError(  # noqa: TRY003
+                        "create_reader(..., lock=True, ...)", requirement="filelock"
+                    ) from exc
+
                 # Create a new lock for the reader
                 lock = filelock.FileLock(self.index_file_lock_path)
+
             else:
                 # Convert to None
                 lock = None
