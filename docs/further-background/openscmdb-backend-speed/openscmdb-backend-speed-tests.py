@@ -81,14 +81,6 @@ class TestCase:
         return self.n_scenarios * self.n_runs * len(self.variables)
 
     @property
-    def n_groups(self) -> int:
-        """Number of groups created when self.df is grouped by self.groupby"""
-        if self.groupby is None:
-            return 1
-
-        return len(self.df.groupby(self.groupby))
-
-    @property
     def out_file(self) -> Path:
         """Path in which to write the results"""
         out_stem = "_".join(
@@ -420,19 +412,21 @@ def write_summaries(res_files: tuple[Path, ...]) -> None:
         db[(db["id"] == "full_scm_output") & ~db["index_as_category_type"]],
         HERE / "full-scm-output.txt",
     )
-    write_performance_tables(
-        db[(db["id"] == "full_scm_output") & db["index_as_category_type"]],
-        HERE / "full-scm-output-category-index.txt",
-    )
+    # No need for this, MultiIndex is category by default
+    # write_performance_tables(
+    #     db[(db["id"] == "full_scm_output") & db["index_as_category_type"]],
+    #     HERE / "full-scm-output-category-index.txt",
+    # )
 
     write_performance_tables(
         db[(db["id"] == "scm_future_quantiles_output") & ~db["index_as_category_type"]],
         HERE / "scm-future-quantiles-output.txt",
     )
-    write_performance_tables(
-        db[(db["id"] == "scm_future_quantiles_output") & db["index_as_category_type"]],
-        HERE / "scm-future-quantiles-output-category-index.txt",
-    )
+    # write_performance_tables(
+    #     db[(db["id"] == "scm_future_quantiles_output")
+    #     & db["index_as_category_type"]],
+    #     HERE / "scm-future-quantiles-output-category-index.txt",
+    # )
 
 
 def main() -> None:
@@ -450,7 +444,7 @@ def main() -> None:
         high_level_combos=itertools.product(
             (None, ["scenario", "variable"], ["scenario", "variable", "run", "unit"]),
             (1,),
-            (True, False),
+            (False,),
             BACKEND_OPTIONS,
         ),
         **full_scm_output_kwargs,
@@ -463,7 +457,7 @@ def main() -> None:
                 30,
                 100,
             ),
-            (True, False),
+            (False,),
             BACKEND_OPTIONS,
         ),
         **full_scm_output_kwargs,
@@ -471,7 +465,6 @@ def main() -> None:
 
     scm_future_quantiles_output_kwargs = dict(
         n_runs=15,  # approx no. of quantiles we normally carry around
-        n_variables=5,
         time_points=np.arange(2025.0, 2150.0 + 1.0),
         max_workers=max_workers,
         id="scm_future_quantiles_output",
@@ -480,9 +473,20 @@ def main() -> None:
         high_level_combos=itertools.product(
             (None, ["variable"]),
             (1, 100, 300, 1000, 10000),
-            (True, False),
+            (False,),
             BACKEND_OPTIONS,
         ),
+        n_variables=5,
+        **scm_future_quantiles_output_kwargs,
+    )
+    test_cases_future_quantiles_output_more_variables = generate_test_cases(
+        high_level_combos=itertools.product(
+            (None, ["variable"]),
+            (1, 100, 300, 1000),
+            (False,),
+            BACKEND_OPTIONS,
+        ),
+        n_variables=50,
         **scm_future_quantiles_output_kwargs,
     )
 
@@ -491,6 +495,7 @@ def main() -> None:
             *test_cases_full_scm_output,
             *test_cases_full_scm_output_not_all_combos,
             *test_cases_future_quantiles_output,
+            *test_cases_future_quantiles_output_more_variables,
         ]
     )
     force = False
