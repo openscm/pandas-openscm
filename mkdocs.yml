@@ -34,9 +34,9 @@ plugins:
   - autorefs
   # Required for auto-generating our documentation stubs
   # https://oprypin.github.io/mkdocs-gen-files/
-  - gen-files:
-      scripts:
-        - docs/gen_doc_stubs.py
+  # - gen-files:
+  #     scripts:
+  #       - docs/gen_doc_stubs.py
   # Make the navigation easier to handle/auto-generate if we wish
   # https://oprypin.github.io/mkdocs-literate-nav/
   - literate-nav:

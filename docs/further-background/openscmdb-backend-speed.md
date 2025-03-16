@@ -16,28 +16,18 @@ Here we consider the case of output that mirrors the output produced by simple c
 We have a number of scenarios and variables, each of which has hundreds of ensemble members.
 The output also spans a relatively long time period.
 
----8<--- "docs/further-background/openscmdb-backend-speed/magicc-full-output.txt"
-
-!!! Up to here
-
-For comparison, we include the time it takes to do things similar to the above
-directly via pandas (i.e. bypassing the database processing).
-These numbers help to identify where the database 'stuff'
-introduces significant overhead.
-
-- rows: back-ends
-- columns: operations (save index, save file map, save data all in one, save data groupby (not parallel))
+---8<--- "docs/further-background/openscmdb-backend-speed/full-scm-output.txt"
 
 ### Storing the index as a category type
 
 Storing the index as a category type
 (full docs [here](https://pandas.pydata.org/docs/user_guide/categorical.html))
-can significantly reduce the memory use of the data and the write times.
+can significantly reduce the memory use of the data,
+the write times and the size on disk.
 If you are optimising for performance, this step is worth considering,
 especially with back-ends that are able to account for the category type.
 
-- rows: back-ends
-- columns: operations and whether category or not
+---8<--- "docs/further-background/openscmdb-backend-speed/full-scm-output-category-index.txt"
 
 ## Simple climate model future quantile output
 
@@ -45,23 +35,11 @@ Here we consider the case of output that mirrors processed output produced from 
 We have a number of scenarios and variables, each of which has been processed to a few quantiles.
 The output is restricted to the future time period.
 
----8<--- "docs/further-background/openscmdb-backend-speed/magicc-future-quantiles.txt"
+---8<--- "docs/further-background/openscmdb-backend-speed/scm-future-quantiles-output.txt"
 
-For comparison, we include the time it takes to do things similar to the above
-directly via pandas (i.e. bypassing the database processing).
-These numbers help to identify where the database 'stuff'
-introduces significant overhead.
-
-- rows: back-ends
-- columns: operations (save index, save file map, save data all in one, save data groupby (not parallel))
 
 ### Storing the index as a category type
 
-Storing the index as a category type
-(full docs [here](https://pandas.pydata.org/docs/user_guide/categorical.html))
-can significantly reduce the memory use of the data and the write times.
-If you are optimising for performance, this step is worth considering,
-especially with back-ends that are able to account for the category type.
+As above, we also present results with the index as a category type.
 
-- rows: back-ends
-- columns: operations and whether category or not
+---8<--- "docs/further-background/openscmdb-backend-speed/scm-future-quantiles-output-category-index.txt"

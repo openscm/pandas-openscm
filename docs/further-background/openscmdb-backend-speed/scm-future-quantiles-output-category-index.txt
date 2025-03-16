@@ -1,0 +1,106 @@
+=== "Save time (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_dce42">
+      <thead>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+
+=== "Save time parallel (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_774c1">
+      <thead>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+
+=== "Size of database on disk (MB)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_95254">
+      <thead>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+
+=== "Load time (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_c5464">
+      <thead>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+
+=== "Load time parallel (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_379e2">
+      <thead>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+
+=== "Delete time (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_713c3">
+      <thead>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>

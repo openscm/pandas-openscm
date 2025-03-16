@@ -33,7 +33,7 @@ def pandas_terminal_width():
 @pytest.fixture()
 def setup_pandas_accessor() -> None:
     # Not parallel safe, but good enough
-    pandas_openscm.accessors.register_pandas_accessor()
+    pandas_openscm.register_pandas_accessor()
 
     yield None
 
