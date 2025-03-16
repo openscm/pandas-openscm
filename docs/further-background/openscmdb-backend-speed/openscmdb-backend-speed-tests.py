@@ -324,6 +324,9 @@ def write_performance_tables(res: pd.DataFrame, out_file: Path) -> None:
     res = res.copy()
 
     values_cols_map = {
+        "time_all_in_one_write": "Single file write time",
+        "time_groupby_write": "Native pandas groupby write time",
+        # TODO: single file load time
         "time_db_grouped_write": "Grouped write time",
         "time_db_grouped_write_parallel": "Parallel grouped write time",
         "time_db_load": "Load time",
@@ -391,7 +394,7 @@ def write_summaries() -> None:
 
 def main() -> None:
     """Run the main script"""
-    run_tests()
+    # run_tests()
     write_summaries()
 
 
