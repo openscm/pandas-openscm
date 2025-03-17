@@ -21,6 +21,13 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.2.0 (2025-03-17)
+
+### 🆕 Features
+
+- Added the database module, see [pandas_openscm.db][pandas_openscmdb] ([#2](https://github.com/openscm/pandas-openscm/pull/2))
+
+
 ## Pandas-OpenSCM v0.1.0 (2025-02-09)
 
 No significant changes.
