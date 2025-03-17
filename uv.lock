@@ -896,7 +896,7 @@ name = "importlib-metadata"
 version = "8.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.10'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/33/08/c1395a292bb23fd03bdf572a1357c5a733d3eecbab877641ceacab23db6e/importlib_metadata-8.6.1.tar.gz", hash = "sha256:310b41d755445d74569f993ccfc22838295d9fe005425094fad953d7f15c8580", size = 55767 }
 wheels = [
@@ -2439,7 +2439,6 @@ progress = [
 all-dev = [
     { name = "attrs" },
     { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "coverage" },
     { name = "filelock" },
     { name = "gitpython" },
     { name = "hypothesis" },
@@ -2512,7 +2511,6 @@ docs = [
 ]
 tests = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "coverage" },
     { name = "hypothesis" },
     { name = "iniconfig" },
     { name = "packaging" },
@@ -2523,15 +2521,14 @@ tests = [
 ]
 tests-full = [
     { name = "hypothesis" },
+    { name = "pytest-cov" },
 ]
 tests-min = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
-    { name = "coverage" },
     { name = "iniconfig" },
     { name = "packaging" },
     { name = "pluggy" },
     { name = "pytest" },
-    { name = "pytest-cov" },
 ]
 
 [package.metadata]
@@ -2555,7 +2552,6 @@ requires-dist = [
 all-dev = [
     { name = "attrs", specifier = "==24.3.0" },
     { name = "colorama", marker = "sys_platform == 'win32'", specifier = "==0.4.6" },
-    { name = "coverage", specifier = "==7.6.10" },
     { name = "filelock", specifier = ">=3.16.1" },
     { name = "gitpython", specifier = ">=3.1.44" },
     { name = "hypothesis", specifier = ">=6.125.3" },
@@ -2584,7 +2580,7 @@ all-dev = [
     { name = "pymdown-extensions", specifier = "==10.13" },
     { name = "pytest", specifier = "==8.3.4" },
     { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-cov", specifier = "==6.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "ruff", specifier = "==0.8.6" },
     { name = "setuptools", specifier = "==75.6.0" },
     { name = "tabulate", specifier = ">=0.9.0" },
@@ -2627,24 +2623,24 @@ docs = [
 ]
 tests = [
     { name = "colorama", marker = "sys_platform == 'win32'", specifier = "==0.4.6" },
-    { name = "coverage", specifier = "==7.6.10" },
     { name = "hypothesis", specifier = ">=6.125.3" },
     { name = "iniconfig", specifier = "==2.0.0" },
     { name = "packaging", specifier = "==24.2" },
     { name = "pandas-indexing", specifier = ">=0.6.2" },
     { name = "pluggy", specifier = "==1.5.0" },
     { name = "pytest", specifier = "==8.3.4" },
-    { name = "pytest-cov", specifier = "==6.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
 ]
-tests-full = [{ name = "hypothesis", specifier = ">=6.125.3" }]
+tests-full = [
+    { name = "hypothesis", specifier = ">=6.125.3" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+]
 tests-min = [
     { name = "colorama", marker = "sys_platform == 'win32'", specifier = "==0.4.6" },
-    { name = "coverage", specifier = "==7.6.10" },
     { name = "iniconfig", specifier = "==2.0.0" },
     { name = "packaging", specifier = "==24.2" },
     { name = "pluggy", specifier = "==1.5.0" },
     { name = "pytest", specifier = "==8.3.4" },
-    { name = "pytest-cov", specifier = "==6.0.0" },
 ]
 
 [[package]]
