@@ -182,7 +182,7 @@ jobs:
         run: |
           pip install --upgrade pip wheel
           pip install .
-          pip install -r requirements-only-tests-locked.txt
+          pip install -r requirements-only-tests-min-locked.txt
       - name: Run tests
         run: |
           pytest tests -r a -vv tests

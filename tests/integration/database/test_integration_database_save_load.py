@@ -15,7 +15,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pandas_indexing as pix
 import pytest
 
 from pandas_openscm.db import (
@@ -139,6 +138,8 @@ def test_save_and_load(tmpdir):
 
 
 def test_save_multiple_and_load(tmpdir):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
@@ -176,6 +177,8 @@ def test_save_multiple_and_load(tmpdir):
 
 
 def test_save_multiple_grouped_and_load(tmpdir):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
@@ -263,6 +266,8 @@ def test_save_multiple_grouped_wide_and_narrow_and_load(wide_first, tmpdir):
 
 
 def test_save_overwrite_error(tmpdir):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
@@ -291,6 +296,8 @@ def test_save_overwrite_error(tmpdir):
 
 
 def test_save_overwrite_force(tmpdir):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
@@ -372,6 +379,8 @@ def test_save_overwrite_force_half_overlap(
     expectation_overwrite_warning,
     tmpdir,
 ):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
@@ -434,6 +443,8 @@ def test_save_overwrite_force_half_overlap_all_backends(
     db_index_backend,
     tmpdir,
 ):
+    pix = pytest.importorskip("pandas_indexing")
+
     if "Feather" in str(db_data_backend) or "Feather" in str(db_index_backend):
         pytest.importorskip("pyarrow")
 
@@ -498,6 +509,8 @@ def test_save_overwrite_force_half_overlap_all_backends(
 
 
 def test_load_with_loc(tmpdir):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
@@ -595,6 +608,8 @@ def test_load_with_index_slice(tmpdir, slice):
     ),
 )
 def test_load_with_pix_unique_levels(tmpdir, levels):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),

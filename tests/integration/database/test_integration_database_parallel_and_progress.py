@@ -12,7 +12,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pandas_indexing as pix
 import pytest
 
 from pandas_openscm.db import (
@@ -41,6 +40,8 @@ tqdm_auto = pytest.importorskip("tqdm.auto")
     (pytest.param(False, id="no-progress"), pytest.param(True, id="progress")),
 )
 def test_save_load_overwrite_delete_parallel(tmpdir, progress, max_workers):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         # Have to use a file backed thing here
@@ -163,6 +164,8 @@ def test_save_load_delete_parallel_custom_progress(
     executor_ctx_manager,
     executor_ctx_manager_kwargs,
 ):
+    pix = pytest.importorskip("pandas_indexing")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         # Have to use a file backed thing here
