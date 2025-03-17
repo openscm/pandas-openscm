@@ -1,0 +1,27 @@
+{
+  "backend": "netCDF",
+  "data_size_in_memory_MB": 21.765955924987793,
+  "db_size_on_disk_MB": 23.74364185333252,
+  "delete_time": 0.001554667018353939,
+  "groupby": [
+    "variable"
+  ],
+  "id": "scm_future_quantiles_output",
+  "index_as_category_type": false,
+  "index_size_as_frame_in_memory_kb": 4470.099609375,
+  "index_size_in_memory_kb": 139.9013671875,
+  "load_time": 0.07971220836043358,
+  "load_time_parallel": 1.3588200840167701,
+  "max_workers": 8,
+  "n_db_files": 5,
+  "n_scenarios": 300,
+  "n_time_points": 126,
+  "n_timeseries": 22500,
+  "n_variables": 5,
+  "pandas-openscm_commit": "53479d6df2ca6c8ea5e5001221bdc25e3e86b4d8",
+  "pandas-openscm_version": "0.1.1a1",
+  "platform_info": "macOS-14.3-arm64-arm-64bit",
+  "python_version": "3.11.11",
+  "save_time": 0.07514279102906585,
+  "save_time_parallel": 0.9255832079797983
+}

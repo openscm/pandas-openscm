@@ -14,7 +14,8 @@ theme:
     # Light mode (toggle to dark mode)
     - scheme: default
       # Other colour choices at https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#color-palette
-      primary: blue-grey
+      primary: blue
+      accent: orange
       # More info on toggles at https://squidfunk.github.io/mkdocs-material/setup/changing-the-colors/#color-palette-toggle
       toggle:
         icon: material/weather-night
@@ -22,7 +23,8 @@ theme:
 
     # Dark mode (toggle back to light mode)
     - scheme: slate
-      primary: pink
+      primary: deep orange
+      accent: blue
       toggle:
         icon: material/brightness-7
         name: Switch to light mode
@@ -56,7 +58,12 @@ plugins:
       allow_errors: false
       # theme: dark
       include_source: True
-      ignore: ["*.ipynb", "*.md", "docs/gen_doc_stubs.py"]
+      ignore: [
+        "*.ipynb",
+        "*.md",
+        "docs/gen_doc_stubs.py",
+        "docs/further-background/openscmdb-backend-speed/openscmdb-backend-speed-tests.py",
+      ]
       remove_tag_config:
         remove_input_tags:
           - remove_input
@@ -66,7 +73,7 @@ plugins:
       default_handler: python_xref
       enable_inventory: true
       handlers:
-        python_xref:
+        python_xref: &pythonhandleroptions
           paths: [src]
           import:
             # Cross-ref helpers (lots included here, remove what you don't want)
@@ -79,12 +86,27 @@ plugins:
             - https://numpy.org/doc/stable/objects.inv
             - https://openscm-units.readthedocs.io/en/stable/objects.inv
             - https://pandas.pydata.org/docs/objects.inv
+            - https://pandas-indexing.readthedocs.io/en/stable/objects.inv
             - https://pint.readthedocs.io/en/stable/objects.inv
             - https://www.fatiando.org/pooch/latest/objects.inv
+            # There is a crazy situation, where concurrent.futures
+            # lazy imports ProcessPoolExecutor and ThreadPoolExecutor,
+            # so griffe thinks they're not part of the module.
+            # However, in the objects below,
+            # only the references in concurrent.futures are provided.
+            # So, to cross-reference concurrent.futures.ProcessPoolExecutor
+            # without warnings, you have to use the full URL.
+            # You can't use the full path (which griffe would understand)
+            # because it's not in `objects.inv`,
+            # but you can't use the actual API because griffe doesn't recognise this.
+            # Everything I've tried with preload_modules doesn't work.
             - https://docs.python.org/3/objects.inv
             - https://docs.scipy.org/doc/scipy/objects.inv
             - https://scitools-iris.readthedocs.io/en/stable/objects.inv
             - https://scmdata.readthedocs.io/en/stable/objects.inv
+            # # Not available for tqdm
+            # # https://github.com/tqdm/tqdm/issues/705
+            # - https://tqdm.github.io/objects.inv
             - https://validators.readthedocs.io/en/stable/objects.inv
             - http://xarray.pydata.org/en/stable/objects.inv
           options:
@@ -100,6 +122,7 @@ plugins:
               classes: true
               functions: true
               modules: true
+        python_accessors: *pythonhandleroptions
   # https://squidfunk.github.io/mkdocs-material/plugins/search/
   - search
   # Add clickable sections to the sidebar
@@ -109,6 +132,7 @@ plugins:
 markdown_extensions:
   # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#attribute-lists
   - attr_list
+  - footnotes
   # https://squidfunk.github.io/mkdocs-material/reference/math/#katex-mkdocsyml
   - pymdownx.arithmatex:
       generic: true

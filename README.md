@@ -93,8 +93,17 @@ Additional dependencies can be installed using
 
 === "pip"
     ```sh
+    # To add basic database dependencies
+    pip install 'pandas-openscm[db]'
+
+    # To add all database dependencies
+    pip install 'pandas-openscm[db-full]'
+
     # To add plotting dependencies
     pip install 'pandas-openscm[plots]'
+
+    # To add progress bar dependencies
+    pip install 'pandas-openscm[progress]'
 
     # To add all optional dependencies
     pip install 'pandas-openscm[full]'

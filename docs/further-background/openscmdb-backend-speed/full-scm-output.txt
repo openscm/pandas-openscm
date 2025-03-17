@@ -1,0 +1,644 @@
+=== "Save time (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_97255">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >Back-end</th>
+          <th id="T_97255_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_97255_level0_col1" class="col_heading level0 col1" >csv</th>
+          <th id="T_97255_level0_col2" class="col_heading level0 col2" >feather</th>
+          <th id="T_97255_level0_col3" class="col_heading level0 col3" >netCDF</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+          <th class="blank col3" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T_97255_level0_row0" class="row_heading level0 row0" rowspan="3">9.2</th>
+          <th id="T_97255_level1_row0" class="row_heading level1 row0" rowspan="3">3,000</th>
+          <th id="T_97255_level2_row0" class="row_heading level2 row0" rowspan="3">401</th>
+          <th id="T_97255_level3_row0" class="row_heading level3 row0" >1</th>
+          <td id="T_97255_row0_col0" class="data row0 col0" >0.00</td>
+          <td id="T_97255_row0_col1" class="data row0 col1" >0.81</td>
+          <td id="T_97255_row0_col2" class="data row0 col2" >0.05</td>
+          <td id="T_97255_row0_col3" class="data row0 col3" >0.18</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level3_row1" class="row_heading level3 row1" >5</th>
+          <td id="T_97255_row1_col0" class="data row1 col0" >0.00</td>
+          <td id="T_97255_row1_col1" class="data row1 col1" >0.82</td>
+          <td id="T_97255_row1_col2" class="data row1 col2" >0.10</td>
+          <td id="T_97255_row1_col3" class="data row1 col3" >0.05</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level3_row2" class="row_heading level3 row2" >3,000</th>
+          <td id="T_97255_row2_col0" class="data row2 col0" >0.69</td>
+          <td id="T_97255_row2_col1" class="data row2 col1" >4.59</td>
+          <td id="T_97255_row2_col2" class="data row2 col2" >50.97</td>
+          <td id="T_97255_row2_col3" class="data row2 col3" >16.63</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level0_row3" class="row_heading level0 row3" rowspan="2">91.9</th>
+          <th id="T_97255_level1_row3" class="row_heading level1 row3" rowspan="2">30,000</th>
+          <th id="T_97255_level2_row3" class="row_heading level2 row3" rowspan="2">401</th>
+          <th id="T_97255_level3_row3" class="row_heading level3 row3" >1</th>
+          <td id="T_97255_row3_col0" class="data row3 col0" >0.00</td>
+          <td id="T_97255_row3_col1" class="data row3 col1" >7.51</td>
+          <td id="T_97255_row3_col2" class="data row3 col2" >0.17</td>
+          <td id="T_97255_row3_col3" class="data row3 col3" >0.21</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level3_row4" class="row_heading level3 row4" >50</th>
+          <td id="T_97255_row4_col0" class="data row4 col0" >0.04</td>
+          <td id="T_97255_row4_col1" class="data row4 col1" >7.07</td>
+          <td id="T_97255_row4_col2" class="data row4 col2" >1.06</td>
+          <td id="T_97255_row4_col3" class="data row4 col3" >0.48</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level0_row5" class="row_heading level0 row5" rowspan="2">275.8</th>
+          <th id="T_97255_level1_row5" class="row_heading level1 row5" rowspan="2">90,000</th>
+          <th id="T_97255_level2_row5" class="row_heading level2 row5" rowspan="2">401</th>
+          <th id="T_97255_level3_row5" class="row_heading level3 row5" >1</th>
+          <td id="T_97255_row5_col0" class="data row5 col0" >0.00</td>
+          <td id="T_97255_row5_col1" class="data row5 col1" >23.92</td>
+          <td id="T_97255_row5_col2" class="data row5 col2" >0.67</td>
+          <td id="T_97255_row5_col3" class="data row5 col3" >0.26</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level3_row6" class="row_heading level3 row6" >150</th>
+          <td id="T_97255_row6_col0" class="data row6 col0" >0.12</td>
+          <td id="T_97255_row6_col1" class="data row6 col1" >24.36</td>
+          <td id="T_97255_row6_col2" class="data row6 col2" >4.16</td>
+          <td id="T_97255_row6_col3" class="data row6 col3" >1.35</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level0_row7" class="row_heading level0 row7" rowspan="2">919.3</th>
+          <th id="T_97255_level1_row7" class="row_heading level1 row7" rowspan="2">300,000</th>
+          <th id="T_97255_level2_row7" class="row_heading level2 row7" rowspan="2">401</th>
+          <th id="T_97255_level3_row7" class="row_heading level3 row7" >1</th>
+          <td id="T_97255_row7_col0" class="data row7 col0" >0.01</td>
+          <td id="T_97255_row7_col1" class="data row7 col1" >80.25</td>
+          <td id="T_97255_row7_col2" class="data row7 col2" >1.38</td>
+          <td id="T_97255_row7_col3" class="data row7 col3" >1.13</td>
+        </tr>
+        <tr>
+          <th id="T_97255_level3_row8" class="row_heading level3 row8" >500</th>
+          <td id="T_97255_row8_col0" class="data row8 col0" >0.42</td>
+          <td id="T_97255_row8_col1" class="data row8 col1" >81.60</td>
+          <td id="T_97255_row8_col2" class="data row8 col2" >12.61</td>
+          <td id="T_97255_row8_col3" class="data row8 col3" >5.55</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+=== "Save time parallel (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_69255">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >Back-end</th>
+          <th id="T_69255_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_69255_level0_col1" class="col_heading level0 col1" >csv</th>
+          <th id="T_69255_level0_col2" class="col_heading level0 col2" >feather</th>
+          <th id="T_69255_level0_col3" class="col_heading level0 col3" >netCDF</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+          <th class="blank col3" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T_69255_level0_row0" class="row_heading level0 row0" rowspan="3">9.2</th>
+          <th id="T_69255_level1_row0" class="row_heading level1 row0" rowspan="3">3,000</th>
+          <th id="T_69255_level2_row0" class="row_heading level2 row0" rowspan="3">401</th>
+          <th id="T_69255_level3_row0" class="row_heading level3 row0" >1</th>
+          <td id="T_69255_row0_col0" class="data row0 col0" >nan</td>
+          <td id="T_69255_row0_col1" class="data row0 col1" >1.30</td>
+          <td id="T_69255_row0_col2" class="data row0 col2" >0.66</td>
+          <td id="T_69255_row0_col3" class="data row0 col3" >0.73</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level3_row1" class="row_heading level3 row1" >5</th>
+          <td id="T_69255_row1_col0" class="data row1 col0" >nan</td>
+          <td id="T_69255_row1_col1" class="data row1 col1" >1.07</td>
+          <td id="T_69255_row1_col2" class="data row1 col2" >0.80</td>
+          <td id="T_69255_row1_col3" class="data row1 col3" >0.91</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level3_row2" class="row_heading level3 row2" >3,000</th>
+          <td id="T_69255_row2_col0" class="data row2 col0" >nan</td>
+          <td id="T_69255_row2_col1" class="data row2 col1" >2.92</td>
+          <td id="T_69255_row2_col2" class="data row2 col2" >10.71</td>
+          <td id="T_69255_row2_col3" class="data row2 col3" >5.64</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level0_row3" class="row_heading level0 row3" rowspan="2">91.9</th>
+          <th id="T_69255_level1_row3" class="row_heading level1 row3" rowspan="2">30,000</th>
+          <th id="T_69255_level2_row3" class="row_heading level2 row3" rowspan="2">401</th>
+          <th id="T_69255_level3_row3" class="row_heading level3 row3" >1</th>
+          <td id="T_69255_row3_col0" class="data row3 col0" >nan</td>
+          <td id="T_69255_row3_col1" class="data row3 col1" >7.86</td>
+          <td id="T_69255_row3_col2" class="data row3 col2" >0.85</td>
+          <td id="T_69255_row3_col3" class="data row3 col3" >0.86</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level3_row4" class="row_heading level3 row4" >50</th>
+          <td id="T_69255_row4_col0" class="data row4 col0" >nan</td>
+          <td id="T_69255_row4_col1" class="data row4 col1" >2.03</td>
+          <td id="T_69255_row4_col2" class="data row4 col2" >1.00</td>
+          <td id="T_69255_row4_col3" class="data row4 col3" >1.20</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level0_row5" class="row_heading level0 row5" rowspan="2">275.8</th>
+          <th id="T_69255_level1_row5" class="row_heading level1 row5" rowspan="2">90,000</th>
+          <th id="T_69255_level2_row5" class="row_heading level2 row5" rowspan="2">401</th>
+          <th id="T_69255_level3_row5" class="row_heading level3 row5" >1</th>
+          <td id="T_69255_row5_col0" class="data row5 col0" >nan</td>
+          <td id="T_69255_row5_col1" class="data row5 col1" >23.74</td>
+          <td id="T_69255_row5_col2" class="data row5 col2" >1.87</td>
+          <td id="T_69255_row5_col3" class="data row5 col3" >1.26</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level3_row6" class="row_heading level3 row6" >150</th>
+          <td id="T_69255_row6_col0" class="data row6 col0" >nan</td>
+          <td id="T_69255_row6_col1" class="data row6 col1" >5.79</td>
+          <td id="T_69255_row6_col2" class="data row6 col2" >1.80</td>
+          <td id="T_69255_row6_col3" class="data row6 col3" >1.59</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level0_row7" class="row_heading level0 row7" rowspan="2">919.3</th>
+          <th id="T_69255_level1_row7" class="row_heading level1 row7" rowspan="2">300,000</th>
+          <th id="T_69255_level2_row7" class="row_heading level2 row7" rowspan="2">401</th>
+          <th id="T_69255_level3_row7" class="row_heading level3 row7" >1</th>
+          <td id="T_69255_row7_col0" class="data row7 col0" >nan</td>
+          <td id="T_69255_row7_col1" class="data row7 col1" >78.68</td>
+          <td id="T_69255_row7_col2" class="data row7 col2" >3.05</td>
+          <td id="T_69255_row7_col3" class="data row7 col3" >2.80</td>
+        </tr>
+        <tr>
+          <th id="T_69255_level3_row8" class="row_heading level3 row8" >500</th>
+          <td id="T_69255_row8_col0" class="data row8 col0" >nan</td>
+          <td id="T_69255_row8_col1" class="data row8 col1" >21.31</td>
+          <td id="T_69255_row8_col2" class="data row8 col2" >4.05</td>
+          <td id="T_69255_row8_col3" class="data row8 col3" >2.86</td>
+        </tr>
+      </tbody>
+    </table>
+
+    *Note that there are no values for parallel operations with an in-memory back-end because such a setup doesn't make sense (you just duplicate the Python process for no gain).
+
+
+=== "Size of database on disk (MB)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_7bd06">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >Back-end</th>
+          <th id="T_7bd06_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_7bd06_level0_col1" class="col_heading level0 col1" >csv</th>
+          <th id="T_7bd06_level0_col2" class="col_heading level0 col2" >feather</th>
+          <th id="T_7bd06_level0_col3" class="col_heading level0 col3" >netCDF</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+          <th class="blank col3" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T_7bd06_level0_row0" class="row_heading level0 row0" rowspan="3">9.2</th>
+          <th id="T_7bd06_level1_row0" class="row_heading level1 row0" rowspan="3">3,000</th>
+          <th id="T_7bd06_level2_row0" class="row_heading level2 row0" rowspan="3">401</th>
+          <th id="T_7bd06_level3_row0" class="row_heading level3 row0" >1</th>
+          <td id="T_7bd06_row0_col0" class="data row0 col0" >0.00</td>
+          <td id="T_7bd06_row0_col1" class="data row0 col1" >21.37</td>
+          <td id="T_7bd06_row0_col2" class="data row0 col2" >9.41</td>
+          <td id="T_7bd06_row0_col3" class="data row0 col3" >9.49</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level3_row1" class="row_heading level3 row1" >5</th>
+          <td id="T_7bd06_row1_col0" class="data row1 col0" >0.00</td>
+          <td id="T_7bd06_row1_col1" class="data row1 col1" >21.38</td>
+          <td id="T_7bd06_row1_col2" class="data row1 col2" >10.03</td>
+          <td id="T_7bd06_row1_col3" class="data row1 col3" >9.59</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level3_row2" class="row_heading level3 row2" >3,000</th>
+          <td id="T_7bd06_row2_col0" class="data row2 col0" >0.00</td>
+          <td id="T_7bd06_row2_col1" class="data row2 col1" >29.69</td>
+          <td id="T_7bd06_row2_col2" class="data row2 col2" >469.18</td>
+          <td id="T_7bd06_row2_col3" class="data row2 col3" >61.47</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level0_row3" class="row_heading level0 row3" rowspan="2">91.9</th>
+          <th id="T_7bd06_level1_row3" class="row_heading level1 row3" rowspan="2">30,000</th>
+          <th id="T_7bd06_level2_row3" class="row_heading level2 row3" rowspan="2">401</th>
+          <th id="T_7bd06_level3_row3" class="row_heading level3 row3" >1</th>
+          <td id="T_7bd06_row3_col0" class="data row3 col0" >0.00</td>
+          <td id="T_7bd06_row3_col1" class="data row3 col1" >213.67</td>
+          <td id="T_7bd06_row3_col2" class="data row3 col2" >92.65</td>
+          <td id="T_7bd06_row3_col3" class="data row3 col3" >94.35</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level3_row4" class="row_heading level3 row4" >50</th>
+          <td id="T_7bd06_row4_col0" class="data row4 col0" >0.00</td>
+          <td id="T_7bd06_row4_col1" class="data row4 col1" >213.83</td>
+          <td id="T_7bd06_row4_col2" class="data row4 col2" >100.27</td>
+          <td id="T_7bd06_row4_col3" class="data row4 col3" >95.66</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level0_row5" class="row_heading level0 row5" rowspan="2">275.8</th>
+          <th id="T_7bd06_level1_row5" class="row_heading level1 row5" rowspan="2">90,000</th>
+          <th id="T_7bd06_level2_row5" class="row_heading level2 row5" rowspan="2">401</th>
+          <th id="T_7bd06_level3_row5" class="row_heading level3 row5" >1</th>
+          <td id="T_7bd06_row5_col0" class="data row5 col0" >0.00</td>
+          <td id="T_7bd06_row5_col1" class="data row5 col1" >641.11</td>
+          <td id="T_7bd06_row5_col2" class="data row5 col2" >277.66</td>
+          <td id="T_7bd06_row5_col3" class="data row5 col3" >282.95</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level3_row6" class="row_heading level3 row6" >150</th>
+          <td id="T_7bd06_row6_col0" class="data row6 col0" >0.00</td>
+          <td id="T_7bd06_row6_col1" class="data row6 col1" >641.64</td>
+          <td id="T_7bd06_row6_col2" class="data row6 col2" >300.79</td>
+          <td id="T_7bd06_row6_col3" class="data row6 col3" >286.93</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level0_row7" class="row_heading level0 row7" rowspan="2">919.3</th>
+          <th id="T_7bd06_level1_row7" class="row_heading level1 row7" rowspan="2">300,000</th>
+          <th id="T_7bd06_level2_row7" class="row_heading level2 row7" rowspan="2">401</th>
+          <th id="T_7bd06_level3_row7" class="row_heading level3 row7" >1</th>
+          <td id="T_7bd06_row7_col0" class="data row7 col0" >0.00</td>
+          <td id="T_7bd06_row7_col1" class="data row7 col1" >2,137.17</td>
+          <td id="T_7bd06_row7_col2" class="data row7 col2" >925.19</td>
+          <td id="T_7bd06_row7_col3" class="data row7 col3" >943.06</td>
+        </tr>
+        <tr>
+          <th id="T_7bd06_level3_row8" class="row_heading level3 row8" >500</th>
+          <td id="T_7bd06_row8_col0" class="data row8 col0" >0.00</td>
+          <td id="T_7bd06_row8_col1" class="data row8 col1" >2,139.08</td>
+          <td id="T_7bd06_row8_col2" class="data row8 col2" >1,002.63</td>
+          <td id="T_7bd06_row8_col3" class="data row8 col3" >956.38</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+=== "Load time (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_61fa6">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >Back-end</th>
+          <th id="T_61fa6_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_61fa6_level0_col1" class="col_heading level0 col1" >csv</th>
+          <th id="T_61fa6_level0_col2" class="col_heading level0 col2" >feather</th>
+          <th id="T_61fa6_level0_col3" class="col_heading level0 col3" >netCDF</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+          <th class="blank col3" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T_61fa6_level0_row0" class="row_heading level0 row0" rowspan="3">9.2</th>
+          <th id="T_61fa6_level1_row0" class="row_heading level1 row0" rowspan="3">3,000</th>
+          <th id="T_61fa6_level2_row0" class="row_heading level2 row0" rowspan="3">401</th>
+          <th id="T_61fa6_level3_row0" class="row_heading level3 row0" >1</th>
+          <td id="T_61fa6_row0_col0" class="data row0 col0" >0.00</td>
+          <td id="T_61fa6_row0_col1" class="data row0 col1" >0.12</td>
+          <td id="T_61fa6_row0_col2" class="data row0 col2" >0.01</td>
+          <td id="T_61fa6_row0_col3" class="data row0 col3" >0.06</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level3_row1" class="row_heading level3 row1" >5</th>
+          <td id="T_61fa6_row1_col0" class="data row1 col0" >0.00</td>
+          <td id="T_61fa6_row1_col1" class="data row1 col1" >0.14</td>
+          <td id="T_61fa6_row1_col2" class="data row1 col2" >0.04</td>
+          <td id="T_61fa6_row1_col3" class="data row1 col3" >0.04</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level3_row2" class="row_heading level3 row2" >3,000</th>
+          <td id="T_61fa6_row2_col0" class="data row2 col0" >0.11</td>
+          <td id="T_61fa6_row2_col1" class="data row2 col1" >8.34</td>
+          <td id="T_61fa6_row2_col2" class="data row2 col2" >12.36</td>
+          <td id="T_61fa6_row2_col3" class="data row2 col3" >11.43</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level0_row3" class="row_heading level0 row3" rowspan="2">91.9</th>
+          <th id="T_61fa6_level1_row3" class="row_heading level1 row3" rowspan="2">30,000</th>
+          <th id="T_61fa6_level2_row3" class="row_heading level2 row3" rowspan="2">401</th>
+          <th id="T_61fa6_level3_row3" class="row_heading level3 row3" >1</th>
+          <td id="T_61fa6_row3_col0" class="data row3 col0" >0.00</td>
+          <td id="T_61fa6_row3_col1" class="data row3 col1" >0.90</td>
+          <td id="T_61fa6_row3_col2" class="data row3 col2" >0.05</td>
+          <td id="T_61fa6_row3_col3" class="data row3 col3" >0.09</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level3_row4" class="row_heading level3 row4" >50</th>
+          <td id="T_61fa6_row4_col0" class="data row4 col0" >0.03</td>
+          <td id="T_61fa6_row4_col1" class="data row4 col1" >1.13</td>
+          <td id="T_61fa6_row4_col2" class="data row4 col2" >0.32</td>
+          <td id="T_61fa6_row4_col3" class="data row4 col3" >0.38</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level0_row5" class="row_heading level0 row5" rowspan="2">275.8</th>
+          <th id="T_61fa6_level1_row5" class="row_heading level1 row5" rowspan="2">90,000</th>
+          <th id="T_61fa6_level2_row5" class="row_heading level2 row5" rowspan="2">401</th>
+          <th id="T_61fa6_level3_row5" class="row_heading level3 row5" >1</th>
+          <td id="T_61fa6_row5_col0" class="data row5 col0" >0.00</td>
+          <td id="T_61fa6_row5_col1" class="data row5 col1" >3.20</td>
+          <td id="T_61fa6_row5_col2" class="data row5 col2" >0.15</td>
+          <td id="T_61fa6_row5_col3" class="data row5 col3" >0.31</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level3_row6" class="row_heading level3 row6" >150</th>
+          <td id="T_61fa6_row6_col0" class="data row6 col0" >0.05</td>
+          <td id="T_61fa6_row6_col1" class="data row6 col1" >4.12</td>
+          <td id="T_61fa6_row6_col2" class="data row6 col2" >1.01</td>
+          <td id="T_61fa6_row6_col3" class="data row6 col3" >0.92</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level0_row7" class="row_heading level0 row7" rowspan="2">919.3</th>
+          <th id="T_61fa6_level1_row7" class="row_heading level1 row7" rowspan="2">300,000</th>
+          <th id="T_61fa6_level2_row7" class="row_heading level2 row7" rowspan="2">401</th>
+          <th id="T_61fa6_level3_row7" class="row_heading level3 row7" >1</th>
+          <td id="T_61fa6_row7_col0" class="data row7 col0" >0.00</td>
+          <td id="T_61fa6_row7_col1" class="data row7 col1" >10.27</td>
+          <td id="T_61fa6_row7_col2" class="data row7 col2" >0.71</td>
+          <td id="T_61fa6_row7_col3" class="data row7 col3" >1.20</td>
+        </tr>
+        <tr>
+          <th id="T_61fa6_level3_row8" class="row_heading level3 row8" >500</th>
+          <td id="T_61fa6_row8_col0" class="data row8 col0" >0.20</td>
+          <td id="T_61fa6_row8_col1" class="data row8 col1" >15.19</td>
+          <td id="T_61fa6_row8_col2" class="data row8 col2" >7.13</td>
+          <td id="T_61fa6_row8_col3" class="data row8 col3" >3.95</td>
+        </tr>
+      </tbody>
+    </table>
+
+
+=== "Load time parallel (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_bff6c">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >Back-end</th>
+          <th id="T_bff6c_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_bff6c_level0_col1" class="col_heading level0 col1" >csv</th>
+          <th id="T_bff6c_level0_col2" class="col_heading level0 col2" >feather</th>
+          <th id="T_bff6c_level0_col3" class="col_heading level0 col3" >netCDF</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+          <th class="blank col3" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T_bff6c_level0_row0" class="row_heading level0 row0" rowspan="3">9.2</th>
+          <th id="T_bff6c_level1_row0" class="row_heading level1 row0" rowspan="3">3,000</th>
+          <th id="T_bff6c_level2_row0" class="row_heading level2 row0" rowspan="3">401</th>
+          <th id="T_bff6c_level3_row0" class="row_heading level3 row0" >1</th>
+          <td id="T_bff6c_row0_col0" class="data row0 col0" >nan</td>
+          <td id="T_bff6c_row0_col1" class="data row0 col1" >0.54</td>
+          <td id="T_bff6c_row0_col2" class="data row0 col2" >0.52</td>
+          <td id="T_bff6c_row0_col3" class="data row0 col3" >0.66</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level3_row1" class="row_heading level3 row1" >5</th>
+          <td id="T_bff6c_row1_col0" class="data row1 col0" >nan</td>
+          <td id="T_bff6c_row1_col1" class="data row1 col1" >0.71</td>
+          <td id="T_bff6c_row1_col2" class="data row1 col2" >0.65</td>
+          <td id="T_bff6c_row1_col3" class="data row1 col3" >0.73</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level3_row2" class="row_heading level3 row2" >3,000</th>
+          <td id="T_bff6c_row2_col0" class="data row2 col0" >nan</td>
+          <td id="T_bff6c_row2_col1" class="data row2 col1" >3.42</td>
+          <td id="T_bff6c_row2_col2" class="data row2 col2" >6.51</td>
+          <td id="T_bff6c_row2_col3" class="data row2 col3" >4.71</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level0_row3" class="row_heading level0 row3" rowspan="2">91.9</th>
+          <th id="T_bff6c_level1_row3" class="row_heading level1 row3" rowspan="2">30,000</th>
+          <th id="T_bff6c_level2_row3" class="row_heading level2 row3" rowspan="2">401</th>
+          <th id="T_bff6c_level3_row3" class="row_heading level3 row3" >1</th>
+          <td id="T_bff6c_row3_col0" class="data row3 col0" >nan</td>
+          <td id="T_bff6c_row3_col1" class="data row3 col1" >1.50</td>
+          <td id="T_bff6c_row3_col2" class="data row3 col2" >0.70</td>
+          <td id="T_bff6c_row3_col3" class="data row3 col3" >0.77</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level3_row4" class="row_heading level3 row4" >50</th>
+          <td id="T_bff6c_row4_col0" class="data row4 col0" >nan</td>
+          <td id="T_bff6c_row4_col1" class="data row4 col1" >1.00</td>
+          <td id="T_bff6c_row4_col2" class="data row4 col2" >0.93</td>
+          <td id="T_bff6c_row4_col3" class="data row4 col3" >1.35</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level0_row5" class="row_heading level0 row5" rowspan="2">275.8</th>
+          <th id="T_bff6c_level1_row5" class="row_heading level1 row5" rowspan="2">90,000</th>
+          <th id="T_bff6c_level2_row5" class="row_heading level2 row5" rowspan="2">401</th>
+          <th id="T_bff6c_level3_row5" class="row_heading level3 row5" >1</th>
+          <td id="T_bff6c_row5_col0" class="data row5 col0" >nan</td>
+          <td id="T_bff6c_row5_col1" class="data row5 col1" >4.10</td>
+          <td id="T_bff6c_row5_col2" class="data row5 col2" >1.08</td>
+          <td id="T_bff6c_row5_col3" class="data row5 col3" >1.17</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level3_row6" class="row_heading level3 row6" >150</th>
+          <td id="T_bff6c_row6_col0" class="data row6 col0" >nan</td>
+          <td id="T_bff6c_row6_col1" class="data row6 col1" >2.23</td>
+          <td id="T_bff6c_row6_col2" class="data row6 col2" >1.35</td>
+          <td id="T_bff6c_row6_col3" class="data row6 col3" >1.75</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level0_row7" class="row_heading level0 row7" rowspan="2">919.3</th>
+          <th id="T_bff6c_level1_row7" class="row_heading level1 row7" rowspan="2">300,000</th>
+          <th id="T_bff6c_level2_row7" class="row_heading level2 row7" rowspan="2">401</th>
+          <th id="T_bff6c_level3_row7" class="row_heading level3 row7" >1</th>
+          <td id="T_bff6c_row7_col0" class="data row7 col0" >nan</td>
+          <td id="T_bff6c_row7_col1" class="data row7 col1" >10.49</td>
+          <td id="T_bff6c_row7_col2" class="data row7 col2" >2.66</td>
+          <td id="T_bff6c_row7_col3" class="data row7 col3" >2.93</td>
+        </tr>
+        <tr>
+          <th id="T_bff6c_level3_row8" class="row_heading level3 row8" >500</th>
+          <td id="T_bff6c_row8_col0" class="data row8 col0" >nan</td>
+          <td id="T_bff6c_row8_col1" class="data row8 col1" >5.59</td>
+          <td id="T_bff6c_row8_col2" class="data row8 col2" >3.37</td>
+          <td id="T_bff6c_row8_col3" class="data row8 col3" >3.19</td>
+        </tr>
+      </tbody>
+    </table>
+
+    *Note that there are no values for parallel operations with an in-memory back-end because such a setup doesn't make sense (you just duplicate the Python process for no gain).
+
+
+=== "Delete time (s)"
+
+    <style type="text/css">
+    </style>
+    <table id="T_aa783">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >Back-end</th>
+          <th id="T_aa783_level0_col0" class="col_heading level0 col0" >In memory</th>
+          <th id="T_aa783_level0_col1" class="col_heading level0 col1" >csv</th>
+          <th id="T_aa783_level0_col2" class="col_heading level0 col2" >feather</th>
+          <th id="T_aa783_level0_col3" class="col_heading level0 col3" >netCDF</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >In-memory size (MB)</th>
+          <th class="index_name level1" >Time series</th>
+          <th class="index_name level2" >Time points</th>
+          <th class="index_name level3" >Files in database (after grouping)</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+          <th class="blank col3" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T_aa783_level0_row0" class="row_heading level0 row0" rowspan="3">9.2</th>
+          <th id="T_aa783_level1_row0" class="row_heading level1 row0" rowspan="3">3,000</th>
+          <th id="T_aa783_level2_row0" class="row_heading level2 row0" rowspan="3">401</th>
+          <th id="T_aa783_level3_row0" class="row_heading level3 row0" >1</th>
+          <td id="T_aa783_row0_col0" class="data row0 col0" >0.00</td>
+          <td id="T_aa783_row0_col1" class="data row0 col1" >0.00</td>
+          <td id="T_aa783_row0_col2" class="data row0 col2" >0.00</td>
+          <td id="T_aa783_row0_col3" class="data row0 col3" >0.00</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level3_row1" class="row_heading level3 row1" >5</th>
+          <td id="T_aa783_row1_col0" class="data row1 col0" >0.00</td>
+          <td id="T_aa783_row1_col1" class="data row1 col1" >0.00</td>
+          <td id="T_aa783_row1_col2" class="data row1 col2" >0.00</td>
+          <td id="T_aa783_row1_col3" class="data row1 col3" >0.00</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level3_row2" class="row_heading level3 row2" >3,000</th>
+          <td id="T_aa783_row2_col0" class="data row2 col0" >0.07</td>
+          <td id="T_aa783_row2_col1" class="data row2 col1" >0.13</td>
+          <td id="T_aa783_row2_col2" class="data row2 col2" >0.16</td>
+          <td id="T_aa783_row2_col3" class="data row2 col3" >0.17</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level0_row3" class="row_heading level0 row3" rowspan="2">91.9</th>
+          <th id="T_aa783_level1_row3" class="row_heading level1 row3" rowspan="2">30,000</th>
+          <th id="T_aa783_level2_row3" class="row_heading level2 row3" rowspan="2">401</th>
+          <th id="T_aa783_level3_row3" class="row_heading level3 row3" >1</th>
+          <td id="T_aa783_row3_col0" class="data row3 col0" >0.00</td>
+          <td id="T_aa783_row3_col1" class="data row3 col1" >0.01</td>
+          <td id="T_aa783_row3_col2" class="data row3 col2" >0.00</td>
+          <td id="T_aa783_row3_col3" class="data row3 col3" >0.00</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level3_row4" class="row_heading level3 row4" >50</th>
+          <td id="T_aa783_row4_col0" class="data row4 col0" >0.00</td>
+          <td id="T_aa783_row4_col1" class="data row4 col1" >0.01</td>
+          <td id="T_aa783_row4_col2" class="data row4 col2" >0.01</td>
+          <td id="T_aa783_row4_col3" class="data row4 col3" >0.01</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level0_row5" class="row_heading level0 row5" rowspan="2">275.8</th>
+          <th id="T_aa783_level1_row5" class="row_heading level1 row5" rowspan="2">90,000</th>
+          <th id="T_aa783_level2_row5" class="row_heading level2 row5" rowspan="2">401</th>
+          <th id="T_aa783_level3_row5" class="row_heading level3 row5" >1</th>
+          <td id="T_aa783_row5_col0" class="data row5 col0" >0.00</td>
+          <td id="T_aa783_row5_col1" class="data row5 col1" >0.05</td>
+          <td id="T_aa783_row5_col2" class="data row5 col2" >0.01</td>
+          <td id="T_aa783_row5_col3" class="data row5 col3" >0.04</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level3_row6" class="row_heading level3 row6" >150</th>
+          <td id="T_aa783_row6_col0" class="data row6 col0" >0.00</td>
+          <td id="T_aa783_row6_col1" class="data row6 col1" >0.04</td>
+          <td id="T_aa783_row6_col2" class="data row6 col2" >0.01</td>
+          <td id="T_aa783_row6_col3" class="data row6 col3" >0.02</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level0_row7" class="row_heading level0 row7" rowspan="2">919.3</th>
+          <th id="T_aa783_level1_row7" class="row_heading level1 row7" rowspan="2">300,000</th>
+          <th id="T_aa783_level2_row7" class="row_heading level2 row7" rowspan="2">401</th>
+          <th id="T_aa783_level3_row7" class="row_heading level3 row7" >1</th>
+          <td id="T_aa783_row7_col0" class="data row7 col0" >0.00</td>
+          <td id="T_aa783_row7_col1" class="data row7 col1" >0.31</td>
+          <td id="T_aa783_row7_col2" class="data row7 col2" >0.01</td>
+          <td id="T_aa783_row7_col3" class="data row7 col3" >0.02</td>
+        </tr>
+        <tr>
+          <th id="T_aa783_level3_row8" class="row_heading level3 row8" >500</th>
+          <td id="T_aa783_row8_col0" class="data row8 col0" >0.01</td>
+          <td id="T_aa783_row8_col1" class="data row8 col1" >0.25</td>
+          <td id="T_aa783_row8_col2" class="data row8 col2" >0.04</td>
+          <td id="T_aa783_row8_col3" class="data row8 col3" >0.15</td>
+        </tr>
+      </tbody>
+    </table>
