@@ -102,7 +102,7 @@ def create_test_df(
     variables: Collection[tuple[str, str]],
     n_scenarios: int,
     n_runs: int,
-    timepoints: np.typing.NDArray[np.floating],
+    timepoints: np.typing.NDArray[np.floating[Any]],
 ) -> pd.DataFrame:
     """
     Create a [pd.DataFrame][pandas.DataFrame] to use in testing
@@ -190,7 +190,7 @@ def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
     """
     # Check that the indexes are the same.
     # We convert to MultiIndex first as we don't care about the actual index values.
-    pd.testing.assert_index_equal(
+    pd.testing.assert_index_equal(  # type: ignore # pandas-stubs out of date
         pd.MultiIndex.from_frame(res.moved_index.reset_index()),
         pd.MultiIndex.from_frame(exp.moved_index.reset_index()),
         check_order=False,
@@ -215,7 +215,7 @@ def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
                 msg = f"Did not find pair for\n{res_rwa=}\nin\n{exp.rewrite_actions=}"
                 raise AssertionError(msg)
 
-            pd.testing.assert_index_equal(
+            pd.testing.assert_index_equal(  # type: ignore # pandas-stubs out of date
                 res_rwa.locator, exp_rwa.locator, check_order=False
             )
             assert res_rwa.to_file == exp_rwa.to_file
