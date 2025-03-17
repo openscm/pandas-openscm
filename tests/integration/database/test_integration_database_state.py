@@ -14,11 +14,8 @@ import shutil
 import tempfile
 from pathlib import Path
 
-import hypothesis
-import hypothesis.stateful
 import numpy as np
 import pandas as pd
-import pandas_indexing as pix  # noqa: F401
 import pytest
 
 from pandas_openscm.db import (
@@ -34,6 +31,9 @@ from pandas_openscm.testing import (
 )
 
 pytest.importorskip("filelock")
+hypothesis = pytest.importorskip("hypothesis")
+hypothesis_stateful = pytest.importorskip("hypothesis.stateful")
+pytest.importorskip("pandas_indexing")
 pytestmark = pytest.mark.slow
 
 

@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import pandas_indexing as pix
 import pytest
 
 from pandas_openscm.indexing import (
@@ -16,6 +15,11 @@ from pandas_openscm.indexing import (
     multi_index_match,
 )
 from pandas_openscm.testing import create_test_df
+
+try:
+    import pandas_indexing as pix
+except ImportError:
+    pix = None
 
 
 @pytest.mark.parametrize(
@@ -263,14 +267,23 @@ def test_index_name_aware_lookup():
                 reason="pandas looks up the first level rather than variables"
             ),
         ),
-        pytest.param(pix.isin(scenario=["scenario_1", "scenario_3"]), id="pix_isin"),
+        pytest.param(
+            pix.isin(scenario=["scenario_1", "scenario_3"])
+            if pix is not None
+            else None,
+            id="pix_isin",
+            marks=pytest.mark.skipif(pix is None, reason="pandas-indexing unavailable"),
+        ),
         pytest.param(
             pix.ismatch(
                 scenario=[
                     "*1",
                 ]
-            ),
+            )
+            if pix is not None
+            else None,
             id="pix_ismatch",
+            marks=pytest.mark.skipif(pix is None, reason="pandas-indexing unavailable"),
         ),
     ),
 )
