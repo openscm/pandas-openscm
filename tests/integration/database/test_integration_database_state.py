@@ -33,6 +33,7 @@ from pandas_openscm.testing import (
     get_db_index_backends,
 )
 
+pytest.importorskip("filelock")
 pytestmark = pytest.mark.slow
 
 
@@ -82,6 +83,8 @@ class DBMofidierBase(hypothesis.stateful.RuleBasedStateMachine):
         super().__init__()
         self.data_exp = None
         self.rng = np.random.default_rng()
+        for db in self.dbs:
+            db.db_dir.mkdir(exist_ok=True, parents=True)
 
     def teardown(self):
         for db in self.dbs:

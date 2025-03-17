@@ -6,12 +6,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import filelock
 import numpy as np
 import pytest
 
 from pandas_openscm.db import InMemoryDataBackend, InMemoryIndexBackend, OpenSCMDB
 from pandas_openscm.testing import create_test_df
+
+filelock = pytest.importorskip("filelock")
 
 
 def test_lock_is_always_same(tmpdir):

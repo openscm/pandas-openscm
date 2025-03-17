@@ -7,7 +7,6 @@ from __future__ import annotations
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 
-import filelock
 import numpy as np
 import pandas as pd
 import pytest
@@ -30,6 +29,8 @@ def check_metadata_load_is_same(
 
 
 def test_load_via_reader_context_manager(tmpdir):
+    pytest.importorskip("filelock")
+
     start = create_test_df(
         n_scenarios=10,
         variables=[("a", "kg"), ("b", "kg"), ("c", "kg")],
@@ -60,6 +61,8 @@ def test_load_via_reader_context_manager(tmpdir):
 
 
 def test_load_via_reader(tmpdir):
+    pytest.importorskip("filelock")
+
     start = create_test_df(
         n_scenarios=10,
         variables=[("a", "kg"), ("b", "kg"), ("c", "kg")],
@@ -96,6 +99,8 @@ def test_reader_locking(tmpdir):
     and just adding more tests
     (at least until maintaining this test becomes annoying).
     """
+    filelock = pytest.importorskip("filelock")
+
     start = create_test_df(
         n_scenarios=10,
         variables=[("a", "kg"), ("b", "kg"), ("c", "kg")],
