@@ -68,6 +68,7 @@ def test_overhead(groupby, tmpdir):
 
     start_db_save = time.perf_counter()
 
+    db.db_dir.mkdir()
     db.save(df, groupby=groupby)
 
     stop_db_save = time.perf_counter()
