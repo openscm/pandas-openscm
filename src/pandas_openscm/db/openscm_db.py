@@ -122,7 +122,6 @@ class OpenSCMDB:
         try:
             import filelock
         except ImportError as exc:
-            # TODO: test this
             raise MissingOptionalDependencyError(
                 "default_index_file_lock", requirement="filelock"
             ) from exc
@@ -210,7 +209,6 @@ class OpenSCMDB:
                 try:
                     import filelock
                 except ImportError as exc:
-                    # TODO: test this
                     raise MissingOptionalDependencyError(  # noqa: TRY003
                         "create_reader(..., lock=True, ...)", requirement="filelock"
                     ) from exc

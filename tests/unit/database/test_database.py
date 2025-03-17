@@ -5,20 +5,76 @@ Basic unit tests of `pandas_openscm.database`
 from __future__ import annotations
 
 import re
+import sys
 from contextlib import nullcontext
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from pandas_openscm.db import (
+    DATA_BACKENDS,
+    INDEX_BACKENDS,
+    CSVDataBackend,
+    CSVIndexBackend,
     EmptyDBError,
+    FeatherDataBackend,
+    FeatherIndexBackend,
     InMemoryDataBackend,
     InMemoryIndexBackend,
     OpenSCMDB,
+    netCDFDataBackend,
+    netCDFIndexBackend,
 )
+from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.testing import create_test_df
+
+
+def test_available_backends_data():
+    assert isinstance(DATA_BACKENDS.get_instance("csv"), CSVDataBackend)
+    assert isinstance(DATA_BACKENDS.get_instance("feather"), FeatherDataBackend)
+    assert isinstance(DATA_BACKENDS.get_instance("in_memory"), InMemoryDataBackend)
+    assert isinstance(DATA_BACKENDS.get_instance("netCDF"), netCDFDataBackend)
+
+
+def test_unavailable_data_backend():
+    with pytest.raises(KeyError):
+        DATA_BACKENDS.get_instance("junk")
+
+
+def test_available_backends_index():
+    assert isinstance(INDEX_BACKENDS.get_instance("csv"), CSVIndexBackend)
+    assert isinstance(INDEX_BACKENDS.get_instance("feather"), FeatherIndexBackend)
+    assert isinstance(INDEX_BACKENDS.get_instance("in_memory"), InMemoryIndexBackend)
+    assert isinstance(INDEX_BACKENDS.get_instance("netCDF"), netCDFIndexBackend)
+
+
+def test_unavailable_index_backend():
+    with pytest.raises(KeyError):
+        INDEX_BACKENDS.get_instance("junk")
+
+
+def test_filelock_not_available_default_initialisation(tmpdir):
+    with patch.dict(sys.modules, {"filelock": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=("`default_index_file_lock` requires filelock to be installed"),
+        ):
+            OpenSCMDB(
+                db_dir=Path(tmpdir),
+                backend_data=InMemoryDataBackend(),
+                backend_index=InMemoryIndexBackend(),
+            )
+
+        # Not an issue if we bypass the lock
+        OpenSCMDB(
+            db_dir=Path(tmpdir),
+            backend_data=InMemoryDataBackend(),
+            backend_index=InMemoryIndexBackend(),
+            index_file_lock=nullcontext(),
+        )
 
 
 def test_get_existing_data_file_path(tmpdir):
@@ -140,3 +196,37 @@ def test_save_data_duplicate_index_rows(tmpdir):
         ),
     ):
         db.save(data)
+
+
+def test_filelock_not_available_default_reader_lock(tmpdir):
+    db = OpenSCMDB(
+        db_dir=Path(tmpdir),
+        backend_data=InMemoryDataBackend(),
+        backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),
+    )
+    # Need some data in there so the reader can be created
+    data = pd.DataFrame(
+        [[1.0, 2.0]],
+        columns=[2010.0, 2020.0],
+        index=pd.MultiIndex.from_tuples(
+            [("scen_a", "mod_a", "var_a")],
+            names=["scenario", "model", "variable"],
+        ),
+    )
+    db.save(data)
+
+    with patch.dict(sys.modules, {"filelock": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`create_reader(..., lock=True, ...)` requires filelock to be installed"
+            ),
+        ):
+            db.create_reader()
+
+        # If we disable lock creation, all fine
+        db.create_reader(lock=False)
+
+        # Or pass in our own lock, also all fine
+        db.create_reader(lock=nullcontext())

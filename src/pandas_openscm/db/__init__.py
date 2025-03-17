@@ -47,7 +47,6 @@ class DataBackendOptions:
         KeyError
             The option is not supported
         """
-        # TODO: test this
         for short_name, option_cls in self.options:
             if short_name == option:
                 return option_cls()
@@ -107,7 +106,6 @@ class IndexBackendOptions:
         KeyError
             The option is not supported
         """
-        # TODO: test this
         for short_name, option_cls in self.options:
             if short_name == option:
                 return option_cls()

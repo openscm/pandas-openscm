@@ -303,7 +303,6 @@ def unify_index_levels_check_index_types(
         raise TypeError(left)
 
     if not isinstance(right, pd.MultiIndex):
-        # TODO: test this
         raise TypeError(right)
 
     return unify_index_levels(left, right)
