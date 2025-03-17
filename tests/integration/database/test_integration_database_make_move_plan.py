@@ -4,6 +4,7 @@ Tests of making plans for moving data with `pandas_openscm.OpenSCMDB`
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 import numpy as np
@@ -23,6 +24,7 @@ def test_make_move_plan_no_overwrite(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=contextlib.nullcontext(),  # not used
     )
 
     index_start = pd.DataFrame(
@@ -75,6 +77,7 @@ def test_make_move_plan_full_overwrite(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=contextlib.nullcontext(),  # not used
     )
 
     index_start = pd.DataFrame(
@@ -145,6 +148,7 @@ def test_make_move_plan_partial_overwrite(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=contextlib.nullcontext(),  # not used
     )
 
     index_start = pd.DataFrame(

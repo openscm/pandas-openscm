@@ -26,6 +26,7 @@ def test_get_existing_data_file_path(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     fp = db.get_new_data_file_path(file_id=10)
@@ -78,6 +79,7 @@ def test_raise_if_empty(tmpdir, meth, args, expecation):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     with expecation:
@@ -89,6 +91,7 @@ def test_save_data_index_not_multi_error(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     data = pd.DataFrame([0, 1], index=pd.Index(["a", "b"]))
@@ -107,6 +110,7 @@ def test_save_data_duplicate_index_rows(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     data = pd.DataFrame(

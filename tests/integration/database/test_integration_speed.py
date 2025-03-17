@@ -28,6 +28,10 @@ from pandas_openscm.testing import create_test_df
     ),
 )
 def test_overhead(groupby, tmpdir):
+    # Want lock time included in this test,
+    # hence skip if not available
+    pytest.importorskip("filelock")
+
     tmpdir = Path(tmpdir)
 
     feather_data_be = FeatherDataBackend()

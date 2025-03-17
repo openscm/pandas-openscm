@@ -4,6 +4,7 @@ Tests of deleting with `pandas_openscm.OpenSCMDB`
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,7 @@ def test_delete(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=contextlib.nullcontext(),  # not used
     )
 
     db.save(

@@ -18,6 +18,7 @@ def test_make_move_plan_index_start_not_multi_error(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=None,  # not used
     )
 
     with pytest.raises(TypeError):

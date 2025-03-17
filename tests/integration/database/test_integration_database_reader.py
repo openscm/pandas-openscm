@@ -4,6 +4,7 @@ Tests of reading using an in-memory index with `pandas_openscm`
 
 from __future__ import annotations
 
+import contextlib
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 
@@ -12,8 +13,8 @@ import pandas as pd
 import pytest
 
 from pandas_openscm.db import (
-    FeatherDataBackend,
-    FeatherIndexBackend,
+    CSVDataBackend,
+    CSVIndexBackend,
     OpenSCMDB,
 )
 from pandas_openscm.testing import assert_frame_alike, create_test_df
@@ -40,8 +41,8 @@ def test_load_via_reader_context_manager(tmpdir):
 
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
-        backend_data=FeatherDataBackend(),
-        backend_index=FeatherIndexBackend(),
+        backend_data=CSVDataBackend(),
+        backend_index=CSVIndexBackend(),
     )
 
     db.save(start)
@@ -61,8 +62,6 @@ def test_load_via_reader_context_manager(tmpdir):
 
 
 def test_load_via_reader(tmpdir):
-    pytest.importorskip("filelock")
-
     start = create_test_df(
         n_scenarios=10,
         variables=[("a", "kg"), ("b", "kg"), ("c", "kg")],
@@ -72,13 +71,14 @@ def test_load_via_reader(tmpdir):
 
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
-        backend_data=FeatherDataBackend(),
-        backend_index=FeatherIndexBackend(),
+        backend_data=CSVDataBackend(),
+        backend_index=CSVIndexBackend(),
+        index_file_lock=contextlib.nullcontext(),  # not used
     )
 
     db.save(start)
 
-    reader = db.create_reader()
+    reader = db.create_reader(lock=False)
 
     db_metadata = db.load_metadata()
     check_metadata_load_is_same(reader.metadata, db_metadata)
@@ -110,8 +110,8 @@ def test_reader_locking(tmpdir):
 
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
-        backend_data=FeatherDataBackend(),
-        backend_index=FeatherIndexBackend(),
+        backend_data=CSVDataBackend(),
+        backend_index=CSVIndexBackend(),
     )
 
     db.save(start)

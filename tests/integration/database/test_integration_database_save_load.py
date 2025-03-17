@@ -36,6 +36,12 @@ from pandas_openscm.testing import (
 @get_parametrized_db_data_backends()
 @get_parametrized_db_index_backends()
 def test_save_and_load_basic(tmpdir, db_data_backend, db_index_backend):
+    if "Feather" in str(db_data_backend) or "Feather" in str(db_index_backend):
+        pytest.importorskip("pyarrow")
+
+    if "netCDF" in str(db_data_backend) or "netCDF" in str(db_index_backend):
+        pytest.importorskip("xarray")
+
     df_timeseries_like = pd.DataFrame(
         np.arange(12).reshape(4, 3),
         columns=[2010, 2015, 2025],
@@ -54,6 +60,7 @@ def test_save_and_load_basic(tmpdir, db_data_backend, db_index_backend):
         db_dir=Path(tmpdir),
         backend_data=db_data_backend(),
         backend_index=db_index_backend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     db.save(df_timeseries_like)
@@ -100,6 +107,7 @@ def test_save_and_load(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     db.save(start)
@@ -135,6 +143,7 @@ def test_save_multiple_and_load(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     all_saved_l = []
@@ -171,6 +180,7 @@ def test_save_multiple_grouped_and_load(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     all_saved_l = []
@@ -214,6 +224,7 @@ def test_save_multiple_grouped_wide_and_narrow_and_load(wide_first, tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     to_save_wide_index = create_test_df(
@@ -256,6 +267,7 @@ def test_save_overwrite_error(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     cdf = partial(
@@ -283,6 +295,7 @@ def test_save_overwrite_force(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     cdf = partial(
@@ -363,6 +376,7 @@ def test_save_overwrite_force_half_overlap(
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     cdf = partial(
@@ -420,10 +434,17 @@ def test_save_overwrite_force_half_overlap_all_backends(
     db_index_backend,
     tmpdir,
 ):
+    if "Feather" in str(db_data_backend) or "Feather" in str(db_index_backend):
+        pytest.importorskip("pyarrow")
+
+    if "netCDF" in str(db_data_backend) or "netCDF" in str(db_index_backend):
+        pytest.importorskip("xarray")
+
     db = OpenSCMDB(
         db_dir=Path(tmpdir),
         backend_data=db_data_backend(),
         backend_index=db_index_backend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     cdf = partial(
@@ -481,6 +502,7 @@ def test_load_with_loc(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     full_db = create_test_df(
@@ -512,6 +534,7 @@ def test_load_with_index_all(tmpdir):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     full_db = create_test_df(
@@ -540,6 +563,7 @@ def test_load_with_index_slice(tmpdir, slice):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     full_db = create_test_df(
@@ -575,6 +599,7 @@ def test_load_with_pix_unique_levels(tmpdir, levels):
         db_dir=Path(tmpdir),
         backend_data=InMemoryDataBackend(),
         backend_index=InMemoryIndexBackend(),
+        index_file_lock=nullcontext(),  # not used
     )
 
     full_db = create_test_df(
