@@ -278,7 +278,6 @@ class DBMofidier(DBMofidierBase):
 
 
 @hypothesis.settings(max_examples=20)
-# @hypothesis.settings(max_examples=1)
 class DBMofidierInMemory(DBMofidierBase):
     dbs = tuple(
         OpenSCMDB(
