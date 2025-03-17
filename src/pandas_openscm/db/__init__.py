@@ -18,7 +18,9 @@ from pandas_openscm.db.openscm_db import AlreadyInDBError, EmptyDBError, OpenSCM
 class DataBackendOptions:
     """A collection of data back-end options"""
 
-    options: tuple[tuple[str, type[object]], ...]
+    options: tuple[  # type hint doesn't work properly, but ok
+        tuple[str, type[OpenSCMDBDataBackend]], ...
+    ]
     """
     Options
 
@@ -57,7 +59,7 @@ class DataBackendOptions:
 
 
 DATA_BACKENDS = DataBackendOptions(
-    (
+    (  # type: ignore # using class with protocol doesn't work properly
         ("csv", CSVDataBackend),
         ("feather", FeatherDataBackend),
         ("in_memory", InMemoryDataBackend),
@@ -77,7 +79,7 @@ DATA_BACKENDS = DataBackendOptions(
 class IndexBackendOptions:
     """A collection of index back-end options"""
 
-    options: tuple[tuple[str, type[object]], ...]
+    options: tuple[tuple[str, type[OpenSCMDBIndexBackend]], ...]
     """
     Options
 
@@ -116,7 +118,7 @@ class IndexBackendOptions:
 
 
 INDEX_BACKENDS = IndexBackendOptions(
-    (
+    (  # type: ignore # using class with protocol doesn't work properly
         ("csv", CSVIndexBackend),
         ("feather", FeatherIndexBackend),
         ("in_memory", InMemoryIndexBackend),
