@@ -188,6 +188,7 @@ jobs:
           pytest tests -r a -vv tests
 
   tests-superslow:
+    if: ${{ !github.event.pull_request.draft }}
     strategy:
       fail-fast: false
       matrix:
