@@ -23,6 +23,10 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from pandas_openscm.grouping import (
+    fix_index_name_after_groupby_quantile,
+    groupby_except,
+)
 from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
 
@@ -50,6 +54,58 @@ class DataFramePandasOpenSCMAccessor:
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
+
+    def fix_index_name_after_groupby_quantile(
+        self, new_name: str = "quantile", copy: bool = False
+    ) -> pd.DataFrame:
+        """
+        Fix the index name after performing a `groupby(...).quantile(...)` operation
+
+        By default, pandas doesn't assign a name to the quantile level
+        when doing an operation of the form given above.
+        This fixes this, but it does assume
+        that the quantile level is the only unnamed level in the index.
+
+        Parameters
+        ----------
+        new_name
+            New name to give to the quantile column
+
+        copy
+            Whether to copy `df` before manipulating the index name
+
+        Returns
+        -------
+        :
+            `df`, with the last level in its index renamed to `new_name`.
+        """
+        return fix_index_name_after_groupby_quantile(
+            self._df, new_name=new_name, copy=copy
+        )
+
+    def groupby_except(
+        self, non_groupers: str | list[str], observed: bool = True
+    ) -> pd.core.groupby.generic.DataFrameGroupBy:
+        """
+        Group by all index levels except specified levels
+
+        This is the inverse of [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Parameters
+        ----------
+        non_groupers
+            Columns to exclude from the grouping
+
+        observed
+            Whether to only return observed combinations or not
+
+        Returns
+        -------
+        :
+            The [pd.DataFrame][pandas.DataFrame],
+            grouped by all columns except `non_groupers`.
+        """
+        return groupby_except(df=self._df, non_groupers=non_groupers, observed=observed)
 
     def mi_loc(
         self,
