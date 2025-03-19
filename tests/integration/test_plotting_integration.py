@@ -8,10 +8,6 @@ from __future__ import annotations
 # - quantile_over, both str and list[str]
 # - quantiles_plumes, both plumes and lines
 
-# TODO:
-# - add groupby_except
-# - add fix_index_name_after_groupby_quantile
-
 
 def test_plot_plume():
     assert False

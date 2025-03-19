@@ -149,7 +149,6 @@ def plot_plumes(
     palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
     | None = None,
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
-    increase_resolution: int = 100,
     linewidth: float = 3.0,
     unit_col: str = "unit",
     pre_calculated: bool = True,
@@ -332,7 +331,9 @@ def plot_plumes(
                 # Once we have unit handling with matplotlib, we can remove this
                 # (and if matplotlib isn't set up, we just don't do unit handling)
                 # TODO: if clause here to check re unit handling
-                units_l.extend(_pdf.index.get_level_values(unit_col).unique().tolist())
+                units_l.extend(
+                    pdf_group.index.get_level_values(unit_col).unique().tolist()
+                )
 
         # Fake the line handles for the legend
         hue_val_lines = [
