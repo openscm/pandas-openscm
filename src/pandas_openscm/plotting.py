@@ -14,6 +14,7 @@ import matplotlib.patches as mpatches
 import pandas as pd
 from typing_extensions import TypeAlias
 
+from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.grouping import (
     fix_index_name_after_groupby_quantile,
     groupby_except,
@@ -132,10 +133,9 @@ def get_pdf_from_pre_calculated(
     return pdf
 
 
-def plot_plumes(
+def plot_plume(
     pdf: pd.DataFrame,
     *,
-    fig: matplotlib.Figure | None = None,
     ax: matplotlib.Axes | None = None,
     quantile_over: str | list[str] = "run",
     quantiles_plumes: QUANTILES_PLUMES_LIKE = (
@@ -151,11 +151,21 @@ def plot_plumes(
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     linewidth: float = 3.0,
     unit_col: str = "unit",
-    pre_calculated: bool = True,
+    pre_calculated: bool = False,
     quantile_col: str = "quantile",
     quantile_col_label: str | None = None,
     observed: bool = True,
 ):
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise MissingOptionalDependencyError(
+            "plot_plume", requirement="matplotlib"
+        ) from exc
+
+    if ax is None:
+        _, ax = plt.subplots()
+
     # The joy of plotting, you create everything yourself.
     if hue_var_label is None:
         hue_var_label = hue_var.capitalize()
@@ -185,8 +195,12 @@ def plot_plumes(
     for q, alpha in quantiles_plumes:
         if isinstance(q, float):
             quantiles = (q,)
+            plot_plume = False
         else:
             quantiles = q
+            plot_plume = True
+
+        # Can split out plot plume vs. plot line to use here
 
         for hue_value, hue_ts in pdf.groupby(hue_var, observed=observed):
             for style_value, hue_style_ts in hue_ts.groupby(
@@ -241,10 +255,6 @@ def plot_plumes(
                 # else:
                 #     # Let matplotlib default cycling do its thing
 
-                n_q_for_plume = 2
-                plot_plume = len(q) == n_q_for_plume
-                plot_line = len(q) == 1
-
                 if plot_plume:
                     label = f"{q[0] * 100:.0f}th - {q[1] * 100:.0f}th"
 
@@ -272,7 +282,7 @@ def plot_plumes(
                     if palette is None:
                         _palette[hue_value] = p.get_facecolor()[0]
 
-                elif plot_line:
+                else:
                     if style_value not in plotted_styles:
                         plotted_styles.append(style_value)
 
@@ -290,13 +300,13 @@ def plot_plumes(
 
                         pkwargs["linestyle"] = _dashes[style_value]
 
-                    if isinstance(q[0], str):
-                        label = q[0]
+                    if isinstance(q, str):
+                        label = q
                     else:
-                        label = f"{q[0] * 100:.0f}th"
+                        label = f"{q * 100:.0f}th"
 
                     y_vals = pdf_group.loc[
-                        pdf_group.index.get_level_values(quantile_col).isin({q[0]})
+                        pdf_group.index.get_level_values(quantile_col).isin({q})
                     ].values.squeeze()
                     # Require ur for this to work
                     # Also need the 1D check back in too
@@ -319,12 +329,6 @@ def plot_plumes(
                     if palette is None:
                         _palette[hue_value] = p.get_color()
 
-                else:
-                    msg = (
-                        f"quantiles to plot must be of length one or two, received: {q}"
-                    )
-                    raise ValueError(msg)
-
                 if label not in quantile_labels:
                     quantile_labels[label] = p
 
@@ -335,45 +339,45 @@ def plot_plumes(
                     pdf_group.index.get_level_values(unit_col).unique().tolist()
                 )
 
-        # Fake the line handles for the legend
-        hue_val_lines = [
-            mlines.Line2D([0], [0], color=_palette[hue_value], label=hue_value)
-            for hue_value in plotted_hues
-        ]
+    # Fake the line handles for the legend
+    hue_val_lines = [
+        mlines.Line2D([0], [0], color=_palette[hue_value], label=hue_value)
+        for hue_value in plotted_hues
+    ]
 
-        legend_items = [
-            mpatches.Patch(alpha=0, label=quantile_col_label),
-            *quantile_labels.values(),
-            mpatches.Patch(alpha=0, label=hue_var_label),
-            *hue_val_lines,
-        ]
+    legend_items = [
+        mpatches.Patch(alpha=0, label=quantile_col_label),
+        *quantile_labels.values(),
+        mpatches.Patch(alpha=0, label=hue_var_label),
+        *hue_val_lines,
+    ]
 
-        if _plotted_lines:
-            style_val_lines = [
-                mlines.Line2D(
-                    [0],
-                    [0],
-                    linestyle=_dashes[style_value],
-                    label=style_value,
-                    color="gray",
-                    linewidth=linewidth,
-                )
-                for style_value in plotted_styles
-            ]
-            legend_items += [
-                mpatches.Patch(alpha=0, label=style_var_label),
-                *style_val_lines,
-            ]
-        elif dashes is not None:
-            warnings.warn(
-                "`dashes` was passed but no lines were plotted, the style settings "
-                "will not be used"
+    if _plotted_lines:
+        style_val_lines = [
+            mlines.Line2D(
+                [0],
+                [0],
+                linestyle=_dashes[style_value],
+                label=style_value,
+                color="gray",
+                linewidth=linewidth,
             )
+            for style_value in plotted_styles
+        ]
+        legend_items += [
+            mpatches.Patch(alpha=0, label=style_var_label),
+            *style_val_lines,
+        ]
 
-        # ax.legend(handles=legend_items, loc="best")
-        ax.legend(handles=legend_items, loc="center left", bbox_to_anchor=(1.05, 0.5))
+    elif dashes is not None:
+        warnings.warn(
+            "`dashes` was passed but no lines were plotted, the style settings "
+            "will not be used"
+        )
 
-        if len(set(units_l)) == 1:
-            ax.set_ylabel(units_l[0])
+    ax.legend(handles=legend_items, loc="center left", bbox_to_anchor=(1.05, 0.5))
 
-        return ax, legend_items
+    if len(set(units_l)) == 1:
+        ax.set_ylabel(units_l[0])
+
+    return ax, legend_items
