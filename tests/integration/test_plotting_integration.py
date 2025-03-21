@@ -74,7 +74,12 @@ def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
     )
 
     check_plots(
-        df=df, plot_kwargs={}, image_regression=image_regression, tmp_path=tmp_path
+        df=df.openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile(),
+        plot_kwargs={},
+        image_regression=image_regression,
+        tmp_path=tmp_path,
     )
 
 

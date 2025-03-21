@@ -4,7 +4,9 @@ Plotting
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Collection, Iterable
+from itertools import cycle
 from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
@@ -501,11 +503,12 @@ class PlumePlotter:
         cls,
         df: pd.DataFrame,
         *,
-        quantile_over: str | list[str] = "run",
         quantiles_plumes: QUANTILES_PLUMES_LIKE = (
             (0.5, 0.7),
             ((0.05, 0.95), 0.2),
         ),
+        quantile_col: str = "quantile",
+        quantile_col_label: str | None = None,
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
         style_var: str = "variable",
@@ -515,12 +518,9 @@ class PlumePlotter:
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         linewidth: float = 3.0,
         unit_col: str = "unit",
-        pre_calculated: bool = False,
-        quantile_col: str = "quantile",
-        quantile_col_label: str | None = None,
-        observed: bool = True,
         y_label: str | bool | None = True,
         x_label: str | None = "time",
+        observed: bool = True,
     ) -> PlumePlotter:
         """
         Initialise from a [pd.DataFrame][pandas.DataFrame]
@@ -535,6 +535,105 @@ class PlumePlotter:
         :
             Initialised instance
         """
+        # The joy of plotting, you create everything yourself.
+        if hue_var_label is None:
+            hue_var_label = hue_var.capitalize()
+
+        if style_var is not None and style_var_label is None:
+            style_var_label = style_var.capitalize()
+
+        if quantile_col_label is None:
+            quantile_col_label = quantile_col.capitalize()
+
+        # Start from here: think through logic more carefully
+        if palette is None:
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError as exc:
+                raise MissingOptionalDependencyError(  # noqa: TRY003
+                    "from_df(..., palette=None, ...)", requirement="matplotlib"
+                ) from exc
+            colour_cycler = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
+            palette = {}
+
+        if dashes is None:
+            dashes = {}
+            if style_var is None:
+                linestyle_cycler = cycle(["-"])
+            else:
+                linestyle_cycler = cycle(["-", "--", "-.", ":"])
+
+        if style_var is not None:
+            group_cols = [hue_var, style_var]
+        else:
+            group_cols = [hue_var]
+
+        for info, gdf in df.groupby([hue_var, style_var], observed=observed):
+            info_d = {k: v for k, v in zip(group_cols, info)}
+
+            for q, alpha in quantiles_plumes:
+                if isinstance(q, float):
+                    quantiles = (q,)
+                    plot_plume = False
+                else:
+                    quantiles = q
+                    plot_plume = True
+
+                try:
+                    pdf = get_pdf_from_pre_calculated(
+                        gdf,
+                        quantiles=quantiles,
+                        quantile_col=quantile_col,
+                    )
+
+                except MissingQuantileError as exc:
+                    warnings.warn(
+                        f"Missing {quantiles=} for {info_d}. Original exception: {exc}"
+                    )
+                    continue
+
+                if plot_plume:
+                    if pdf.shape[0] != 2:
+                        raise AssertionError
+
+                    breakpoint()
+
+                elif pdf.shape[0] != 1:
+                    leftover_cols = df.index.names.difference({hue_var, style_var})
+                    msg = (
+                        f"After grouping by {hue_var=} and {style_var=}, "
+                        f"there are still variations in {leftover_cols=} "
+                        "so we do not know what to plot.\n"
+                        f"{gdf.index=}"
+                    )
+                    raise AssertionError(msg)
+
+                    breakpoint()
+                    if isinstance(q, str):
+                        q_f = float(q)
+                    else:
+                        q_f = q
+                    label = f"{q_f * 100:.0f}th"
+
+                    if dashes is not None:
+                        linestyle = dashes[info_d[style_var]]
+                    else:
+                        linestyle = next(linestyle_cycler)
+
+                    if palette is not None:
+                        colour = palette[info_d[hue_var]]
+                    else:
+                        colour = next(colour_cycler)
+
+                    line_plotter = SingleLinePlotter(
+                        x_vals=pdf.columns.values.squeeze(),
+                        y_vals=pdf.values.squeeze(),
+                        label=label,
+                        linewidth=linewidth,
+                        linestyle=linestyle,
+                        color=colour,
+                        alpha=alpha,
+                    )
 
     def plot(
         self,
@@ -567,11 +666,12 @@ def plot_plume(
     pdf: pd.DataFrame,
     ax: matplotlib.axes.Axes | None = None,
     *,
-    quantile_over: str | list[str] = "run",
     quantiles_plumes: QUANTILES_PLUMES_LIKE = (
         (0.5, 0.7),
         ((0.05, 0.95), 0.2),
     ),
+    quantile_col: str = "quantile",
+    quantile_col_label: str | None = None,
     hue_var: str = "scenario",
     hue_var_label: str | None = None,
     style_var: str = "variable",
@@ -581,10 +681,6 @@ def plot_plume(
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     linewidth: float = 3.0,
     unit_col: str = "unit",
-    pre_calculated: bool = False,
-    quantile_col: str = "quantile",
-    quantile_col_label: str | None = None,
-    observed: bool = True,
     y_label: str | bool | None = True,
     x_label: str | None = "time",
     create_legend: Callable[
@@ -593,8 +689,9 @@ def plot_plume(
 ) -> matplotlib.axes.Axes:
     plotter = PlumePlotter.from_df(
         df=pdf,
-        quantile_over=quantile_over,
         quantiles_plumes=quantiles_plumes,
+        quantile_col=quantile_col,
+        quantile_col_label=quantile_col_label,
         hue_var=hue_var,
         hue_var_label=hue_var_label,
         style_var=style_var,
@@ -603,10 +700,6 @@ def plot_plume(
         dashes=dashes,
         linewidth=linewidth,
         unit_col=unit_col,
-        pre_calculated=pre_calculated,
-        quantile_col=quantile_col,
-        quantile_col_label=quantile_col_label,
-        observed=observed,
         y_label=y_label,
         x_label=x_label,
     )
