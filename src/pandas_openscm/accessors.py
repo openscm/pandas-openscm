@@ -152,9 +152,21 @@ class DataFramePandasOpenSCMAccessor:
         ax: matplotlib.axes.Axes | None = None,
         *,
         quantile_over: str | list[str] = "run",
+        hue_var: str = "scenario",
+        hue_var_label: str | None = None,
+        style_var: str = "variable",
+        style_var_label: str | None = None,
     ) -> matplotlib.axes.Axes:
         # TODO: docstring
-        return plot_plume(self._df, ax=ax)
+        return plot_plume(
+            self._df,
+            ax=ax,
+            quantile_over=quantile_over,
+            hue_var=hue_var,
+            hue_var_label=hue_var_label,
+            style_var=style_var,
+            style_var_label=style_var_label,
+        )
 
     def to_category_index(self) -> pd.DataFrame:
         """

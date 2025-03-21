@@ -193,7 +193,7 @@ def plot_plume(
     # The joy of plotting, you create everything yourself.
     if hue_var_label is None:
         hue_var_label = hue_var.capitalize()
-    if style_var_label is None:
+    if style_var is not None and style_var_label is None:
         style_var_label = style_var.capitalize()
     if quantile_col_label is None:
         quantile_col_label = quantile_col.capitalize()
@@ -204,8 +204,10 @@ def plot_plume(
 
     if dashes is None:
         _dashes = {}
-        lines = ["-", "--", "-.", ":"]
-        linestyle_cycler = cycle(lines)
+        if style_var is None:
+            linestyle_cycler = cycle(["-"])
+        else:
+            linestyle_cycler = cycle(["-", "--", "-.", ":"])
     else:
         _dashes = dashes
 
@@ -228,10 +230,14 @@ def plot_plume(
             plot_plume = True
 
         # Can split out plot plume vs. plot line to use here
+        if style_var is None:
+            style_var_grouper = hue_var
+        else:
+            style_var_grouper = style_var
 
         for hue_value, hue_ts in pdf.groupby(hue_var, observed=observed):
             for style_value, hue_style_ts in hue_ts.groupby(
-                style_var, observed=observed
+                style_var_grouper, observed=observed
             ):
                 # Remake in inner loop to avoid leaking between plots
                 pkwargs = {"alpha": alpha}
@@ -239,7 +245,7 @@ def plot_plume(
                 if pre_calculated:
                     try:
                         pdf_group = get_pdf_from_pre_calculated(
-                            hue_ts,
+                            hue_style_ts,
                             quantiles=quantiles,
                             quantile_col=quantile_col,
                         )
@@ -252,10 +258,38 @@ def plot_plume(
                         continue
 
                 else:
-                    tmp = groupby_except(hue_ts, quantile_over).quantile(quantiles)
+                    tmp = groupby_except(hue_style_ts, quantile_over).quantile(
+                        quantiles
+                    )
                     pdf_group = fix_index_name_after_groupby_quantile(
                         tmp, new_name=quantile_col
                     )
+
+                pdf_group_quantile = pdf_group.loc[
+                    pdf_group.index.get_level_values(quantile_col).isin(quantiles)
+                ]
+
+                if plot_plume:
+                    if pdf_group_quantile.shape[0] != 2:
+                        raise AssertionError
+
+                elif pdf_group_quantile.shape[0] != 1:
+                    if isinstance(quantile_over, str):
+                        quantile_over_it = [quantile_over]
+                    else:
+                        quantile_over_it = quantile_over
+
+                    leftover_cols = pdf.index.names.difference(
+                        {hue_var, style_var, *quantile_over_it}
+                    )
+                    msg = (
+                        f"After grouping by {hue_var=} and {style_var=}, "
+                        f"and calculating quantiles over {quantile_over=}, "
+                        f"there are still variations in {leftover_cols=} "
+                        "so we do not know what to plot.\n"
+                        f"{hue_ts.index=}"
+                    )
+                    raise AssertionError(msg)
 
                 if hue_value not in plotted_hues:
                     plotted_hues.append(hue_value)
@@ -286,10 +320,14 @@ def plot_plume(
                     label = f"{q[0] * 100:.0f}th - {q[1] * 100:.0f}th"
 
                     y_lower_vals = pdf_group.loc[
-                        pdf_group.index.get_level_values(quantile_col).isin({q[0]})
+                        pdf_group_quantile.index.get_level_values(quantile_col).isin(
+                            {quantiles[0]}
+                        )
                     ].values.squeeze()
                     y_upper_vals = pdf_group.loc[
-                        pdf_group.index.get_level_values(quantile_col).isin({q[1]})
+                        pdf_group_quantile.index.get_level_values(quantile_col).isin(
+                            {quantiles[1]}
+                        )
                     ].values.squeeze()
                     # Require ur for this to work
                     # Also need the 1D check back in too
@@ -337,9 +375,9 @@ def plot_plume(
                     ].values.squeeze()
                     # Require ur for this to work
                     # Also need the 1D check back in too
-                    # y_lower_vals = get_plot_vals(
-                    #     y_lower_vals * y_units,
-                    #     "y_lower_vals",
+                    # y_vals = get_plot_vals(
+                    #     y_vals * y_units,
+                    #     "y_vals",
                     #     warn_if_magnitudes=warn_if_plotting_magnitudes,
                     # )
                     p = ax.plot(
@@ -362,9 +400,10 @@ def plot_plume(
                 # Once we have unit handling with matplotlib, we can remove this
                 # (and if matplotlib isn't set up, we just don't do unit handling)
                 # TODO: if clause here to check re unit handling
-                units_l.extend(
-                    pdf_group.index.get_level_values(unit_col).unique().tolist()
-                )
+                if unit_col in pdf_group.index.names:
+                    units_l.extend(
+                        pdf_group.index.get_level_values(unit_col).unique().tolist()
+                    )
 
     # Fake the line handles for the legend
     hue_val_lines = [
@@ -405,12 +444,13 @@ def plot_plume(
     create_legend(ax=ax, handles=legend_items)
 
     if isinstance(y_label, bool) and y_label:
-        if len(set(units_l)) == 1:
+        units_s = set(units_l)
+        if len(units_s) == 1:
             ax.set_ylabel(units_l[0])
         else:
             warnings.warn(
                 "Not auto-setting the y_label "
-                f"because the plotted data has more than one unit: data units {units_l}"
+                f"because the plotted data has more than one unit: data units {units_s}"
             )
 
     elif y_label is not None:
