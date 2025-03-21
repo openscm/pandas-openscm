@@ -29,8 +29,10 @@ from pandas_openscm.grouping import (
 )
 from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
+from pandas_openscm.plotting import plot_plume
 
 if TYPE_CHECKING:
+    import matplotlib
     import pandas_indexing as pix
 
 
@@ -144,9 +146,17 @@ class DataFramePandasOpenSCMAccessor:
         """
         return mi_loc(self._df, locator)
 
-    def to_category_index(
+    def plot_plume(
         self,
-    ) -> pd.DataFrame:
+        # TODO: match plot_plume API
+        ax: matplotlib.axes.Axes | None = None,
+        *,
+        quantile_over: str | list[str] = "run",
+    ) -> matplotlib.axes.Axes:
+        # TODO: docstring
+        return plot_plume(self._df, ax=ax)
+
+    def to_category_index(self) -> pd.DataFrame:
         """
         Convert the index's values to categories
 

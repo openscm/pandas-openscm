@@ -40,16 +40,23 @@ def test_plot_plume(tmp_path, image_regression, setup_pandas_accessor):
         n_scenarios=5,
         n_runs=10,
         timepoints=np.arange(1950.0, 1965.0),
-        # TODO: make the rng injectable so we get consistent results each run
+        rng=np.random.default_rng(seed=82747),
     )
 
     fig, ax = plt.subplots()
 
-    # # TODO: switch to the below
-    # df.openscm.plumeplot()
     plot_plume(df, ax=ax)
 
     out_file = tmp_path / "fig.png"
+    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    # Check this works via the accessor too
+    fig, ax = plt.subplots()
+    df.openscm.plot_plume(ax=ax)
+
+    out_file = tmp_path / "fig-accessor.png"
     plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
 
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)

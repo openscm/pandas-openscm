@@ -7,7 +7,7 @@ from __future__ import annotations
 import warnings
 from collections.abc import Collection, Iterable
 from itertools import cycle
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
@@ -133,10 +133,29 @@ def get_pdf_from_pre_calculated(
     return pdf
 
 
+def create_legend_default(
+    ax: matplotlib.axes.Axes, handles: list[matplotlib.artist.Artist]
+) -> None:
+    """
+    Create legend, default implementation
+
+    Intended to be used with [plot_plume][(m).]
+
+    Parameters
+    ----------
+    ax
+        Axes on which to create the legend
+
+    handles
+        Handles to include in the legend
+    """
+    ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1.05, 0.5))
+
+
 def plot_plume(
     pdf: pd.DataFrame,
+    ax: matplotlib.axes.Axes | None = None,
     *,
-    ax: matplotlib.Axes | None = None,
     quantile_over: str | list[str] = "run",
     quantiles_plumes: QUANTILES_PLUMES_LIKE = (
         (0.5, 0.7),
@@ -155,6 +174,11 @@ def plot_plume(
     quantile_col: str = "quantile",
     quantile_col_label: str | None = None,
     observed: bool = True,
+    y_label: str | bool | None = True,
+    x_label: str | None = "time",
+    create_legend: Callable[
+        [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
+    ] = create_legend_default,
 ):
     try:
         import matplotlib.pyplot as plt
@@ -184,6 +208,9 @@ def plot_plume(
         linestyle_cycler = cycle(lines)
     else:
         _dashes = dashes
+
+    if create_legend is None:
+        create_legend = create_legend_default
 
     # Need to keep track of this, just in case we end up plotting only plumes
     _plotted_lines = False
@@ -375,9 +402,21 @@ def plot_plume(
             "will not be used"
         )
 
-    ax.legend(handles=legend_items, loc="center left", bbox_to_anchor=(1.05, 0.5))
+    create_legend(ax=ax, handles=legend_items)
 
-    if len(set(units_l)) == 1:
-        ax.set_ylabel(units_l[0])
+    if isinstance(y_label, bool) and y_label:
+        if len(set(units_l)) == 1:
+            ax.set_ylabel(units_l[0])
+        else:
+            warnings.warn(
+                "Not auto-setting the y_label "
+                f"because the plotted data has more than one unit: data units {units_l}"
+            )
+
+    elif y_label is not None:
+        ax.set_ylabel(y_label)
+
+    if x_label is not None:  # and units not already handled
+        ax.set_xlabel(x_label)
 
     return ax, legend_items
