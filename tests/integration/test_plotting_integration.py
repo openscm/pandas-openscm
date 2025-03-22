@@ -18,6 +18,7 @@ import pytest
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.plotting import (
+    SingleLinePlotter,
     get_default_colour_cycler,
     get_quantiles,
     plot_plume,
@@ -79,6 +80,8 @@ def check_plots(
 
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
+    plt.close()
+
 
 def check_plots_incl_quantile_calculation(
     method_kwargs: dict[str, Any],
@@ -112,6 +115,8 @@ def check_plots_incl_quantile_calculation(
     plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
 
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
 
 
 def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
@@ -196,6 +201,8 @@ def test_plot_plume_with_other_plot_calls(
     )
 
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
 
 
 @pytest.mark.parametrize(
@@ -676,3 +683,20 @@ def test_get_default_colour_cycler_no_matplotlib():
             ),
         ):
             get_default_colour_cycler()
+
+
+def test_single_line_plotter_wrong_shape_y_vals():
+    error_msg = re.escape(
+        "`y_vals` must have the same shape as `x_vals`. "
+        "Received `y_vals` with shape (2,) while `x_vals` has shape (3,)"
+    )
+    with pytest.raises(AssertionError, match=error_msg):
+        SingleLinePlotter(
+            np.array([1, 2, 3]),
+            np.array([1, 2]),
+            quantile=0.3,
+            linewidth=1.0,
+            linestyle="-",
+            color="blue",
+            alpha=0.3,
+        )
