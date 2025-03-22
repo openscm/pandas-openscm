@@ -16,6 +16,10 @@ from attrs import define, field
 from typing_extensions import TypeAlias
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
+from pandas_openscm.grouping import (
+    fix_index_name_after_groupby_quantile,
+    groupby_except,
+)
 
 if TYPE_CHECKING:
     import attr
@@ -797,10 +801,10 @@ class PlumePlotter:
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
-        unit_col: str = "unit",
+        unit_col: str | None = "unit",
+        x_label: str | None = "time",
         y_label: str | bool | None = True,
         warn_infer_y_label_with_multi_unit: bool = True,
-        x_label: str | None = "time",
         observed: bool = True,
     ) -> PlumePlotter:
         """
@@ -825,7 +829,7 @@ class PlumePlotter:
         if quantile_var_label is None:
             quantile_var_label = quantile_var.capitalize()
 
-        infer_y_label = isinstance(y_label, bool) and y_label
+        infer_y_label = isinstance(y_label, bool) and y_label and unit_col is not None
 
         palette_complete = fill_out_palette(
             df.index.get_level_values(hue_var).unique(),
@@ -843,11 +847,12 @@ class PlumePlotter:
 
         else:
             group_cols = [hue_var]
+            dashes_complete = None
 
         lines: list[SingleLinePlotter] = []
         plumes: list[SinglePlumePlotter] = []
         values_units: list[str] = []
-        for info, gdf in df.groupby([hue_var, style_var], observed=observed):
+        for info, gdf in df.groupby(group_cols, observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
 
             colour = palette_complete[info_d[hue_var]]
@@ -904,24 +909,32 @@ class PlumePlotter:
                     )
                     plumes.append(plume_plotter)
 
-                if infer_y_label:
+                if infer_y_label and unit_col in pdf.index.names:
                     values_units.extend(pdf.index.get_level_values(unit_col).unique())
 
-        if isinstance(y_label, bool) and y_label:
-            # Try to infer the y-label
-            units_s = set(values_units)
-            if len(units_s) == 1:
-                y_label = values_units[0]
-            else:
-                # More than one unit plotted, don't infer a y-label
-                if warn_infer_y_label_with_multi_unit:
-                    warnings.warn(
-                        "Not auto-setting the y_label "
-                        "because the plotted data has more than one unit: "
-                        f"data units {units_s}"
-                    )
-
+        if infer_y_label:
+            if unit_col not in df.index.names:
+                warnings.warn(
+                    "Not auto-setting the y_label "
+                    f"because {unit_col=} is not in {df.index.names=}"
+                )
                 y_label = None
+
+            else:
+                # Try to infer the y-label
+                units_s = set(values_units)
+                if len(units_s) == 1:
+                    y_label = values_units[0]
+                else:
+                    # More than one unit plotted, don't infer a y-label
+                    if warn_infer_y_label_with_multi_unit:
+                        warnings.warn(
+                            "Not auto-setting the y_label "
+                            "because the plotted data has more than one unit: "
+                            f"data units {units_s}"
+                        )
+
+                    y_label = None
 
         res = PlumePlotter(
             lines=lines,
@@ -996,7 +1009,7 @@ class PlumePlotter:
             mpatches.Patch(alpha=0, label=self.hue_var_label),
             *hue_items,
         ]
-        if self.lines:
+        if self.dashes is not None and self.lines:
             style_items = [
                 mlines.Line2D(
                     [0],
@@ -1066,8 +1079,9 @@ def plot_plume(
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     linewidth: float = 3.0,
     unit_col: str = "unit",
-    y_label: str | bool | None = True,
     x_label: str | None = "time",
+    y_label: str | bool | None = True,
+    warn_infer_y_label_with_multi_unit: bool = True,
     create_legend: Callable[
         [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
     ] = create_legend_default,
@@ -1085,10 +1099,65 @@ def plot_plume(
         dashes=dashes,
         linewidth=linewidth,
         unit_col=unit_col,
-        y_label=y_label,
         x_label=x_label,
+        y_label=y_label,
+        warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
     )
 
     plotter.plot(ax=ax, create_legend=create_legend)
 
     return ax
+
+
+def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
+    pdf: pd.DataFrame,
+    ax: matplotlib.axes.Axes | None = None,
+    *,
+    quantile_over: str | list[str],
+    quantiles_plumes: QUANTILES_PLUMES_LIKE = (
+        (0.5, 0.7),
+        ((0.05, 0.95), 0.2),
+    ),
+    quantile_col_label: str | None = None,
+    hue_var: str = "scenario",
+    hue_var_label: str | None = None,
+    style_var: str = "variable",
+    style_var_label: str | None = None,
+    palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
+    | None = None,
+    dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+    linewidth: float = 3.0,
+    unit_col: str = "unit",
+    x_label: str | None = "time",
+    y_label: str | bool | None = True,
+    warn_infer_y_label_with_multi_unit: bool = True,
+    create_legend: Callable[
+        [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
+    ] = create_legend_default,
+) -> matplotlib.axes.Axes:
+    quantile_col = "quantile"
+    pdf_q = fix_index_name_after_groupby_quantile(
+        groupby_except(pdf, quantile_over).quantile(get_quantiles(quantiles_plumes)),
+        new_name=quantile_col,
+        copy=False,
+    )
+
+    return plot_plume(
+        pdf=pdf_q,
+        ax=ax,
+        quantiles_plumes=quantiles_plumes,
+        quantile_col=quantile_col,
+        quantile_col_label=quantile_col_label,
+        hue_var=hue_var,
+        hue_var_label=hue_var_label,
+        style_var=style_var,
+        style_var_label=style_var_label,
+        palette=palette,
+        dashes=dashes,
+        linewidth=linewidth,
+        unit_col=unit_col,
+        x_label=x_label,
+        y_label=y_label,
+        warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
+        create_legend=create_legend,
+    )

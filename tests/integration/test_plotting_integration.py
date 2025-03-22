@@ -11,17 +11,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandas_openscm.plotting import plot_plume
+from pandas_openscm.plotting import (
+    get_quantiles,
+    plot_plume,
+    plot_plume_after_calculating_quantiles,
+)
 from pandas_openscm.testing import create_test_df
 
 plt = pytest.importorskip("matplotlib.pyplot")
 pytest_regressions = pytest.importorskip("pytest_regressions")
 
 # Different values of:
-# - quantile_over, both str and list[str]
-
-# - check result
-
 # - units
 #   - time units have to be passed by the user
 #   - value units can be inferred
@@ -37,6 +37,9 @@ pytest_regressions = pytest.importorskip("pytest_regressions")
 
 # - ax can be auto-created
 
+# - test error handling if you don't have the quantiles
+# - test error handling if quantile over and hue don't line up
+
 
 def check_plots(
     plot_kwargs: dict[str, Any],
@@ -46,7 +49,9 @@ def check_plots(
 ) -> None:
     fig, ax = plt.subplots()
 
-    plot_plume(df, ax=ax, **plot_kwargs)
+    return_val = plot_plume(df, ax=ax, **plot_kwargs)
+
+    assert return_val == ax
 
     out_file = tmp_path / "fig.png"
     plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
@@ -55,7 +60,39 @@ def check_plots(
 
     # Check this works via the accessor too
     fig, ax = plt.subplots()
-    df.openscm.plot_plume(ax=ax, **plot_kwargs)
+    return_val = df.openscm.plot_plume(ax=ax, **plot_kwargs)
+
+    assert return_val == ax
+
+    out_file = tmp_path / "fig-accessor.png"
+    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+
+def check_plots_incl_quantile_calculation(
+    method_kwargs: dict[str, Any],
+    df: pd.DataFrame,
+    image_regression: pytest_regressions.image_regression.ImageRegressionFixture,
+    tmp_path: Path,
+) -> None:
+    fig, ax = plt.subplots()
+
+    return_val = plot_plume_after_calculating_quantiles(df, ax=ax, **method_kwargs)
+
+    assert return_val == ax
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    # Check this works via the accessor too
+    fig, ax = plt.subplots()
+    return_val = df.openscm.plot_plume_after_calculating_quantiles(
+        ax=ax, **method_kwargs
+    )
+    assert return_val == ax
 
     out_file = tmp_path / "fig-accessor.png"
     plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
@@ -129,16 +166,10 @@ def test_plot_plume_quantiles(
     )
 
     plot_kwargs = dict(quantiles_plumes=quantiles_plumes, linewidth=1)
-    quantiles = []
-    for q, _ in quantiles_plumes:
-        if isinstance(q, float):
-            quantiles.append(q)
-        else:
-            quantiles.extend(q)
 
     check_plots(
         df=df.openscm.groupby_except("run")
-        .quantile(quantiles)
+        .quantile(get_quantiles(quantiles_plumes))
         .openscm.fix_index_name_after_groupby_quantile(),
         plot_kwargs=plot_kwargs,
         image_regression=image_regression,
@@ -147,15 +178,32 @@ def test_plot_plume_quantiles(
 
 
 @pytest.mark.parametrize(
-    "quantile_over, hue_var, style_var",
+    "quantile_over, hue_var, style_var, kwargs",
     (
-        ("scenario", "run", "variable"),
-        # Having no style var is definitely trickier
-        (["scenario", "variable", "unit"], "run", None),
+        pytest.param(
+            "scenario",
+            "run",
+            "variable",
+            dict(warn_infer_y_label_with_multi_unit=False),
+            id="single-var-with-style-var",
+        ),
+        pytest.param(
+            ["scenario", "variable", "unit"],
+            "run",
+            None,
+            dict(unit_col=None),
+            id="multi-var-with-no-style-var",
+        ),
     ),
 )
-def test_plot_plume_quantile_over(
-    quantile_over, hue_var, style_var, tmp_path, image_regression, setup_pandas_accessor
+def test_plot_plume_quantile_over(  # noqa: PLR0913
+    quantile_over,
+    hue_var,
+    style_var,
+    kwargs,
+    tmp_path,
+    image_regression,
+    setup_pandas_accessor,
 ):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "W")),
@@ -165,23 +213,23 @@ def test_plot_plume_quantile_over(
         rng=np.random.default_rng(seed=56461),
     )
 
-    plot_kwargs = dict(
-        quantile_over=quantile_over, hue_var=hue_var, style_var=style_var
+    method_kwargs = dict(
+        quantile_over=quantile_over,
+        quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
+        hue_var=hue_var,
+        style_var=style_var,
+        **kwargs,
     )
 
-    check_plots(
+    check_plots_incl_quantile_calculation(
         df=df,
-        plot_kwargs=plot_kwargs,
+        method_kwargs=method_kwargs,
         image_regression=image_regression,
         tmp_path=tmp_path,
     )
 
 
-def test_plot_plume_pre_calculated():
-    assert False
-
-
-def test_plot_plume_units():
-    # Plot two different sets of data with different units
-    # Make sure that the unit handling passes through
-    assert False
+# def test_plot_plume_units():
+#     # Plot two different sets of data with different units
+#     # Make sure that the unit handling passes through
+#     assert False

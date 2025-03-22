@@ -19,7 +19,7 @@ almost always goes wrong so I would stay away from this as long as we can.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
 
@@ -29,13 +29,17 @@ from pandas_openscm.grouping import (
 )
 from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
-from pandas_openscm.plotting import plot_plume
+from pandas_openscm.plotting import (
+    create_legend_default,
+    plot_plume,
+    plot_plume_after_calculating_quantiles,
+)
 
 if TYPE_CHECKING:
     import matplotlib
     import pandas_indexing as pix
 
-    from pandas_openscm.plotting import QUANTILES_PLUMES_LIKE
+    from pandas_openscm.plotting import COLOUR_VALUE_LIKE, QUANTILES_PLUMES_LIKE
 
 
 class DataFramePandasOpenSCMAccessor:
@@ -173,6 +177,53 @@ class DataFramePandasOpenSCMAccessor:
             style_var=style_var,
             style_var_label=style_var_label,
             linewidth=linewidth,
+        )
+
+    def plot_plume_after_calculating_quantiles(
+        self,
+        ax: matplotlib.axes.Axes | None = None,
+        *,
+        quantile_over: str | list[str],
+        quantiles_plumes: QUANTILES_PLUMES_LIKE = (
+            (0.5, 0.7),
+            ((0.05, 0.95), 0.2),
+        ),
+        quantile_col_label: str | None = None,
+        hue_var: str = "scenario",
+        hue_var_label: str | None = None,
+        style_var: str = "variable",
+        style_var_label: str | None = None,
+        palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
+        | None = None,
+        dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+        linewidth: float = 3.0,
+        unit_col: str = "unit",
+        x_label: str | None = "time",
+        y_label: str | bool | None = True,
+        warn_infer_y_label_with_multi_unit: bool = True,
+        create_legend: Callable[
+            [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
+        ] = create_legend_default,
+    ) -> matplotlib.axes.Axes:
+        # TODO: docstring
+        return plot_plume_after_calculating_quantiles(
+            self._df,
+            ax=ax,
+            quantile_over=quantile_over,
+            quantiles_plumes=quantiles_plumes,
+            quantile_col_label=quantile_col_label,
+            hue_var=hue_var,
+            hue_var_label=hue_var_label,
+            style_var=style_var,
+            style_var_label=style_var_label,
+            palette=palette,
+            dashes=dashes,
+            linewidth=linewidth,
+            unit_col=unit_col,
+            x_label=x_label,
+            y_label=y_label,
+            warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
+            create_legend=create_legend,
         )
 
     def to_category_index(self) -> pd.DataFrame:
