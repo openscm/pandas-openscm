@@ -319,6 +319,81 @@ def test_plot_plume_missing_from_palette(
     )
 
 
+def test_plot_plume_extra_dashes(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessor,
+):
+    df = create_test_df(
+        variables=(("variable_1", "W"), ("variable_2", "W")),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=6543),
+    )
+
+    method_kwargs = dict(
+        quantile_over="run",
+        quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
+        hue_var="scenario",
+        style_var="variable",
+        dashes={
+            # Not in df
+            "variable_0": "-",
+            "variable_1": "--",
+            "variable_2": ":",
+        },
+    )
+
+    check_plots_incl_quantile_calculation(
+        df=df,
+        method_kwargs=method_kwargs,
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+
+def test_plot_plume_missing_from_dashes(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessor,
+):
+    df = create_test_df(
+        variables=(("variable_1", "W"), ("variable_2", "W")),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=85919),
+    )
+
+    dashes = {
+        # "variable_1": "--",
+        "variable_2": ":",
+    }
+    method_kwargs = dict(
+        quantile_over="run",
+        quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
+        hue_var="scenario",
+        style_var="variable",
+        dashes=dashes,
+    )
+
+    check_plots_incl_quantile_calculation(
+        df=df,
+        method_kwargs=method_kwargs,
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+        exp=pytest.warns(
+            match=re.escape(
+                "Some style values are not in the user-supplied dashes, "
+                "they will be filled from the default dash cycler instead. "
+                f"missing_from_user_supplied={['variable_1']} "
+                f"dashes_user_supplied={dashes}"
+            )
+        ),
+    )
+
+
 @pytest.mark.parametrize(
     "quantiles, quantiles_plumes, exp",
     (

@@ -275,9 +275,9 @@ def fill_out_dashes(
 
     if warn_on_value_missing:
         msg = (
-            f"{missing_from_user_supplied} not in the user-supplied palette, "
-            "they will be filled from the default colour cycler instead. "
-            f"{dashes_user_supplied=}"
+            f"Some style values are not in the user-supplied dashes, "
+            "they will be filled from the default dash cycler instead. "
+            f"{missing_from_user_supplied=} {dashes_user_supplied=}"
         )
         warnings.warn(msg)
 
