@@ -567,12 +567,9 @@ class PlumePlotter:
 
             gpdf = partial(get_pdf_from_pre_calculated, gdf, quantile_col=quantile_var)
 
-            def warn_about_missing_quantile(
-                quantiles: Iterable[float],
-                exc: Exception,
-            ) -> pd.DataFrame | None:
+            def warn_about_missing_quantile(exc: Exception) -> pd.DataFrame | None:
                 warnings.warn(
-                    f"Missing {quantiles=} for {info_d}. Original exception: {exc}"
+                    f"Quantiles missing for {info_d}. Original exception: {exc}"
                 )
 
             for q, alpha in quantiles_plumes:
@@ -586,7 +583,7 @@ class PlumePlotter:
                         quantiles = (q,)
                         pdf = gpdf(quantiles=quantiles)
                     except MissingQuantileError as exc:
-                        warn_about_missing_quantile(quantiles=quantiles, exc=exc)
+                        warn_about_missing_quantile(exc=exc)
                         continue
 
                     line_plotter = SingleLinePlotter(
@@ -604,7 +601,7 @@ class PlumePlotter:
                     try:
                         pdf = gpdf(quantiles=q)
                     except MissingQuantileError as exc:
-                        warn_about_missing_quantile(quantiles=q, exc=exc)
+                        warn_about_missing_quantile(exc=exc)
                         continue
 
                     plume_plotter = SinglePlumePlotter(

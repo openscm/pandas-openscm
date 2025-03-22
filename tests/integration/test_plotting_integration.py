@@ -325,8 +325,20 @@ def test_plot_plume_missing_from_palette(
         pytest.param(
             [0.05, 0.5, 0.95],
             ((0.45, 0.5), ((0.05, 0.95), 0.2)),
-            pytest.warns(match=re.escape("Missing quantiles=(0.45,)")),
+            pytest.warns(match=r"Quantiles missing.*missing_quantiles=\[0.45\]"),
             id="missing-line-quantile",
+        ),
+        pytest.param(
+            [0.05, 0.5, 0.95],
+            ((0.5, 0.5), ((0.15, 0.95), 0.2)),
+            pytest.warns(match=r"Quantiles missing.*missing_quantiles=\[0.15\]"),
+            id="missing-plume-quantile",
+        ),
+        pytest.param(
+            [0.05, 0.5, 0.95],
+            ((0.5, 0.5), ((0.15, 0.85), 0.2)),
+            pytest.warns(match=r"Quantiles missing.*missing_quantiles=\[0.15, 0.85\]"),
+            id="missing-plumes-quantile",
         ),
     ),
 )
@@ -350,6 +362,43 @@ def test_plot_plume_missing_quantiles(  # noqa: PLR0913
         tmp_path=tmp_path,
         exp=exp,
     )
+
+
+def test_plot_plume_missing_multiple_quantiles(
+    setup_pandas_accessor,
+    image_regression,
+    tmp_path,
+    recwarn,
+):
+    quantiles = [0.25, 0.75]
+    quantiles_plumes = ((0.5, 0.5), ((0.15, 0.85), 0.2), ((0.25, 0.75), 0.4))
+
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=118844),
+    )
+
+    check_plots(
+        df=df.openscm.groupby_except("run")
+        .quantile(quantiles)
+        .openscm.fix_index_name_after_groupby_quantile(),
+        plot_kwargs=dict(quantiles_plumes=quantiles_plumes),
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+    assert len(recwarn) == 16
+    for w in recwarn:
+        assert any(
+            m in str(w.message)
+            for m in (
+                "missing_quantiles=[0.5]",
+                "missing_quantiles=[0.15, 0.85]",
+            )
+        )
 
 
 # def test_plot_plume_units():
