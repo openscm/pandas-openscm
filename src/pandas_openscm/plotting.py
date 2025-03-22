@@ -172,317 +172,15 @@ def create_legend_default(
     ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1.05, 0.5))
 
 
-# def plot_plume(
-#     pdf: pd.DataFrame,
-#     ax: matplotlib.axes.Axes | None = None,
-#     *,
-#     quantile_over: str | list[str] = "run",
-#     quantiles_plumes: QUANTILES_PLUMES_LIKE = (
-#         (0.5, 0.7),
-#         ((0.05, 0.95), 0.2),
-#     ),
-#     hue_var: str = "scenario",
-#     hue_var_label: str | None = None,
-#     style_var: str = "variable",
-#     style_var_label: str | None = None,
-#     palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
-#     | None = None,
-#     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
-#     linewidth: float = 3.0,
-#     unit_col: str = "unit",
-#     pre_calculated: bool = False,
-#     quantile_col: str = "quantile",
-#     quantile_col_label: str | None = None,
-#     observed: bool = True,
-#     y_label: str | bool | None = True,
-#     x_label: str | None = "time",
-#     create_legend: Callable[
-#         [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
-#     ] = create_legend_default,
-# ):
-#     try:
-#         import matplotlib.pyplot as plt
-#     except ImportError as exc:
-#         raise MissingOptionalDependencyError(
-#             "plot_plume", requirement="matplotlib"
-#         ) from exc
-#
-#     if ax is None:
-#         _, ax = plt.subplots()
-#
-#     # The joy of plotting, you create everything yourself.
-#     if hue_var_label is None:
-#         hue_var_label = hue_var.capitalize()
-#     if style_var is not None and style_var_label is None:
-#         style_var_label = style_var.capitalize()
-#     if quantile_col_label is None:
-#         quantile_col_label = quantile_col.capitalize()
-#
-#     quantiles = get_quantiles(quantiles_plumes)
-#
-#     _palette = {} if palette is None else palette
-#
-#     if dashes is None:
-#         _dashes = {}
-#         if style_var is None:
-#             linestyle_cycler = cycle(["-"])
-#         else:
-#             linestyle_cycler = cycle(["-", "--", "-.", ":"])
-#     else:
-#         _dashes = dashes
-#
-#     if create_legend is None:
-#         create_legend = create_legend_default
-#
-#     # Need to keep track of this, just in case we end up plotting only plumes
-#     _plotted_lines = False
-#
-#     quantile_labels = {}
-#     plotted_hues = []
-#     plotted_styles = []
-#     units_l = []
-#     for q, alpha in quantiles_plumes:
-#         if isinstance(q, float):
-#             quantiles = (q,)
-#             plot_plume = False
-#         else:
-#             quantiles = q
-#             plot_plume = True
-#
-#         # Can split out plot plume vs. plot line to use here
-#         if style_var is None:
-#             style_var_grouper = hue_var
-#         else:
-#             style_var_grouper = style_var
-#
-#         for hue_value, hue_ts in pdf.groupby(hue_var, observed=observed):
-#             for style_value, hue_style_ts in hue_ts.groupby(
-#                 style_var_grouper, observed=observed
-#             ):
-#                 # Remake in inner loop to avoid leaking between plots
-#                 pkwargs = {"alpha": alpha}
-#
-#                 if pre_calculated:
-#                     try:
-#                         pdf_group = get_pdf_from_pre_calculated(
-#                             hue_style_ts,
-#                             quantiles=quantiles,
-#                             quantile_col=quantile_col,
-#                         )
-#
-#                     except MissingQuantileError as exc:
-#                         warnings.warn(
-#                             f"Missing quantiles for {hue_value=} {style_value=}. "
-#                             f"Original exception: {exc}"
-#                         )
-#                         continue
-#
-#                 else:
-#                     tmp = groupby_except(hue_style_ts, quantile_over).quantile(
-#                         quantiles
-#                     )
-#                     pdf_group = fix_index_name_after_groupby_quantile(
-#                         tmp, new_name=quantile_col
-#                     )
-#
-#                 pdf_group_quantile = pdf_group.loc[
-#                     pdf_group.index.get_level_values(quantile_col).isin(quantiles)
-#                 ]
-#
-#                 if plot_plume:
-#                     if pdf_group_quantile.shape[0] != 2:
-#                         raise AssertionError
-#
-#                 elif pdf_group_quantile.shape[0] != 1:
-#                     if isinstance(quantile_over, str):
-#                         quantile_over_it = [quantile_over]
-#                     else:
-#                         quantile_over_it = quantile_over
-#
-#                     leftover_cols = pdf.index.names.difference(
-#                         {hue_var, style_var, *quantile_over_it}
-#                     )
-#                     msg = (
-#                         f"After grouping by {hue_var=} and {style_var=}, "
-#                         f"and calculating quantiles over {quantile_over=}, "
-#                         f"there are still variations in {leftover_cols=} "
-#                         "so we do not know what to plot.\n"
-#                         f"{hue_ts.index=}"
-#                     )
-#                     raise AssertionError(msg)
-#
-#                 if hue_value not in plotted_hues:
-#                     plotted_hues.append(hue_value)
-#
-#                 x_vals = pdf_group.columns.values.squeeze()
-#                 # Require ur for this to work
-#                 # if time_units is not None:
-#                 #     x_vals = x_vals * time_units
-#                 # x_vals = get_plot_vals(
-#                 #     x_vals,
-#                 #     "x_axis",
-#                 #     warn_if_magnitudes=warn_if_plotting_magnitudes,
-#                 # )
-#
-#                 if palette is not None:
-#                     try:
-#                         pkwargs["color"] = palette[hue_value]
-#                     except KeyError:
-#                         error_msg = f"{hue_value} not in palette. {palette=}"
-#                         raise KeyError(error_msg)
-#
-#                 elif hue_value in _palette:
-#                     pkwargs["color"] = _palette[hue_value]
-#                 # else:
-#                 #     # Let matplotlib default cycling do its thing
-#
-#                 if plot_plume:
-#                     label = f"{q[0] * 100:.0f}th - {q[1] * 100:.0f}th"
-#
-#                     y_lower_vals = pdf_group.loc[
-#                         pdf_group_quantile.index.get_level_values(quantile_col).isin(
-#                             {quantiles[0]}
-#                         )
-#                     ].values.squeeze()
-#                     y_upper_vals = pdf_group.loc[
-#                         pdf_group_quantile.index.get_level_values(quantile_col).isin(
-#                             {quantiles[1]}
-#                         )
-#                     ].values.squeeze()
-#                     # Require ur for this to work
-#                     # Also need the 1D check back in too
-#                     # y_lower_vals = get_plot_vals(
-#                     #     y_lower_vals * y_units,
-#                     #     "y_lower_vals",
-#                     #     warn_if_magnitudes=warn_if_plotting_magnitudes,
-#                     # )
-#                     p = ax.fill_between(
-#                         x_vals,
-#                         y_lower_vals,
-#                         y_upper_vals,
-#                         label=label,
-#                         **pkwargs,
-#                     )
-#
-#                     if palette is None:
-#                         _palette[hue_value] = p.get_facecolor()[0]
-#
-#                 else:
-#                     if style_value not in plotted_styles:
-#                         plotted_styles.append(style_value)
-#
-#                     _plotted_lines = True
-#
-#                     if dashes is not None:
-#                         try:
-#                             pkwargs["linestyle"] = _dashes[style_value]
-#                         except KeyError:
-#                             error_msg = f"{style_value} not in dashes. {dashes=}"
-#                             raise KeyError(error_msg)
-#                     else:
-#                         if style_value not in _dashes:
-#                             _dashes[style_value] = next(linestyle_cycler)
-#
-#                         pkwargs["linestyle"] = _dashes[style_value]
-#
-#                     if isinstance(q, str):
-#                         label = q
-#                     else:
-#                         label = f"{q * 100:.0f}th"
-#
-#                     y_vals = pdf_group.loc[
-#                         pdf_group.index.get_level_values(quantile_col).isin({q})
-#                     ].values.squeeze()
-#                     # Require ur for this to work
-#                     # Also need the 1D check back in too
-#                     # y_vals = get_plot_vals(
-#                     #     y_vals * y_units,
-#                     #     "y_vals",
-#                     #     warn_if_magnitudes=warn_if_plotting_magnitudes,
-#                     # )
-#                     p = ax.plot(
-#                         x_vals,
-#                         y_vals,
-#                         label=label,
-#                         linewidth=linewidth,
-#                         **pkwargs,
-#                     )[0]
-#
-#                     if dashes is None:
-#                         _dashes[style_value] = p.get_linestyle()
-#
-#                     if palette is None:
-#                         _palette[hue_value] = p.get_color()
-#
-#                 if label not in quantile_labels:
-#                     quantile_labels[label] = p
-#
-#                 # Once we have unit handling with matplotlib, we can remove this
-#                 # (and if matplotlib isn't set up, we just don't do unit handling)
-#                 # TODO: if clause here to check re unit handling
-#                 if unit_col in pdf_group.index.names:
-#                     units_l.extend(
-#                         pdf_group.index.get_level_values(unit_col).unique().tolist()
-#                     )
-#
-#     # Fake the line handles for the legend
-#     hue_val_lines = [
-#         mlines.Line2D([0], [0], color=_palette[hue_value], label=hue_value)
-#         for hue_value in plotted_hues
-#     ]
-#
-#     legend_items = [
-#         mpatches.Patch(alpha=0, label=quantile_col_label),
-#         *quantile_labels.values(),
-#         mpatches.Patch(alpha=0, label=hue_var_label),
-#         *hue_val_lines,
-#     ]
-#
-#     if _plotted_lines:
-#         style_val_lines = [
-#             mlines.Line2D(
-#                 [0],
-#                 [0],
-#                 linestyle=_dashes[style_value],
-#                 label=style_value,
-#                 color="gray",
-#                 linewidth=linewidth,
-#             )
-#             for style_value in plotted_styles
-#         ]
-#         legend_items += [
-#             mpatches.Patch(alpha=0, label=style_var_label),
-#             *style_val_lines,
-#         ]
-#
-#     elif dashes is not None:
-#         warnings.warn(
-#             "`dashes` was passed but no lines were plotted, the style settings "
-#             "will not be used"
-#         )
-#
-#     create_legend(ax=ax, handles=legend_items)
-#
-#     if isinstance(y_label, bool) and y_label:
-#         units_s = set(units_l)
-#         if len(units_s) == 1:
-#             ax.set_ylabel(units_l[0])
-#         else:
-#             warnings.warn(
-#                 "Not auto-setting the y_label "
-#                 f"because the plotted data has more than one unit: data units {units_s}"
-#             )
-#
-#     elif y_label is not None:
-#         ax.set_ylabel(y_label)
-#
-#     if x_label is not None:  # and units not already handled
-#         ax.set_xlabel(x_label)
-#
-#     return ax, legend_items
-
-
 def get_default_colour_cycler() -> Iterable[COLOUR_VALUE_LIKE]:
+    """
+    Get the default colour cycler
+
+    Returns
+    -------
+    :
+        Default colour cycler
+    """
     try:
         import matplotlib.pyplot as plt
     except ImportError as exc:
@@ -1032,6 +730,7 @@ class PlumePlotter:
         create_legend: Callable[
             [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
         ] = create_legend_default,
+        quantile_legend_round: int = 2,
     ) -> matplotlib.axes.Axes:
         if ax is None:
             try:
@@ -1049,7 +748,12 @@ class PlumePlotter:
         for line in self.lines:
             line.plot(ax=ax)
 
-        create_legend(ax=ax, handles=self.generate_legend_handles())
+        create_legend(
+            ax=ax,
+            handles=self.generate_legend_handles(
+                quantile_legend_round=quantile_legend_round
+            ),
+        )
 
         if self.x_label is not None:
             ax.set_xlabel(self.x_label)
@@ -1060,7 +764,7 @@ class PlumePlotter:
         return ax
 
 
-def plot_plume(
+def plot_plume(  # noqa: PLR0913
     pdf: pd.DataFrame,
     ax: matplotlib.axes.Axes | None = None,
     *,
@@ -1068,15 +772,18 @@ def plot_plume(
         (0.5, 0.7),
         ((0.05, 0.95), 0.2),
     ),
-    quantile_col: str = "quantile",
-    quantile_col_label: str | None = None,
+    quantile_var: str = "quantile",
+    quantile_var_label: str | None = None,
+    quantile_legend_round: int = 3,
     hue_var: str = "scenario",
     hue_var_label: str | None = None,
-    style_var: str = "variable",
-    style_var_label: str | None = None,
     palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
     | None = None,
+    warn_on_palette_value_missing: bool = True,
+    style_var: str = "variable",
+    style_var_label: str | None = None,
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+    warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
     unit_col: str = "unit",
     x_label: str | None = "time",
@@ -1085,26 +792,32 @@ def plot_plume(
     create_legend: Callable[
         [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
     ] = create_legend_default,
+    observed: bool = True,
 ) -> matplotlib.axes.Axes:
     plotter = PlumePlotter.from_df(
         df=pdf,
         quantiles_plumes=quantiles_plumes,
-        quantile_var=quantile_col,
-        quantile_var_label=quantile_col_label,
+        quantile_var=quantile_var,
+        quantile_var_label=quantile_var_label,
         hue_var=hue_var,
         hue_var_label=hue_var_label,
+        palette=palette,
+        warn_on_palette_value_missing=warn_on_palette_value_missing,
         style_var=style_var,
         style_var_label=style_var_label,
-        palette=palette,
         dashes=dashes,
+        warn_on_dashes_value_missing=warn_on_dashes_value_missing,
         linewidth=linewidth,
         unit_col=unit_col,
         x_label=x_label,
         y_label=y_label,
         warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
+        observed=observed,
     )
 
-    plotter.plot(ax=ax, create_legend=create_legend)
+    plotter.plot(
+        ax=ax, create_legend=create_legend, quantile_legend_round=quantile_legend_round
+    )
 
     return ax
 
@@ -1146,8 +859,8 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
         pdf=pdf_q,
         ax=ax,
         quantiles_plumes=quantiles_plumes,
-        quantile_col=quantile_col,
-        quantile_col_label=quantile_col_label,
+        quantile_var=quantile_col,
+        quantile_var_label=quantile_col_label,
         hue_var=hue_var,
         hue_var_label=hue_var_label,
         style_var=style_var,

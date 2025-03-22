@@ -229,6 +229,68 @@ def test_plot_plume_quantile_over(  # noqa: PLR0913
     )
 
 
+def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_path):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(2025.0, 2150.0),
+        rng=np.random.default_rng(seed=85910),
+    )
+
+    pdf = (
+        df.openscm.groupby_except("run")
+        .quantile([0.1685321, 0.5, 0.8355321])
+        .openscm.fix_index_name_after_groupby_quantile(new_name="percentile")
+        .reset_index(["unit", "percentile"])
+    )
+    pdf["percentile"] *= 100.0
+    pdf = pdf.rename({"unit": "units"}, axis="columns")
+    pdf = pdf.set_index(["units", "percentile"], append=True)
+    pdf.columns = pdf.columns.astype(float)
+
+    def create_legend(ax, handles) -> None:
+        ax.legend(handles=handles, loc="best", handlelength=4)
+
+    plot_kwargs = dict(
+        quantiles_plumes=((50.0, 1.0), ((16.85321, 83.55321), 0.3)),
+        quantile_var="percentile",
+        quantile_var_label="Percent",
+        quantile_legend_round=3,
+        hue_var="variable",
+        hue_var_label="Var",
+        style_var="scenario",
+        style_var_label="Scen",
+        palette={
+            # Drop out to trigger warning below
+            # "variable_1": "tab:green",
+            "variable_2": "tab:purple",
+        },
+        warn_on_palette_value_missing=False,
+        dashes={
+            "scenario_0": "--",
+            # Drop out to trigger warning below
+            # "scenario_1": "-",
+            "scenario_2": (0, (5, 3, 5, 1)),
+        },
+        warn_on_dashes_value_missing=False,
+        linewidth=1.5,
+        unit_col="units",
+        x_label="Year",
+        y_label="Value",
+        # warn_infer_y_label_with_multi_unit tested elsewhere
+        create_legend=create_legend,
+        observed=False,
+    )
+
+    check_plots(
+        df=pdf,
+        plot_kwargs=plot_kwargs,
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+
 # def test_plot_plume_units():
 #     # Plot two different sets of data with different units
 #     # Make sure that the unit handling passes through
