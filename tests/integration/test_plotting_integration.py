@@ -133,6 +133,71 @@ def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
     )
 
 
+def test_plot_plume_with_other_plot_calls(
+    tmp_path, image_regression, setup_pandas_accessor
+):
+    fig, ax = plt.subplots()
+
+    before_handles = ax.plot(
+        np.arange(1955.0, 1975.0, 2.5),
+        8 - np.arange(8),
+        color="gray",
+        label="before",
+        linewidth=2.5,
+        linestyle="--",
+        zorder=3.1,
+    )
+
+    df = (
+        create_test_df(
+            variables=(("variable_1", "K"), ("variable_2", "K")),
+            n_scenarios=3,
+            n_runs=10,
+            timepoints=np.arange(1950.0, 1965.0),
+            rng=np.random.default_rng(seed=999),
+        )
+        .openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile()
+    )
+
+    df.openscm.plot_plume(
+        ax=ax,
+        quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
+    )
+
+    x_after = np.linspace(1940.0, 1970.0, 101)
+    after_handles = ax.plot(
+        x_after,
+        np.sin(x_after) + 5.0 + np.linspace(0, 30.0, x_after.size),
+        color="pink",
+        label="after",
+        linewidth=3,
+        zorder=3.1,
+    )
+
+    # This is mucking around.
+    # If you wanted to do something like this,
+    # much simpler to just get the PlumePlotter object
+    # and do the handles that way.
+    # This at least shows that this sort of thing is possible.
+    new_handles = [
+        *before_handles,
+        *after_handles,
+        *ax.get_legend().legend_handles,
+    ]
+    ax.legend(handles=new_handles, loc="lower left", bbox_to_anchor=(1.05, 0.25))
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(ax.get_legend(),),
+        bbox_inches="tight",
+    )
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+
 @pytest.mark.parametrize(
     "quantiles_plumes",
     (
