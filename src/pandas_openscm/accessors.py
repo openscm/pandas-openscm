@@ -217,14 +217,17 @@ class DataFramePandasOpenSCMAccessor:
             (0.5, 0.7),
             ((0.05, 0.95), 0.2),
         ),
-        quantile_col_label: str | None = None,
+        quantile_var_label: str | None = None,
+        quantile_legend_round: int = 2,
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
-        style_var: str = "variable",
-        style_var_label: str | None = None,
         palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
         | None = None,
+        warn_on_palette_value_missing: bool = True,
+        style_var: str = "variable",
+        style_var_label: str | None = None,
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+        warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_col: str = "unit",
         x_label: str | None = "time",
@@ -233,6 +236,7 @@ class DataFramePandasOpenSCMAccessor:
         create_legend: Callable[
             [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
         ] = create_legend_default,
+        observed: bool = True,
     ) -> matplotlib.axes.Axes:
         # TODO: docstring
         return plot_plume_after_calculating_quantiles(
@@ -240,19 +244,23 @@ class DataFramePandasOpenSCMAccessor:
             ax=ax,
             quantile_over=quantile_over,
             quantiles_plumes=quantiles_plumes,
-            quantile_col_label=quantile_col_label,
+            quantile_var_label=quantile_var_label,
+            quantile_legend_round=quantile_legend_round,
             hue_var=hue_var,
             hue_var_label=hue_var_label,
+            palette=palette,
+            warn_on_palette_value_missing=warn_on_palette_value_missing,
             style_var=style_var,
             style_var_label=style_var_label,
-            palette=palette,
             dashes=dashes,
+            warn_on_dashes_value_missing=warn_on_dashes_value_missing,
             linewidth=linewidth,
             unit_col=unit_col,
             x_label=x_label,
             y_label=y_label,
             warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
             create_legend=create_legend,
+            observed=observed,
         )
 
     def to_category_index(self) -> pd.DataFrame:
