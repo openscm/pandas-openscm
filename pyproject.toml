@@ -130,6 +130,8 @@ tests-full = [
     # Key dependencies
     # ----------------
     "pytest-cov>=6.0.0",
+    "pandas-indexing>=0.6.2",
+    "pytest-regressions>=2.7.0",
 ]
 # Test dependencies
 # (partly split because liccheck uses toml,
@@ -137,7 +139,6 @@ tests-full = [
 tests = [
     {include-group = "tests-min"},
     {include-group = "tests-full"},
-    "pandas-indexing>=0.6.2",
 ]
 all-dev = [
     {include-group = "dev"},

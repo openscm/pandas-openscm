@@ -5,7 +5,7 @@
 groups = ["default", "all-dev", "db", "db-full", "dev", "docs", "full", "plots", "progress", "tests", "tests-full", "tests-min"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:a38b5c2f2bb180113b57d930c4d0d8ea21a5ec88c1f51086cffc0cced0643167"
+content_hash = "sha256:617085ae176a96789e4e3af9a1091d5f2aaa9e391a90b3bc6a753f6cdfa46c0b"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -735,7 +735,7 @@ name = "deprecated"
 version = "1.2.18"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
 summary = "Python @deprecated decorator to deprecate old python classes, functions or methods."
-groups = ["all-dev", "dev", "docs", "tests"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 dependencies = [
     "wrapt<2,>=1.10",
 ]
@@ -907,7 +907,7 @@ files = [
 
 [[package]]
 name = "griffe"
-version = "1.6.0"
+version = "1.6.2"
 requires_python = ">=3.9"
 summary = "Signatures for entire Python programs. Extract the structure, the frame, the skeleton of your project, to generate API documentation or find breaking changes in your API."
 groups = ["all-dev", "docs"]
@@ -916,8 +916,8 @@ dependencies = [
     "colorama>=0.4",
 ]
 files = [
-    {file = "griffe-1.6.0-py3-none-any.whl", hash = "sha256:9f1dfe035d4715a244ed2050dfbceb05b1f470809ed4f6bb10ece5a7302f8dd1"},
-    {file = "griffe-1.6.0.tar.gz", hash = "sha256:eb5758088b9c73ad61c7ac014f3cdfb4c57b5c2fcbfca69996584b702aefa354"},
+    {file = "griffe-1.6.2-py3-none-any.whl", hash = "sha256:6399f7e663150e4278a312a8e8a14d2f3d7bd86e2ef2f8056a1058e38579c2ee"},
+    {file = "griffe-1.6.2.tar.gz", hash = "sha256:3a46fa7bd83280909b63c12b9a975732a927dd97809efe5b7972290b606c5d91"},
 ]
 
 [[package]]
@@ -968,7 +968,7 @@ files = [
 
 [[package]]
 name = "hypothesis"
-version = "6.129.3"
+version = "6.129.4"
 requires_python = ">=3.9"
 summary = "A library for property-based testing"
 groups = ["all-dev", "tests", "tests-full"]
@@ -978,8 +978,8 @@ dependencies = [
     "sortedcontainers<3.0.0,>=2.1.0",
 ]
 files = [
-    {file = "hypothesis-6.129.3-py3-none-any.whl", hash = "sha256:95f8f1f0d6cd29b272ae4b42c5c5d9768aa1f2be3ab1834a961a9d0c2fc4d652"},
-    {file = "hypothesis-6.129.3.tar.gz", hash = "sha256:8a0cbc7612861f603af3838d282e2f7c47f362e7093fabf3ce928d2c7e3480e3"},
+    {file = "hypothesis-6.129.4-py3-none-any.whl", hash = "sha256:45a31fe2b936688b2954f375c7f87e9dfefa4f2cddfa31cdeba15d77600e1286"},
+    {file = "hypothesis-6.129.4.tar.gz", hash = "sha256:e9fd66c25b8f0aa6395ce6728360892c3af22529cc16cae7512a4672776d4781"},
 ]
 
 [[package]]
@@ -1772,7 +1772,7 @@ files = [
 
 [[package]]
 name = "mistune"
-version = "3.1.2"
+version = "3.1.3"
 requires_python = ">=3.8"
 summary = "A sane and fast Markdown parser with useful plugins and renderers"
 groups = ["all-dev", "docs"]
@@ -1780,8 +1780,8 @@ dependencies = [
     "typing-extensions; python_version < \"3.11\"",
 ]
 files = [
-    {file = "mistune-3.1.2-py3-none-any.whl", hash = "sha256:4b47731332315cdca99e0ded46fc0004001c1299ff773dfb48fbe1fd226de319"},
-    {file = "mistune-3.1.2.tar.gz", hash = "sha256:733bf018ba007e8b5f2d3a9eb624034f6ee26c4ea769a98ec533ee111d504dff"},
+    {file = "mistune-3.1.3-py3-none-any.whl", hash = "sha256:1a32314113cff28aa6432e99e522677c8587fd83e3d51c29b82a52409c842bd9"},
+    {file = "mistune-3.1.3.tar.gz", hash = "sha256:a7035c21782b2becb6be62f8f25d3df81ccb4d6fa477a6525b15af06539f02a0"},
 ]
 
 [[package]]
@@ -2203,7 +2203,7 @@ name = "numpy"
 version = "2.0.2"
 requires_python = ">=3.9"
 summary = "Fundamental package for array computing in Python"
-groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests", "tests-full"]
 files = [
     {file = "numpy-2.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:51129a29dbe56f9ca83438b706e2e69a39892b5eda6cedcb6b0c9fdc9b0d3ece"},
     {file = "numpy-2.0.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f15975dfec0cf2239224d80e32c3170b1d168335eaedee69da84fbe9f1f9cd04"},
@@ -2292,7 +2292,7 @@ name = "pandas"
 version = "2.2.3"
 requires_python = ">=3.9"
 summary = "Powerful data structures for data analysis, time series, and statistics"
-groups = ["default", "all-dev", "db-full", "dev", "docs", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "tests", "tests-full"]
 dependencies = [
     "numpy>=1.22.4; python_version < \"3.11\"",
     "numpy>=1.23.2; python_version == \"3.11\"",
@@ -2351,7 +2351,7 @@ name = "pandas-indexing"
 version = "0.6.3"
 requires_python = "<4,>=3.9"
 summary = "Helpers to facilitate working with pandas indices in particular multiindices"
-groups = ["all-dev", "dev", "docs", "tests"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 dependencies = [
     "attrs",
     "deprecated",
@@ -2517,13 +2517,13 @@ files = [
 
 [[package]]
 name = "platformdirs"
-version = "4.3.6"
-requires_python = ">=3.8"
+version = "4.3.7"
+requires_python = ">=3.9"
 summary = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
 groups = ["all-dev", "dev", "docs"]
 files = [
-    {file = "platformdirs-4.3.6-py3-none-any.whl", hash = "sha256:73e575e1408ab8103900836b97580d5307456908a03e92031bab39e4554cc3fb"},
-    {file = "platformdirs-4.3.6.tar.gz", hash = "sha256:357fb2acbc885b0419afd3ce3ed34564c13c9b95c89360cd9563f73aa5e2b907"},
+    {file = "platformdirs-4.3.7-py3-none-any.whl", hash = "sha256:a03875334331946f13c549dbd8f4bac7a13a50a895a0eb1e8c6a8ace80d40a94"},
+    {file = "platformdirs-4.3.7.tar.gz", hash = "sha256:eb437d586b6a0986388f0d6f74aa0cde27b48d0e3d66843640bfb6bdcdb6e351"},
 ]
 
 [[package]]
@@ -2752,11 +2752,41 @@ files = [
 ]
 
 [[package]]
+name = "pytest-datadir"
+version = "1.6.1"
+requires_python = ">=3.8"
+summary = "pytest plugin for test data directories and files"
+groups = ["all-dev", "tests", "tests-full"]
+dependencies = [
+    "pytest>=7.0",
+]
+files = [
+    {file = "pytest_datadir-1.6.1-py3-none-any.whl", hash = "sha256:aa427f6218d3fc7481129d59c892bd7adfb8822613a2726ffc97f51968879cdb"},
+    {file = "pytest_datadir-1.6.1.tar.gz", hash = "sha256:4d204cf93cfe62ddc37b19922df6c8c0f133c2899c224bd339b24920e84e7fd3"},
+]
+
+[[package]]
+name = "pytest-regressions"
+version = "2.7.0"
+requires_python = ">=3.9"
+summary = "Easy to use fixtures to write regression tests."
+groups = ["all-dev", "tests", "tests-full"]
+dependencies = [
+    "pytest-datadir>=1.2.0",
+    "pytest>=6.2.0",
+    "pyyaml",
+]
+files = [
+    {file = "pytest_regressions-2.7.0-py3-none-any.whl", hash = "sha256:69f5e3f03493cf0ef84d96d23e50a546617c198b1d7746f2e2b9e441cbab4847"},
+    {file = "pytest_regressions-2.7.0.tar.gz", hash = "sha256:4c30064e0923929012c94f5d6f35205be06fd8709c7f0dba0228e05c460af05e"},
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 summary = "Extensions to the standard Python datetime module"
-groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests", "tests-full"]
 dependencies = [
     "six>=1.5",
 ]
@@ -2783,7 +2813,7 @@ files = [
 name = "pytz"
 version = "2025.1"
 summary = "World timezone definitions, modern and historical"
-groups = ["default", "all-dev", "db-full", "dev", "docs", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "tests", "tests-full"]
 files = [
     {file = "pytz-2025.1-py2.py3-none-any.whl", hash = "sha256:89dd22dca55b46eac6eda23b2d72721bf1bdfef212645d81513ef5d03038de57"},
     {file = "pytz-2025.1.tar.gz", hash = "sha256:c2db42be2a2518b28e65f9207c4d05e6ff547d1efa4086469ef855e4ab70178e"},
@@ -2834,7 +2864,7 @@ name = "pyyaml"
 version = "6.0.2"
 requires_python = ">=3.8"
 summary = "YAML parser and emitter for Python"
-groups = ["all-dev", "dev", "docs"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 files = [
     {file = "PyYAML-6.0.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0a9a2848a5b7feac301353437eb7d5957887edbf81d56e903999a75a3d743086"},
     {file = "PyYAML-6.0.2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:29717114e51c84ddfba879543fb232a6ed60086602313ca38cce623c1d62cfbf"},
@@ -3311,7 +3341,7 @@ name = "six"
 version = "1.17.0"
 requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 summary = "Python 2 and 3 compatibility utilities"
-groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "full", "plots", "tests", "tests-full"]
 files = [
     {file = "six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274"},
     {file = "six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"},
@@ -3545,13 +3575,13 @@ files = [
 
 [[package]]
 name = "types-pytz"
-version = "2025.1.0.20250204"
+version = "2025.1.0.20250318"
 requires_python = ">=3.9"
 summary = "Typing stubs for pytz"
 groups = ["all-dev", "dev"]
 files = [
-    {file = "types_pytz-2025.1.0.20250204-py3-none-any.whl", hash = "sha256:32ca4a35430e8b94f6603b35beb7f56c32260ddddd4f4bb305fdf8f92358b87e"},
-    {file = "types_pytz-2025.1.0.20250204.tar.gz", hash = "sha256:00f750132769f1c65a4f7240bc84f13985b4da774bd17dfbe5d9cd442746bd49"},
+    {file = "types_pytz-2025.1.0.20250318-py3-none-any.whl", hash = "sha256:04dba4907c5415777083f9548693c6d9f80ec53adcaff55a38526a3f8ddcae04"},
+    {file = "types_pytz-2025.1.0.20250318.tar.gz", hash = "sha256:97e0e35184c6fe14e3a5014512057f2c57bb0c6582d63c1cfcc4809f82180449"},
 ]
 
 [[package]]
@@ -3570,7 +3600,7 @@ files = [
 
 [[package]]
 name = "types-tqdm"
-version = "4.67.0.20250301"
+version = "4.67.0.20250319"
 requires_python = ">=3.9"
 summary = "Typing stubs for tqdm"
 groups = ["all-dev", "dev"]
@@ -3578,8 +3608,8 @@ dependencies = [
     "types-requests",
 ]
 files = [
-    {file = "types_tqdm-4.67.0.20250301-py3-none-any.whl", hash = "sha256:8af97deb8e6874af833555dc1fe0fcd456b1a789470bf6cd8813d4e7ee4f6c5b"},
-    {file = "types_tqdm-4.67.0.20250301.tar.gz", hash = "sha256:5e89a38ad89b867823368eb97d9f90d2fc69806bb055dde62716a05da62b5e0d"},
+    {file = "types_tqdm-4.67.0.20250319-py3-none-any.whl", hash = "sha256:8705ef0dd431586e5ea6e010e15b73389b09bcc18186e8c1f530a14dfaa30e09"},
+    {file = "types_tqdm-4.67.0.20250319.tar.gz", hash = "sha256:ae947a64bd8d7ed7b7d2b7369df05f9181f847ec2828fdc8a2deb0bb8701adaa"},
 ]
 
 [[package]]
@@ -3598,7 +3628,7 @@ name = "tzdata"
 version = "2025.1"
 requires_python = ">=2"
 summary = "Provider of IANA time zone data"
-groups = ["default", "all-dev", "db-full", "dev", "docs", "tests"]
+groups = ["default", "all-dev", "db-full", "dev", "docs", "tests", "tests-full"]
 files = [
     {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
     {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
@@ -3743,7 +3773,7 @@ name = "wrapt"
 version = "1.17.2"
 requires_python = ">=3.8"
 summary = "Module for decorators, wrappers and monkey patching."
-groups = ["all-dev", "dev", "docs", "tests"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 files = [
     {file = "wrapt-1.17.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3d57c572081fed831ad2d26fd430d565b76aa277ed1d30ff4d40670b1c0dd984"},
     {file = "wrapt-1.17.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b5e251054542ae57ac7f3fba5d10bfff615b6c2fb09abeb37d2f1463f841ae22"},
