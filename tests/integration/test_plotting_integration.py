@@ -229,6 +229,27 @@ def test_plot_plume_quantile_over(  # noqa: PLR0913
     )
 
 
+def test_plot_plume_missing_quantiles(
+    setup_pandas_accessor, image_regression, tmp_path
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=82747),
+    )
+
+    check_plots(
+        df=df.openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile(),
+        plot_kwargs=dict(quantiles_plumes=((0.45, 0.5), ((0.05, 0.95), 0.3))),
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+
 # def test_plot_plume_units():
 #     # Plot two different sets of data with different units
 #     # Make sure that the unit handling passes through
