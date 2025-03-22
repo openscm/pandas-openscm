@@ -19,7 +19,6 @@ pytest_regressions = pytest.importorskip("pytest_regressions")
 
 # Different values of:
 # - quantile_over, both str and list[str]
-# - quantiles_plumes, both plumes and lines
 
 # - check result
 
@@ -66,7 +65,7 @@ def check_plots(
 
 def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
     df = create_test_df(
-        variables=(("variable_1", "K"),),
+        variables=(("variable_1", "K"), ("variable_2", "K")),
         n_scenarios=5,
         n_runs=10,
         timepoints=np.arange(1950.0, 1965.0),
@@ -78,6 +77,70 @@ def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
         .quantile([0.05, 0.5, 0.95])
         .openscm.fix_index_name_after_groupby_quantile(),
         plot_kwargs={},
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+
+@pytest.mark.parametrize(
+    "quantiles_plumes",
+    (
+        pytest.param(
+            (
+                (0.5, 0.7),
+                ((0.25, 0.75), 0.5),
+                ((0.05, 0.95), 0.2),
+            ),
+            id="multi-plume",
+        ),
+        pytest.param(
+            (
+                ((0.25, 0.75), 0.5),
+                ((0.05, 0.95), 0.2),
+            ),
+            id="plumes-only",
+        ),
+        pytest.param(
+            ((0.5, 0.7),),
+            id="line-only",
+        ),
+        # If you actually wanted to do this,
+        # you would just use the seaborn API directly,
+        # but this at least checks that things don't explode.
+        pytest.param(
+            (
+                (0.5, 0.7),
+                (0.05, 0.7),
+                (0.95, 0.7),
+            ),
+            id="lines-only",
+        ),
+    ),
+)
+def test_plot_plume_quantiles(
+    quantiles_plumes, tmp_path, image_regression, setup_pandas_accessor
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=5,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=82747),
+    )
+
+    plot_kwargs = dict(quantiles_plumes=quantiles_plumes, linewidth=1)
+    quantiles = []
+    for q, _ in quantiles_plumes:
+        if isinstance(q, float):
+            quantiles.append(q)
+        else:
+            quantiles.extend(q)
+
+    check_plots(
+        df=df.openscm.groupby_except("run")
+        .quantile(quantiles)
+        .openscm.fix_index_name_after_groupby_quantile(),
+        plot_kwargs=plot_kwargs,
         image_regression=image_regression,
         tmp_path=tmp_path,
     )

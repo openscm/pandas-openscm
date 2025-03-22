@@ -35,6 +35,8 @@ if TYPE_CHECKING:
     import matplotlib
     import pandas_indexing as pix
 
+    from pandas_openscm.plotting import QUANTILES_PLUMES_LIKE
+
 
 class DataFramePandasOpenSCMAccessor:
     """
@@ -151,19 +153,26 @@ class DataFramePandasOpenSCMAccessor:
         # TODO: match plot_plume API
         ax: matplotlib.axes.Axes | None = None,
         *,
+        quantiles_plumes: QUANTILES_PLUMES_LIKE = (
+            (0.5, 0.7),
+            ((0.05, 0.95), 0.2),
+        ),
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
         style_var: str = "variable",
         style_var_label: str | None = None,
+        linewidth: float = 3.0,
     ) -> matplotlib.axes.Axes:
         # TODO: docstring
         return plot_plume(
             self._df,
             ax=ax,
+            quantiles_plumes=quantiles_plumes,
             hue_var=hue_var,
             hue_var_label=hue_var_label,
             style_var=style_var,
             style_var_label=style_var_label,
+            linewidth=linewidth,
         )
 
     def to_category_index(self) -> pd.DataFrame:

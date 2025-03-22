@@ -6,27 +6,48 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Collection, Iterable
+from functools import partial
 from itertools import cycle
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
+import numpy as np
 import pandas as pd
-from attrs import define
+from attrs import define, field
 from typing_extensions import TypeAlias
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
+    import attr
     import matplotlib
+    import pint
 
-COLOUR_VALUE_LIKE: TypeAlias = (
-    str | tuple[float, float, float] | tuple[float, float, float, float]
-)
-"""Types that allow a colour to be specified in matplotlib"""
+    COLOUR_VALUE_LIKE: TypeAlias = (
+        str | tuple[float, float, float] | tuple[float, float, float, float]
+    )
+    """Types that allow a colour to be specified in matplotlib"""
 
-QUANTILES_PLUMES_LIKE: TypeAlias = tuple[
-    tuple[float, float] | tuple[tuple[float, float], float], ...
-]
-"""Type that quantiles and the alpha to use for plotting their line/plume"""
+    DASH_VALUE_LIKE: TypeAlias = str | tuple[float, tuple[float, ...]]
+    """Types that allow a dash to be specified in matplotlib"""
+
+    QUANTILES_PLUMES_LIKE: TypeAlias = tuple[
+        tuple[float, float] | tuple[tuple[float, float], float], ...
+    ]
+    """Type that quantiles and the alpha to use for plotting their line/plume"""
+
+    NP_ARRAY_OF_FLOAT_OR_INT = np.typing.NDArray[np.floating[Any] | np.integer[Any]]
+    """Numpy array like"""
+
+    PINT_NUMPY_ARRAY: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[
+        NP_ARRAY_OF_FLOAT_OR_INT
+    ]
+    """
+    Type alias for a pint quantity that wraps a numpy array
+
+    No shape hints because that doesn't seem to be supported by numpy yet.
+    """
+
+    T = TypeVar("T")
 
 
 class MissingQuantileError(KeyError):
@@ -88,7 +109,7 @@ def get_pdf_from_pre_calculated(
     *,
     quantiles: Iterable[float],
     quantile_col: str,
-) -> pd.DataFrame | None:
+) -> pd.DataFrame:
     """
     Get a [pd.DataFrame][pandas.DataFrame] for plotting from pre-calculated quantiles
 
@@ -457,14 +478,270 @@ def create_legend_default(
 #     return ax, legend_items
 
 
+def get_default_colour_cycler() -> Iterable[COLOUR_VALUE_LIKE]:
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise MissingOptionalDependencyError(
+            "get_default_colour_cycler", requirement="matplotlib"
+        ) from exc
+
+    colour_cycler = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
+
+    return colour_cycler
+
+
+def fill_out_palette(
+    hue_values: Iterable[T],
+    palette_user_supplied: dict[T, COLOUR_VALUE_LIKE] | None,
+    warn_on_value_missing: bool,
+) -> dict[T, COLOUR_VALUE_LIKE]:
+    if palette_user_supplied is None:
+        # Make it all ourselves.
+        # Don't warn as the user didn't set any values
+        # so it is clear they want us to fill in everything.
+        colour_cycler = get_default_colour_cycler()
+        palette_out = {v: next(colour_cycler) for v in hue_values}
+
+        return palette_out
+
+    # User-supplied palette
+    missing_from_user_supplied = [
+        v for v in hue_values if v not in palette_user_supplied
+    ]
+    if not missing_from_user_supplied:
+        # Just return the values we need
+        return {v: palette_user_supplied[v] for v in hue_values}
+
+    if warn_on_value_missing:
+        msg = (
+            f"{missing_from_user_supplied} not in the user-supplied palette, "
+            "they will be filled from the default colour cycler instead. "
+            f"{palette_user_supplied=}"
+        )
+        warnings.warn(msg)
+
+    palette_out = {}
+    colour_cycler = get_default_colour_cycler()
+    for v in hue_values:
+        palette_out[v] = (
+            palette_user_supplied[v]
+            if v in palette_user_supplied
+            else next(colour_cycler)
+        )
+
+    return palette_out
+
+
+def get_default_dash_cycler() -> Iterable[DASH_VALUE_LIKE]:
+    dash_cycler = cycle(["-", "--", "-.", ":"])
+
+    return dash_cycler
+
+
+def fill_out_dashes(
+    style_values: Iterable[T],
+    dashes_user_supplied: dict[T, DASH_VALUE_LIKE] | None,
+    warn_on_value_missing: bool,
+) -> dict[T, DASH_VALUE_LIKE]:
+    if dashes_user_supplied is None:
+        # Make it all ourselves.
+        # Don't warn as the user didn't set any values
+        # so it is clear they want us to fill in everything.
+        dash_cycler = get_default_dash_cycler()
+        dashes_out = {v: next(dash_cycler) for v in style_values}
+
+        return dashes_out
+
+    # User-supplied palette
+    missing_from_user_supplied = [
+        v for v in style_values if v not in dashes_user_supplied
+    ]
+    if not missing_from_user_supplied:
+        # Just return the values we need
+        return {v: dashes_user_supplied[v] for v in style_values}
+
+    if warn_on_value_missing:
+        msg = (
+            f"{missing_from_user_supplied} not in the user-supplied palette, "
+            "they will be filled from the default colour cycler instead. "
+            f"{dashes_user_supplied=}"
+        )
+        warnings.warn(msg)
+
+    dashes_out = {}
+    dash_cycler = get_default_dash_cycler()
+    for v in style_values:
+        dashes_out[v] = (
+            dashes_user_supplied[v] if v in dashes_user_supplied else next(dash_cycler)
+        )
+
+    return dashes_out
+
+
+def y_vals_validator(
+    obj: SingleLinePlotter | SinglePlumePlotter,
+    attribute: attr.Attribute[Any],
+    value: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY,
+) -> None:
+    """
+    Validate the received y_vals
+    """
+    if value.shape != obj.x_vals.shape:
+        msg = (
+            f"`{attribute.name}` must have the same shape as `x_vals`. "
+            f"Received `y_vals` with shape {value.shape} "
+            f"while `x_vals` has shape {obj.x_vals.shape}"
+        )
+        raise AssertionError(msg)
+
+
 @define
 class SingleLinePlotter:
     """Object which is able to plot single lines"""
+
+    x_vals: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY
+    """x-values to plot"""
+
+    y_vals: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY = field(
+        validator=[y_vals_validator]
+    )
+    """y-values to plot"""
+
+    quantile: float
+    """Quantile that this line represents"""
+
+    linewidth: float
+    """Linewidth to use when plotting the line"""
+
+    linestyle: DASH_VALUE_LIKE
+    """Style to use when plotting the line"""
+
+    color: COLOUR_VALUE_LIKE
+    """Colour to use when plotting the line"""
+
+    alpha: float
+    """Alpha to use when plotting the line"""
+
+    pkwargs: dict[str, Any] | None = None
+    """Other arguments to pass to [matplotlib.axes.Axes.plot][] when plotting"""
+
+    def get_label(self, quantile_legend_round: int = 2) -> str:
+        """
+        Get the label for the line
+
+        Parameters
+        ----------
+        quantile_legend_round
+            Rounding to apply to the quantile when creating the label
+
+        Returns
+        -------
+        :
+            Label for the line
+        """
+        label = np.round(self.quantile, quantile_legend_round)
+
+        return label
+
+    def plot(self, ax: matplotlib.axes.Axes, quantile_legend_round: int = 2) -> None:
+        """
+        Plot
+
+        Parameters
+        ----------
+        ax
+            Axes on which to plot
+
+        quantile_legend_round
+            Rounding to apply to the quantile when creating the label
+        """
+        pkwargs = self.pkwargs if self.pkwargs is not None else {}
+
+        ax.plot(
+            self.x_vals,
+            self.y_vals,
+            label=self.get_label(quantile_legend_round=quantile_legend_round),
+            linewidth=self.linewidth,
+            linestyle=self.linestyle,
+            color=self.color,
+            alpha=self.alpha,
+            **pkwargs,
+        )
 
 
 @define
 class SinglePlumePlotter:
     """Object which is able to plot single plumes"""
+
+    x_vals: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY
+    """x-values to plot"""
+
+    y_vals_lower: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY = field(
+        validator=[y_vals_validator]
+    )
+    """y-values to plot as the lower bound of the plume"""
+
+    y_vals_upper: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY = field(
+        validator=[y_vals_validator]
+    )
+    """y-values to plot as the upper bound of the plume"""
+
+    quantiles: tuple[float, float]
+    """Quantiles that this plume represents"""
+
+    color: COLOUR_VALUE_LIKE
+    """Colour to use when plotting the plume"""
+
+    alpha: float
+    """Alpha to use when plotting the plume"""
+
+    pkwargs: dict[str, Any] | None = None
+    """Other arguments to pass to [matplotlib.axes.Axes.fill_between][] when plotting"""
+
+    def get_label(self, quantile_legend_round: int = 2) -> str:
+        """
+        Get the label for the plume
+
+        Parameters
+        ----------
+        quantile_legend_round
+            Rounding to apply to the quantiles when creating the label
+
+        Returns
+        -------
+        :
+            Label for the plume
+        """
+        label = " - ".join(
+            [str(np.round(qv, quantile_legend_round)) for qv in self.quantiles]
+        )
+
+        return label
+
+    def plot(self, ax: matplotlib.axes.Axes, quantile_legend_round: int = 2) -> None:
+        """
+        Plot
+
+        Parameters
+        ----------
+        ax
+            Axes on which to plot
+
+        quantile_legend_round
+            Rounding to apply to the quantiles when creating the label
+        """
+        pkwargs = self.pkwargs if self.pkwargs is not None else {}
+
+        ax.fill_between(
+            self.x_vals,
+            self.y_vals_lower,
+            self.y_vals_upper,
+            label=self.get_label(quantile_legend_round=quantile_legend_round),
+            facecolor=self.color,
+            alpha=self.alpha,
+            **pkwargs,
+        )
 
 
 @define
@@ -483,8 +760,8 @@ class PlumePlotter:
     style_var_label: str | None
     """Label for the style variable in the legend (if not `None`)"""
 
-    quantile_label: str
-    """Label for the quantile in the legend"""
+    quantile_var_label: str
+    """Label for the quantile variable in the legend"""
 
     palette: dict[Any, COLOUR_VALUE_LIKE]
     """Palette used for plotting different values of the hue variable"""
@@ -499,7 +776,7 @@ class PlumePlotter:
     """Label to apply to the y-axis (if `None`, no label is applied)"""
 
     @classmethod
-    def from_df(  # noqa: PLR0913
+    def from_df(  # noqa: PLR0912, PLR0913, PLR0915 # object creation code is the worst
         cls,
         df: pd.DataFrame,
         *,
@@ -507,18 +784,22 @@ class PlumePlotter:
             (0.5, 0.7),
             ((0.05, 0.95), 0.2),
         ),
-        quantile_col: str = "quantile",
-        quantile_col_label: str | None = None,
+        quantile_var: str = "quantile",
+        quantile_var_label: str | None = None,
+        quantile_legend_round: int = 2,
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
         style_var: str = "variable",
         style_var_label: str | None = None,
         palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
         | None = None,
+        warn_on_palette_value_missing: bool = True,
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+        warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_col: str = "unit",
         y_label: str | bool | None = True,
+        warn_infer_y_label_with_multi_unit: bool = True,
         x_label: str | None = "time",
         observed: bool = True,
     ) -> PlumePlotter:
@@ -535,105 +816,201 @@ class PlumePlotter:
         :
             Initialised instance
         """
-        # The joy of plotting, you create everything yourself.
         if hue_var_label is None:
             hue_var_label = hue_var.capitalize()
 
         if style_var is not None and style_var_label is None:
             style_var_label = style_var.capitalize()
 
-        if quantile_col_label is None:
-            quantile_col_label = quantile_col.capitalize()
+        if quantile_var_label is None:
+            quantile_var_label = quantile_var.capitalize()
 
-        # Start from here: think through logic more carefully
-        if palette is None:
-            try:
-                import matplotlib.pyplot as plt
-            except ImportError as exc:
-                raise MissingOptionalDependencyError(  # noqa: TRY003
-                    "from_df(..., palette=None, ...)", requirement="matplotlib"
-                ) from exc
-            colour_cycler = cycle(plt.rcParams["axes.prop_cycle"].by_key()["color"])
-            palette = {}
+        infer_y_label = isinstance(y_label, bool) and y_label
 
-        if dashes is None:
-            dashes = {}
-            if style_var is None:
-                linestyle_cycler = cycle(["-"])
-            else:
-                linestyle_cycler = cycle(["-", "--", "-.", ":"])
+        palette_complete = fill_out_palette(
+            df.index.get_level_values(hue_var).unique(),
+            palette_user_supplied=palette,
+            warn_on_value_missing=warn_on_palette_value_missing,
+        )
 
         if style_var is not None:
             group_cols = [hue_var, style_var]
+            dashes_complete = fill_out_dashes(
+                df.index.get_level_values(style_var).unique(),
+                dashes_user_supplied=dashes,
+                warn_on_value_missing=warn_on_dashes_value_missing,
+            )
+
         else:
             group_cols = [hue_var]
 
+        lines: list[SingleLinePlotter] = []
+        plumes: list[SinglePlumePlotter] = []
+        values_units: list[str] = []
         for info, gdf in df.groupby([hue_var, style_var], observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
 
+            colour = palette_complete[info_d[hue_var]]
+
+            gpdf = partial(get_pdf_from_pre_calculated, gdf, quantile_col=quantile_var)
+
+            def warn_about_missing_quantile(
+                quantiles: Iterable[float],
+                exc: Exception,
+            ) -> pd.DataFrame | None:
+                warnings.warn(
+                    f"Missing {quantiles=} for {info_d}. Original exception: {exc}"
+                )
+
             for q, alpha in quantiles_plumes:
                 if isinstance(q, float):
-                    quantiles = (q,)
-                    plot_plume = False
-                else:
-                    quantiles = q
-                    plot_plume = True
-
-                try:
-                    pdf = get_pdf_from_pre_calculated(
-                        gdf,
-                        quantiles=quantiles,
-                        quantile_col=quantile_col,
-                    )
-
-                except MissingQuantileError as exc:
-                    warnings.warn(
-                        f"Missing {quantiles=} for {info_d}. Original exception: {exc}"
-                    )
-                    continue
-
-                if plot_plume:
-                    if pdf.shape[0] != 2:
-                        raise AssertionError
-
-                    breakpoint()
-
-                elif pdf.shape[0] != 1:
-                    leftover_cols = df.index.names.difference({hue_var, style_var})
-                    msg = (
-                        f"After grouping by {hue_var=} and {style_var=}, "
-                        f"there are still variations in {leftover_cols=} "
-                        "so we do not know what to plot.\n"
-                        f"{gdf.index=}"
-                    )
-                    raise AssertionError(msg)
-
-                    breakpoint()
-                    if isinstance(q, str):
-                        q_f = float(q)
+                    if style_var is not None:
+                        linestyle = dashes_complete[info_d[style_var]]
                     else:
-                        q_f = q
-                    label = f"{q_f * 100:.0f}th"
+                        linestyle = "-"
 
-                    if dashes is not None:
-                        linestyle = dashes[info_d[style_var]]
-                    else:
-                        linestyle = next(linestyle_cycler)
-
-                    if palette is not None:
-                        colour = palette[info_d[hue_var]]
-                    else:
-                        colour = next(colour_cycler)
+                    try:
+                        quantiles = (q,)
+                        pdf = gpdf(quantiles=quantiles)
+                    except MissingQuantileError as exc:
+                        warn_about_missing_quantile(quantiles=quantiles, exc=exc)
+                        continue
 
                     line_plotter = SingleLinePlotter(
                         x_vals=pdf.columns.values.squeeze(),
                         y_vals=pdf.values.squeeze(),
-                        label=label,
+                        quantile=q,
                         linewidth=linewidth,
                         linestyle=linestyle,
                         color=colour,
                         alpha=alpha,
                     )
+                    lines.append(line_plotter)
+
+                else:
+                    try:
+                        pdf = gpdf(quantiles=q)
+                    except MissingQuantileError as exc:
+                        warn_about_missing_quantile(quantiles=q, exc=exc)
+                        continue
+
+                    plume_plotter = SinglePlumePlotter(
+                        x_vals=pdf.columns.values.squeeze(),
+                        y_vals_lower=gpdf(quantiles=(q[0],)).values.squeeze(),
+                        y_vals_upper=gpdf(quantiles=(q[1],)).values.squeeze(),
+                        quantiles=q,
+                        color=colour,
+                        alpha=alpha,
+                    )
+                    plumes.append(plume_plotter)
+
+                if infer_y_label:
+                    values_units.extend(pdf.index.get_level_values(unit_col).unique())
+
+        if isinstance(y_label, bool) and y_label:
+            # Try to infer the y-label
+            units_s = set(values_units)
+            if len(units_s) == 1:
+                y_label = values_units[0]
+            else:
+                # More than one unit plotted, don't infer a y-label
+                if warn_infer_y_label_with_multi_unit:
+                    warnings.warn(
+                        "Not auto-setting the y_label "
+                        "because the plotted data has more than one unit: "
+                        f"data units {units_s}"
+                    )
+
+                y_label = None
+
+        res = PlumePlotter(
+            lines=lines,
+            plumes=plumes,
+            hue_var_label=hue_var_label,
+            style_var_label=style_var_label,
+            quantile_var_label=quantile_var_label,
+            palette=palette_complete,
+            dashes=dashes_complete,
+            x_label=x_label,
+            y_label=y_label,
+        )
+
+        return res
+
+    def generate_legend_handles(
+        self, quantile_legend_round: int = 2
+    ) -> list[matplotlib.artist.Artist]:
+        """
+        Generate handles for the legend
+
+        Parameters
+        ----------
+        quantile_legend_round
+            Rounding to apply to the quantiles when creating the label
+
+        Returns
+        -------
+        :
+            Generated handles for the legend
+        """
+        try:
+            import matplotlib.lines as mlines
+            import matplotlib.patches as mpatches
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(
+                "generate_legend_handles", requirement="matplotlib"
+            ) from exc
+
+        generated_quantile_items = []
+        quantile_items = []
+        for line in self.lines:
+            label = line.get_label(quantile_legend_round=quantile_legend_round)
+            pid = (line.quantile, line.alpha, label)
+            if pid in generated_quantile_items:
+                continue
+
+            quantile_items.append(
+                mlines.Line2D([0], [0], color="k", alpha=line.alpha, label=label)
+            )
+            generated_quantile_items.append(pid)
+
+        for plume in self.plumes:
+            label = plume.get_label(quantile_legend_round=quantile_legend_round)
+            pid = (plume.quantiles, plume.alpha, label)
+            if pid in generated_quantile_items:
+                continue
+
+            quantile_items.append(
+                mpatches.Patch(color="k", alpha=plume.alpha, label=label)
+            )
+            generated_quantile_items.append(pid)
+
+        hue_items = [
+            mlines.Line2D([0], [0], color=colour, label=hue_value)
+            for hue_value, colour in self.palette.items()
+        ]
+
+        legend_items = [
+            mpatches.Patch(alpha=0, label=self.quantile_var_label),
+            *quantile_items,
+            mpatches.Patch(alpha=0, label=self.hue_var_label),
+            *hue_items,
+        ]
+        if self.lines:
+            style_items = [
+                mlines.Line2D(
+                    [0],
+                    [0],
+                    linestyle=linestyle,
+                    label=style_value,
+                    color="gray",
+                )
+                for style_value, linestyle in self.dashes.items()
+            ]
+            legend_items.append(mpatches.Patch(alpha=0, label=self.style_var_label))
+            legend_items.extend(style_items)
+
+        return legend_items
 
     def plot(
         self,
@@ -660,6 +1037,14 @@ class PlumePlotter:
             line.plot(ax=ax)
 
         create_legend(ax=ax, handles=self.generate_legend_handles())
+
+        if self.x_label is not None:
+            ax.set_xlabel(self.x_label)
+
+        if self.y_label is not None:
+            ax.set_ylabel(self.y_label)
+
+        return ax
 
 
 def plot_plume(
@@ -690,8 +1075,8 @@ def plot_plume(
     plotter = PlumePlotter.from_df(
         df=pdf,
         quantiles_plumes=quantiles_plumes,
-        quantile_col=quantile_col,
-        quantile_col_label=quantile_col_label,
+        quantile_var=quantile_col,
+        quantile_var_label=quantile_col_label,
         hue_var=hue_var,
         hue_var_label=hue_var_label,
         style_var=style_var,
