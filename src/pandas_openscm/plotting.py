@@ -139,7 +139,7 @@ def get_pdf_from_pre_calculated(
         One of the quantiles in `quantiles` is not available in `in_df`.
     """
     missing_quantiles = []
-    available_quantiles = in_df.index.get_level_values(quantile_col).unique()
+    available_quantiles = in_df.index.get_level_values(quantile_col).unique().tolist()
     for qt in quantiles:
         if qt not in available_quantiles:
             missing_quantiles.append(qt)
@@ -217,25 +217,35 @@ def fill_out_palette(
 
     if warn_on_value_missing:
         msg = (
-            f"{missing_from_user_supplied} not in the user-supplied palette, "
+            f"Some hue values are not in the user-supplied palette, "
             "they will be filled from the default colour cycler instead. "
-            f"{palette_user_supplied=}"
+            f"{missing_from_user_supplied=} {palette_user_supplied=}"
         )
         warnings.warn(msg)
 
     palette_out = {}
     colour_cycler = get_default_colour_cycler()
-    for v in hue_values:
-        palette_out[v] = (
+    palette_out = {
+        v: (
             palette_user_supplied[v]
             if v in palette_user_supplied
             else next(colour_cycler)
         )
+        for v in hue_values
+    }
 
     return palette_out
 
 
 def get_default_dash_cycler() -> Iterable[DASH_VALUE_LIKE]:
+    """
+    Get the default dash cycler
+
+    Returns
+    -------
+    :
+        Default dash cycler
+    """
     dash_cycler = cycle(["-", "--", "-.", ":"])
 
     return dash_cycler

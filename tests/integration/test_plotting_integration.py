@@ -4,14 +4,21 @@ Tests of `pandas_openscm.plotting` and `pd.DataFrame.openscm.plot*`
 
 from __future__ import annotations
 
+import contextlib
+import re
+import sys
+from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.plotting import (
+    get_default_colour_cycler,
     get_quantiles,
     plot_plume,
     plot_plume_after_calculating_quantiles,
@@ -46,10 +53,12 @@ def check_plots(
     df: pd.DataFrame,
     image_regression: pytest_regressions.image_regression.ImageRegressionFixture,
     tmp_path: Path,
+    exp: contextlib.AbstractContextManager = does_not_raise(),
 ) -> None:
     fig, ax = plt.subplots()
 
-    return_val = plot_plume(df, ax=ax, **plot_kwargs)
+    with exp:
+        return_val = plot_plume(df, ax=ax, **plot_kwargs)
 
     assert return_val == ax
 
@@ -60,7 +69,8 @@ def check_plots(
 
     # Check this works via the accessor too
     fig, ax = plt.subplots()
-    return_val = df.openscm.plot_plume(ax=ax, **plot_kwargs)
+    with exp:
+        return_val = df.openscm.plot_plume(ax=ax, **plot_kwargs)
 
     assert return_val == ax
 
@@ -75,10 +85,12 @@ def check_plots_incl_quantile_calculation(
     df: pd.DataFrame,
     image_regression: pytest_regressions.image_regression.ImageRegressionFixture,
     tmp_path: Path,
+    exp: contextlib.AbstractContextManager = does_not_raise(),
 ) -> None:
     fig, ax = plt.subplots()
 
-    return_val = plot_plume_after_calculating_quantiles(df, ax=ax, **method_kwargs)
+    with exp:
+        return_val = plot_plume_after_calculating_quantiles(df, ax=ax, **method_kwargs)
 
     assert return_val == ax
 
@@ -89,9 +101,11 @@ def check_plots_incl_quantile_calculation(
 
     # Check this works via the accessor too
     fig, ax = plt.subplots()
-    return_val = df.openscm.plot_plume_after_calculating_quantiles(
-        ax=ax, **method_kwargs
-    )
+    with exp:
+        return_val = df.openscm.plot_plume_after_calculating_quantiles(
+            ax=ax, **method_kwargs
+        )
+
     assert return_val == ax
 
     out_file = tmp_path / "fig-accessor.png"
@@ -162,7 +176,7 @@ def test_plot_plume_quantiles(
         n_scenarios=5,
         n_runs=10,
         timepoints=np.arange(1950.0, 1965.0),
-        rng=np.random.default_rng(seed=82747),
+        rng=np.random.default_rng(seed=11241),
     )
 
     plot_kwargs = dict(quantiles_plumes=quantiles_plumes, linewidth=1)
@@ -229,24 +243,112 @@ def test_plot_plume_quantile_over(  # noqa: PLR0913
     )
 
 
-def test_plot_plume_missing_quantiles(
-    setup_pandas_accessor, image_regression, tmp_path
+def test_plot_plume_extra_palette(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessor,
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "W")),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=6543),
+    )
+
+    method_kwargs = dict(
+        quantile_over="run",
+        quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
+        hue_var="scenario",
+        palette={
+            "scenario_0": "tab:green",
+            "scenario_1": "tab:purple",
+            "scenario_2": "tab:red",
+            # Not df
+            "scenario_3": "tab:orange",
+        },
+        style_var="variable",
+    )
+
+    check_plots_incl_quantile_calculation(
+        df=df,
+        method_kwargs=method_kwargs,
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+
+def test_plot_plume_missing_from_palette(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessor,
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=85918),
+    )
+
+    palette = {
+        "scenario_0": "tab:orange",
+        # "scenario_1": "tab:blue",
+        "scenario_2": "tab:blue",
+    }
+    method_kwargs = dict(
+        quantile_over="run",
+        quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
+        hue_var="scenario",
+        palette=palette,
+    )
+
+    check_plots_incl_quantile_calculation(
+        df=df,
+        method_kwargs=method_kwargs,
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+        exp=pytest.warns(
+            match=re.escape(
+                "Some hue values are not in the user-supplied palette, "
+                "they will be filled from the default colour cycler instead. "
+                f"missing_from_user_supplied={['scenario_1']} "
+                f"palette_user_supplied={palette}"
+            )
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "quantiles, quantiles_plumes, exp",
+    (
+        pytest.param(
+            [0.05, 0.5, 0.95],
+            ((0.45, 0.5), ((0.05, 0.95), 0.2)),
+            pytest.warns(match=re.escape("Missing quantiles=(0.45,)")),
+            id="missing-line-quantile",
+        ),
+    ),
+)
+def test_plot_plume_missing_quantiles(  # noqa: PLR0913
+    quantiles, quantiles_plumes, exp, setup_pandas_accessor, image_regression, tmp_path
 ):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "K")),
         n_scenarios=2,
         n_runs=10,
         timepoints=np.arange(1950.0, 1965.0),
-        rng=np.random.default_rng(seed=82747),
+        rng=np.random.default_rng(seed=112345),
     )
 
     check_plots(
         df=df.openscm.groupby_except("run")
-        .quantile([0.05, 0.5, 0.95])
+        .quantile(quantiles)
         .openscm.fix_index_name_after_groupby_quantile(),
-        plot_kwargs=dict(quantiles_plumes=((0.45, 0.5), ((0.05, 0.95), 0.3))),
+        plot_kwargs=dict(quantiles_plumes=quantiles_plumes),
         image_regression=image_regression,
         tmp_path=tmp_path,
+        exp=exp,
     )
 
 
@@ -326,7 +428,7 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         n_scenarios=3,
         n_runs=10,
         timepoints=np.arange(2025.0, 2150.0),
-        rng=np.random.default_rng(seed=85910),
+        rng=np.random.default_rng(seed=17583),
     )
 
     pdf = df.reset_index("unit")
@@ -374,3 +476,14 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         image_regression=image_regression,
         tmp_path=tmp_path,
     )
+
+
+def test_get_default_colour_cycler_no_matplotlib():
+    with patch.dict(sys.modules, {"matplotlib": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`get_default_colour_cycler` requires matplotlib to be installed"
+            ),
+        ):
+            get_default_colour_cycler()
