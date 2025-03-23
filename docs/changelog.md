@@ -21,6 +21,24 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.3.0 (2025-03-23)
+
+### 🆕 Features
+
+- - Added the plotting module, [pandas_openscm.plotting][pandas_openscmplotting] and associated accessors.
+  - Added the grouping module, [pandas_openscm.grouping][pandas_openscmgrouping] and associated accessors.
+
+  ([#7](https://github.com/openscm/pandas-openscm/pull/7))
+
+### 🐛 Bug Fixes
+
+- Added LICENCE ([#5](https://github.com/openscm/pandas-openscm/pull/5))
+
+### 🔧 Trivial/Internal Changes
+
+- [#3](https://github.com/openscm/pandas-openscm/pull/3), [#4](https://github.com/openscm/pandas-openscm/pull/4), [#6](https://github.com/openscm/pandas-openscm/pull/6)
+
+
 ## Pandas-OpenSCM v0.2.0 (2025-03-17)
 
 ### 🆕 Features
