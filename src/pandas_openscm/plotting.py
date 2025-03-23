@@ -23,7 +23,6 @@ from typing import (
 import numpy as np
 import pandas as pd
 from attrs import define, field
-from typing_extensions import TypeAlias
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.grouping import (
@@ -35,6 +34,7 @@ if TYPE_CHECKING:
     import attr
     import matplotlib
     import pint
+    from typing_extensions import TypeAlias
 
     COLOUR_VALUE_LIKE: TypeAlias = Union[
         Union[
