@@ -2559,6 +2559,7 @@ docs = [
     { name = "mkdocstrings-python-xref" },
     { name = "openscm-units" },
     { name = "pandas-indexing" },
+    { name = "pint" },
     { name = "pymdown-extensions" },
     { name = "ruff" },
 ]
@@ -2683,6 +2684,7 @@ docs = [
     { name = "mkdocstrings-python-xref", specifier = "==1.6.2" },
     { name = "openscm-units", specifier = ">=0.6.3" },
     { name = "pandas-indexing", specifier = ">=0.6.2" },
+    { name = "pint", specifier = ">=0.24.4" },
     { name = "pymdown-extensions", specifier = "==10.13" },
     { name = "ruff", specifier = "==0.8.6" },
 ]

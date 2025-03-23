@@ -112,6 +112,7 @@ docs = [
     "mkdocs-jupyter==0.25.1",
     "openscm-units>=0.6.3",
     "pandas-indexing>=0.6.2",
+    "pint>=0.24.4",
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.
