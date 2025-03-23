@@ -1092,6 +1092,9 @@ class PlumePlotter:
             # Let unit-aware plotting do its thing
             y_label = None
 
+        elif unit_var is None:
+            y_label = None
+
         elif infer_y_label:
             if unit_var not in df.index.names:
                 warnings.warn(

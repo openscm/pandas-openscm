@@ -39,25 +39,6 @@ try:
 except ImportError:
     openscm_units = None
 
-# Different values of:
-# - units
-#   - time units have to be passed by the user
-#   - value units can be inferred
-#      - if matplotlib recognises the units, let it just do its thing
-#      - if matplotlib doesn't, if there is only one unit,
-#        the units should appear in the y-axis by default (but can be turned off)
-
-# - palette and dashes handling
-
-# - turning off legend possible
-# - legend creation injectable
-# - add legend items to existing legend rather than creating fresh
-
-# - ax can be auto-created
-
-# - test error handling if you don't have the quantiles
-# - test error handling if quantile over and hue don't line up
-
 
 def check_plots(
     plot_kwargs: dict[str, Any],
@@ -163,7 +144,7 @@ def test_default_ax_auto_creation(tmp_path, image_regression, setup_pandas_acces
         df.openscm.groupby_except("run")
         .quantile([0.05, 0.5, 0.95])
         .openscm.fix_index_name_after_groupby_quantile()
-        .openscm.plot_plume()
+        .openscm.plot_plume(quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)))
     )
     assert isinstance(res, matplotlib.axes.Axes)
 
@@ -186,7 +167,11 @@ def test_plot_plume_no_labels(tmp_path, image_regression, setup_pandas_accessor)
         df=df.openscm.groupby_except("run")
         .quantile([0.05, 0.5, 0.95])
         .openscm.fix_index_name_after_groupby_quantile(),
-        plot_kwargs=dict(y_label=None, x_label=None),
+        plot_kwargs=dict(
+            y_label=None,
+            x_label=None,
+            quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)),
+        ),
         image_regression=image_regression,
         tmp_path=tmp_path,
     )
