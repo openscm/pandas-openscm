@@ -129,8 +129,10 @@ tests-full = [
     "hypothesis>=6.125.3",
     # Key dependencies
     # ----------------
-    "pytest-cov>=6.0.0",
+    "openscm-units>=0.6.3",
     "pandas-indexing>=0.6.2",
+    "pint>=0.24.4",
+    "pytest-cov>=6.0.0",
     "pytest-regressions>=2.7.0",
 ]
 # Test dependencies

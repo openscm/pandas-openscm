@@ -31,6 +31,11 @@ matplotlib = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 pytest_regressions = pytest.importorskip("pytest_regressions")
 
+try:
+    import openscm_units
+except ImportError:
+    openscm_units = None
+
 # Different values of:
 # - units
 #   - time units have to be passed by the user
@@ -592,15 +597,11 @@ def test_plot_plume_missing_multiple_quantiles(
         )
 
 
-# def test_plot_plume_units():
-#     # Plot two different sets of data with different units
-#     # Make sure that the unit handling passes through
-#     assert False
-
-
 def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_path):
+    openscm_units = pytest.importorskip("openscm_units")
+
     df = create_test_df(
-        variables=(("variable_1", "K"), ("variable_2", "K")),
+        variables=(("variable_1", "ppm"), ("variable_2", "ppb")),
         n_scenarios=3,
         n_runs=10,
         timepoints=np.arange(2025.0, 2150.0),
@@ -650,6 +651,7 @@ def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_
         # warn_infer_y_label_with_multi_unit tested elsewhere
         create_legend=create_legend,
         observed=False,
+        unit_aware=openscm_units.unit_registry,
     )
 
     check_plots(
@@ -663,8 +665,10 @@ def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_
 def test_plot_plume_after_calculating_quantiles_option_passing(
     setup_pandas_accessor, image_regression, tmp_path
 ):
+    openscm_units = pytest.importorskip("openscm_units")
+
     df = create_test_df(
-        variables=(("variable_1", "K"), ("variable_2", "K")),
+        variables=(("variable_1", "ppm"), ("variable_2", "ppb")),
         n_scenarios=3,
         n_runs=10,
         timepoints=np.arange(2025.0, 2150.0),
@@ -708,6 +712,7 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         # warn_infer_y_label_with_multi_unit tested elsewhere
         create_legend=create_legend,
         observed=False,
+        unit_aware=openscm_units.unit_registry,
     )
 
     check_plots_incl_quantile_calculation(
@@ -716,6 +721,106 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         image_regression=image_regression,
         tmp_path=tmp_path,
     )
+
+
+@pytest.mark.parametrize(
+    "unit_aware, variables",
+    (
+        pytest.param(
+            True,
+            (("variable_1", "W"), ("variable_2", "kW")),
+            id="default-unit-registry",
+        ),
+        pytest.param(
+            getattr(openscm_units, "unit_registry", None),
+            (("variable_1", "GtC"), ("variable_2", "GtCO2")),
+            marks=pytest.mark.skipif(
+                openscm_units is None, reason="openscm_units not installed"
+            ),
+            id="user-provided-unit-registry",
+        ),
+    ),
+)
+def test_plot_plume_unit_aware(
+    unit_aware, variables, setup_pandas_accessor, image_regression, tmp_path
+):
+    """
+    Make sure that we can do unit-aware plots
+
+    In other words, even if the units are different,
+    if they're compatible, they're plotted with the same units.
+    """
+    fig, ax = plt.subplots()
+
+    res = (
+        create_test_df(
+            variables=variables,
+            n_scenarios=3,
+            n_runs=10,
+            timepoints=np.arange(1950.0, 2050.0),
+            rng=np.random.default_rng(seed=8888),
+        )
+        .openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile()
+        .openscm.plot_plume(
+            ax=ax,
+            quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
+            unit_aware=unit_aware,
+        )
+    )
+
+    assert res == ax
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(ax.get_legend(),),
+        bbox_inches="tight",
+    )
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+def test_plot_plume_unit_aware_incompatible_units(setup_pandas_accessor):
+    """
+    Make sure that we can do unit-aware plots and errors are caught
+
+    In other words, if the units are incompatible,
+    then trying to plot on the same axes raises an error.
+    """
+    pint_errors = pytest.importorskip("pint.errors")
+
+    df = create_test_df(
+        # Incompatible units
+        variables=(("variable_1", "m"), ("variable_2", "kg")),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 2050.0),
+        rng=np.random.default_rng(seed=8888),
+    )
+
+    with pytest.raises(pint_errors.DimensionalityError, match="hiya"):
+        # Test plot_plume accesor (to double check argument passing)
+        (
+            df.openscm.groupby_except("run")
+            .quantile([0.05, 0.5, 0.95])
+            .openscm.fix_index_name_after_groupby_quantile()
+        ).openscm.plot_plume(
+            quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
+            unit_aware=True,
+        )
+
+    with pytest.raises(pint_errors.DimensionalityError, match="hiya"):
+        # Test plot_plume_after_calculating_quantiles accesor
+        # (to double check argument passing)
+        df.openscm.plot_plume_after_calculating_quantiles(
+            quantile_over="run",
+            quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
+            unit_aware=True,
+        )
 
 
 def test_get_default_colour_cycler_no_matplotlib():
