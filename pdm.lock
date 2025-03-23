@@ -5,7 +5,7 @@
 groups = ["default", "all-dev", "db", "db-full", "dev", "docs", "full", "plots", "progress", "tests", "tests-full", "tests-min"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:fcdb411ae8867aa85f5ccaa29c8e3575f19a55f609af1865c67b3239e801fd98"
+content_hash = "sha256:80a381d1ca4f4e365ba48270c37473fe231a0b1441aee60e71239b860e43dad7"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -803,7 +803,7 @@ name = "flexcache"
 version = "0.3"
 requires_python = ">=3.9"
 summary = "Saves and loads to the cache a transformed versions of a source object."
-groups = ["all-dev", "tests", "tests-full"]
+groups = ["all-dev", "docs", "tests", "tests-full"]
 dependencies = [
     "typing-extensions",
 ]
@@ -817,7 +817,7 @@ name = "flexparser"
 version = "0.4"
 requires_python = ">=3.9"
 summary = "Parsing made fun ... using typing."
-groups = ["all-dev", "tests", "tests-full"]
+groups = ["all-dev", "docs", "tests", "tests-full"]
 dependencies = [
     "typing-extensions",
 ]
@@ -937,7 +937,7 @@ files = [
 name = "globalwarmingpotentials"
 version = "0.11.1"
 summary = "Global warming potentials of greenhouse gases from various IPCC reports"
-groups = ["all-dev", "tests", "tests-full"]
+groups = ["all-dev", "docs", "tests", "tests-full"]
 files = [
     {file = "globalwarmingpotentials-0.11.1-py2.py3-none-any.whl", hash = "sha256:0f208afdaea1e464b1d2f760f06ab09e3870876c48a322252536809a5087ed11"},
     {file = "globalwarmingpotentials-0.11.1.tar.gz", hash = "sha256:c0d98d6fe7fb7d21bc2c17d7b41dfdf5a08b3a80778943e1f0d2f7f29372038b"},
@@ -2294,7 +2294,7 @@ name = "openscm-units"
 version = "0.6.3"
 requires_python = ">=3.9"
 summary = "Handling of units related to simple climate modelling."
-groups = ["all-dev", "tests", "tests-full"]
+groups = ["all-dev", "docs", "tests", "tests-full"]
 dependencies = [
     "globalwarmingpotentials",
     "numpy",
@@ -2563,7 +2563,7 @@ name = "pint"
 version = "0.24.4"
 requires_python = ">=3.9"
 summary = "Physical quantities module"
-groups = ["all-dev", "tests", "tests-full"]
+groups = ["all-dev", "docs", "tests", "tests-full"]
 dependencies = [
     "flexcache>=0.3",
     "flexparser>=0.4",
@@ -3696,13 +3696,13 @@ files = [
 
 [[package]]
 name = "tzdata"
-version = "2025.1"
+version = "2025.2"
 requires_python = ">=2"
 summary = "Provider of IANA time zone data"
 groups = ["default", "all-dev", "db-full", "dev", "docs", "tests", "tests-full"]
 files = [
-    {file = "tzdata-2025.1-py2.py3-none-any.whl", hash = "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"},
-    {file = "tzdata-2025.1.tar.gz", hash = "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694"},
+    {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
+    {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
 ]
 
 [[package]]

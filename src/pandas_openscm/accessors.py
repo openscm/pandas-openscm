@@ -31,8 +31,8 @@ from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
 from pandas_openscm.plotting import (
     create_legend_default,
-    plot_plume,
-    plot_plume_after_calculating_quantiles,
+    plot_plume_after_calculating_quantiles_func,
+    plot_plume_func,
 )
 
 if TYPE_CHECKING:
@@ -156,15 +156,11 @@ class DataFramePandasOpenSCMAccessor:
         """
         return mi_loc(self._df, locator)
 
-    def plot_plume(
+    def plot_plume(  # noqa: PLR0913
         self,
-        # TODO: match plot_plume API
+        quantiles_plumes: QUANTILES_PLUMES_LIKE,
         ax: matplotlib.axes.Axes | None = None,
         *,
-        quantiles_plumes: QUANTILES_PLUMES_LIKE = (
-            (0.5, 0.7),
-            ((0.05, 0.95), 0.2),
-        ),
         quantile_var: str = "quantile",
         quantile_var_label: str | None = None,
         quantile_legend_round: int = 2,
@@ -188,8 +184,117 @@ class DataFramePandasOpenSCMAccessor:
         ] = create_legend_default,
         observed: bool = True,
     ) -> matplotlib.axes.Axes:
-        # TODO: docstring
-        return plot_plume(
+        """
+        Plot a plume plot
+
+        Parameters
+        ----------
+        quantiles_plumes
+            Quantiles to plot in each plume.
+
+            If the first element of each tuple is a tuple,
+            a plume is plotted between the given quantiles.
+            Otherwise, if the first element is a plain float,
+            a line is plotted for the given quantile.
+
+        ax
+            Axes on which to plot.
+
+            If not supplied, a new axes is created.
+
+        quantile_var
+            Variable/column in the multi-index which stores information
+            about the quantile that each timeseries represents.
+
+        quantile_var_label
+            Label to use as the header for the quantile section in the legend
+
+        quantile_legend_round
+            Rounding to apply to quantile values when creating the legend
+
+        hue_var
+            Variable to use for grouping data into different colour groups
+
+        hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+        palette
+            Colour to use for the different groups in the data.
+
+            If any groups are not included in `palette`,
+            they are auto-filled.
+
+        warn_on_palette_value_missing
+            Should a warning be emitted if there are values missing from `palette`?
+
+        style_var
+            Variable to use for grouping data into different (line)style groups
+
+        style_var_label
+            Label to use as the header for the style section in the legend
+
+        dashes
+            Dash/linestyle to use for the different groups in the data.
+
+            If any groups are not included in `dashes`,
+            they are auto-filled.
+
+        warn_on_dashes_value_missing
+            Should a warning be emitted if there are values missing from `dashes`?
+
+        linewidth
+            Width to use for plotting lines.
+
+        unit_var
+            Variable/column in the multi-index which stores information
+            about the unit of each timeseries.
+
+        unit_aware
+            Should the plot be done in a unit-aware way?
+
+            If `True`, we use the default application registry
+            (retrieved with [pint.get_application_registry][]).
+            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+            For details, see matplotlib and pint support plotting with units
+            ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
+            [last version that we checked at the time of writing](https://pint.readthedocs.io/en/0.24.4/user/plotting.html)).
+
+        time_units
+            Units of the time axis of the data.
+
+            These are required if `unit_aware` is not `False`.
+
+        x_label
+            Label to apply to the x-axis.
+
+            If `None`, no label will be applied.
+
+        y_label
+            Label to apply to the y-axis.
+
+            If `True`, we will try and infer the y-label based on the data's units.
+
+            If `None`, no label will be applied.
+
+        warn_infer_y_label_with_multi_unit
+            Should a warning be raised if we try to infer the y-unit
+            but the data has more than one unit?
+
+        create_legend
+            Function to use to create the legend.
+
+            This allows the user to have full control over the creation of the legend.
+
+        observed
+            Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Returns
+        -------
+        :
+            Axes on which the data was plotted
+        """
+        return plot_plume_func(
             self._df,
             ax=ax,
             quantiles_plumes=quantiles_plumes,
@@ -215,7 +320,7 @@ class DataFramePandasOpenSCMAccessor:
             observed=observed,
         )
 
-    def plot_plume_after_calculating_quantiles(
+    def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
         self,
         ax: matplotlib.axes.Axes | None = None,
         *,
@@ -246,8 +351,119 @@ class DataFramePandasOpenSCMAccessor:
         ] = create_legend_default,
         observed: bool = True,
     ) -> matplotlib.axes.Axes:
-        # TODO: docstring
-        return plot_plume_after_calculating_quantiles(
+        """
+        Plot a plume plot, calculating the required quantiles first
+
+        Parameters
+        ----------
+        ax
+            Axes on which to plot.
+
+            If not supplied, a new axes is created.
+
+        quantile_over
+            Variable(s)/column(s) over which to calculate the quantiles.
+
+            The data is grouped by all columns except `quantile_over`
+            when calculating the quantiles.
+
+        quantiles_plumes
+            Quantiles to plot in each plume.
+
+            If the first element of each tuple is a tuple,
+            a plume is plotted between the given quantiles.
+            Otherwise, if the first element is a plain float,
+            a line is plotted for the given quantile.
+
+        quantile_var_label
+            Label to use as the header for the quantile section in the legend
+
+        quantile_legend_round
+            Rounding to apply to quantile values when creating the legend
+
+        hue_var
+            Variable to use for grouping data into different colour groups
+
+        hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+        palette
+            Colour to use for the different groups in the data.
+
+            If any groups are not included in `palette`,
+            they are auto-filled.
+
+        warn_on_palette_value_missing
+            Should a warning be emitted if there are values missing from `palette`?
+
+        style_var
+            Variable to use for grouping data into different (line)style groups
+
+        style_var_label
+            Label to use as the header for the style section in the legend
+
+        dashes
+            Dash/linestyle to use for the different groups in the data.
+
+            If any groups are not included in `dashes`,
+            they are auto-filled.
+
+        warn_on_dashes_value_missing
+            Should a warning be emitted if there are values missing from `dashes`?
+
+        linewidth
+            Width to use for plotting lines.
+
+        unit_var
+            Variable/column in the multi-index which stores information
+            about the unit of each timeseries.
+
+        unit_aware
+            Should the plot be done in a unit-aware way?
+
+            If `True`, we use the default application registry
+            (retrieved with [pint.get_application_registry][]).
+            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+            For details, see matplotlib and pint support plotting with units
+            ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
+            [last version that we checked at the time of writing](https://pint.readthedocs.io/en/0.24.4/user/plotting.html)).
+
+        time_units
+            Units of the time axis.
+
+            These are required if `unit_aware` is not `False`.
+
+        x_label
+            Label to apply to the x-axis.
+
+            If `None`, no label will be applied.
+
+        y_label
+            Label to apply to the y-axis.
+
+            If `True`, we will try and infer the y-label based on the data's units.
+
+            If `None`, no label will be applied.
+
+        warn_infer_y_label_with_multi_unit
+            Should a warning be raised if we try to infer the y-unit
+            but the data has more than one unit?
+
+        create_legend
+            Function to use to create the legend.
+
+            This allows the user to have full control over the creation of the legend.
+
+        observed
+            Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Returns
+        -------
+        :
+            Axes on which the data was plotted
+        """
+        return plot_plume_after_calculating_quantiles_func(
             self._df,
             ax=ax,
             quantile_over=quantile_over,

@@ -25,8 +25,8 @@ from pandas_openscm.plotting import (
     get_quantiles,
     get_values_line,
     get_values_plume,
-    plot_plume,
-    plot_plume_after_calculating_quantiles,
+    plot_plume_after_calculating_quantilesa,
+    plot_plume_func,
 )
 from pandas_openscm.testing import create_test_df
 
@@ -69,7 +69,7 @@ def check_plots(
     fig, ax = plt.subplots()
 
     with exp:
-        return_val = plot_plume(df, ax=ax, **plot_kwargs)
+        return_val = plot_plume_func(df, ax=ax, **plot_kwargs)
 
     assert return_val == ax
 
@@ -103,7 +103,7 @@ def check_plots_incl_quantile_calculation(
     fig, ax = plt.subplots()
 
     with exp:
-        return_val = plot_plume_after_calculating_quantiles(df, ax=ax, **method_kwargs)
+        return_val = plot_plume_after_calculating_quantilesa(df, ax=ax, **method_kwargs)
 
     assert return_val == ax
 
@@ -142,7 +142,7 @@ def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
         df=df.openscm.groupby_except("run")
         .quantile([0.05, 0.5, 0.95])
         .openscm.fix_index_name_after_groupby_quantile(),
-        plot_kwargs={},
+        plot_kwargs=dict(quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3))),
         image_regression=image_regression,
         tmp_path=tmp_path,
     )

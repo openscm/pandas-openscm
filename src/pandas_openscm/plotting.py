@@ -114,7 +114,7 @@ def get_quantiles(
     quantiles_plumes: QUANTILES_PLUMES_LIKE,
 ) -> np.typing.NDArray[np.floating[Any]]:
     """
-    Get just the quantiles from a `QUANTILES_PLUMES_LIKE`
+    Get just the quantiles from a [QUANTILES_PLUMES_LIKE][(m).]
 
     Parameters
     ----------
@@ -184,6 +184,27 @@ def get_pdf_from_pre_calculated(
 
 
 def extract_single_unit(df: pd.DataFrame, unit_var: str) -> str:
+    """
+    Extract the unit of the data, expecting there to only be one unit
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] from which to get the unit
+
+    unit_var
+        Variable/column in the multi-index which holds unit information
+
+    Returns
+    -------
+    :
+        Unit of the data
+
+    Raises
+    ------
+    AssertionError
+        The data has more than one unit
+    """
     units = df.index.get_level_values(unit_var).unique().tolist()
     if len(units) != 1:
         raise AssertionError(units)
@@ -221,6 +242,45 @@ def get_values_line(
     tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
     | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
 ):
+    """
+    Get values for plotting a line
+
+    Parameters
+    ----------
+    pdf
+        [pd.DataFrame][pandas.DataFrame] from which to get the values
+
+    unit_aware
+        Should the values be unit-aware?
+
+        If `True`, we use the default application registry
+        (retrieved with [pint.get_application_registry][]).
+        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+    unit_var
+        Variable/column in the multi-index which stores information
+        about the unit of each timeseries.
+
+    time_units
+        Units of the time axis.
+
+    Returns
+    -------
+    x_values :
+        x-values (for a plot)
+
+    y_values :
+        y-values (for a plot)
+
+    Raises
+    ------
+    TypeError
+        `unit_aware` is not `False` and `unit_var` or `time_units` is `None`.
+
+    MissingOptionalDependencyError
+        `unit_aware` is `True`
+        and [pint](https://pint.readthedocs.io/) is not installed.
+    """
     res_no_units = (pdf.columns.values.squeeze(), pdf.values.squeeze())
     if not unit_aware:
         return res_no_units
@@ -280,7 +340,7 @@ def get_values_plume(
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
 
 
-def get_values_plume(
+def get_values_plume(  # noqa: PLR0913
     pdf: pd.DataFrame,
     *,
     quantiles: tuple[float, float],
@@ -292,6 +352,55 @@ def get_values_plume(
     tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
     | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
 ):
+    """
+    Get values for plotting a line
+
+    Parameters
+    ----------
+    pdf
+        [pd.DataFrame][pandas.DataFrame] from which to get the values
+
+    quantiles
+        Quantiles to get from `pdf`
+
+    quantile_var
+        Variable/column in the multi-index which stores information
+        about the quantile that each timeseries represents.
+
+    unit_aware
+        Should the values be unit-aware?
+
+        If `True`, we use the default application registry
+        (retrieved with [pint.get_application_registry][]).
+        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+    unit_var
+        Variable/column in the multi-index which stores information
+        about the unit of each timeseries.
+
+    time_units
+        Units of the time axis.
+
+    Returns
+    -------
+    x_values :
+        x-values (for a plot)
+
+    y_values_lower :
+        y-values for the lower-bound (of a plume plot)
+
+    y_values_upper :
+        y-values for the upper-bound (of a plume plot)
+
+    Raises
+    ------
+    TypeError
+        `unit_aware` is not `False` and `unit_var` or `time_units` is `None`.
+
+    MissingOptionalDependencyError
+        `unit_aware` is `True`
+        and [pint](https://pint.readthedocs.io/) is not installed.
+    """
     res_no_units = (
         pdf.columns.values.squeeze(),
         pdf.loc[
@@ -341,7 +450,7 @@ def create_legend_default(
     """
     Create legend, default implementation
 
-    Intended to be used with [plot_plume][(m).]
+    Intended to be used with [plot_plume_func][(m).]
 
     Parameters
     ----------
@@ -362,6 +471,11 @@ def get_default_colour_cycler() -> Iterator[COLOUR_VALUE_LIKE]:
     -------
     :
         Default colour cycler
+
+    Raises
+    ------
+    MissingOptionalDependencyError
+        [matplotlib][] is not installed
     """
     try:
         import matplotlib.pyplot as plt
@@ -380,6 +494,33 @@ def fill_out_palette(
     palette_user_supplied: PALETTE_LIKE[T] | None,
     warn_on_value_missing: bool,
 ) -> PALETTE_LIKE[T]:
+    """
+    Fill out a palette
+
+    Parameters
+    ----------
+    hue_values
+        Values which require a value in the output palette
+
+    palette_user_supplied
+        User-supplied palette
+
+    warn_on_value_missing
+        Should a warning be emitted if `palette_user_supplied` is not `None`
+        but there are values missing from `palette_user_supplied`?
+
+    Returns
+    -------
+    :
+        Palette with values for all `hue_values`
+
+    Warns
+    -----
+    UserWarning
+        `warn_on_value_missing` is `True`,
+        `palette_user_supplied` is not `None`
+        and there are values in `hue_values` which are not in `palette_user_supplied`.
+    """
     if palette_user_supplied is None:
         # Make it all ourselves.
         # Don't warn as the user didn't set any values
@@ -439,6 +580,33 @@ def fill_out_dashes(
     dashes_user_supplied: dict[T, DASH_VALUE_LIKE] | None,
     warn_on_value_missing: bool,
 ) -> dict[T, DASH_VALUE_LIKE]:
+    """
+    Fill out dashes
+
+    Parameters
+    ----------
+    style_values
+        Values which require a value in the output dashes
+
+    dashes_user_supplied
+        User-supplied dashes
+
+    warn_on_value_missing
+        Should a warning be emitted if `dashes_user_supplied` is not `None`
+        but there are values missing from `dashes_user_supplied`?
+
+    Returns
+    -------
+    :
+        Dashes with values for all `style_values`
+
+    Warns
+    -----
+    UserWarning
+        `warn_on_value_missing` is `True`,
+        `dashes_user_supplied` is not `None`
+        and there are values in `style_values` which are not in `dashes_user_supplied`.
+    """
     if dashes_user_supplied is None:
         # Make it all ourselves.
         # Don't warn as the user didn't set any values
@@ -474,13 +642,29 @@ def fill_out_dashes(
     return dashes_out
 
 
-def y_vals_validator(
+def same_shape_as_x_vals(
     obj: SingleLinePlotter | SinglePlumePlotter,
     attribute: attr.Attribute[Any],
     value: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY,
 ) -> None:
     """
-    Validate the received y_vals
+    Validate that the received values are the same shape as `obj.x_vals`
+
+    Parameters
+    ----------
+    obj
+        Object on which we are peforming validation
+
+    attribute
+        Attribute which is being set
+
+    value
+        Value which is being used to set `attribute`
+
+    Raises
+    ------
+    AssertionError
+        `value.shape` is not the same as `obj.x_vals.shape`
     """
     if value.shape != obj.x_vals.shape:
         msg = (
@@ -499,7 +683,7 @@ class SingleLinePlotter:
     """x-values to plot"""
 
     y_vals: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY = field(
-        validator=[y_vals_validator]
+        validator=[same_shape_as_x_vals]
     )
     """y-values to plot"""
 
@@ -573,12 +757,12 @@ class SinglePlumePlotter:
     """x-values to plot"""
 
     y_vals_lower: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY = field(
-        validator=[y_vals_validator]
+        validator=[same_shape_as_x_vals]
     )
     """y-values to plot as the lower bound of the plume"""
 
     y_vals_upper: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY = field(
-        validator=[y_vals_validator]
+        validator=[same_shape_as_x_vals]
     )
     """y-values to plot as the upper bound of the plume"""
 
@@ -699,19 +883,105 @@ class PlumePlotter:
         warn_infer_y_label_with_multi_unit: bool = True,
         observed: bool = True,
     ) -> PlumePlotter:
-        # """
-        # Initialise from a [pd.DataFrame][pandas.DataFrame]
-        #
-        # Parameters
-        # ----------
-        # df
-        #     [pd.DataFrame][pandas.DataFrame] from which to initialise
-        #
-        # Returns
-        # -------
-        # :
-        #     Initialised instance
-        # """
+        """
+        Initialise from a [pd.DataFrame][pandas.DataFrame]
+
+        Parameters
+        ----------
+        df
+            [pd.DataFrame][pandas.DataFrame] from which to initialise
+
+        quantiles_plumes
+            Quantiles to plot in each plume.
+
+            If the first element of each tuple is a tuple,
+            a [SinglePlumePlotter][(m).] object will be created.
+            Otherwise, if the first element is a plain float,
+            a [SingleLinePlotter][(m).] object will be created.
+
+        quantile_var
+            Variable/column in the multi-index which stores information
+            about the quantile that each timeseries represents.
+
+        quantile_var_label
+            Label to use as the header for the quantile section in the legend
+
+        quantile_legend_round
+            Rounding to apply to quantile values when creating the legend
+
+        hue_var
+            Variable to use for grouping data into different colour groups
+
+        hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+        palette
+            Colour to use for the different groups in the data.
+
+            If any groups are not included in `palette`,
+            they are auto-filled.
+
+        warn_on_palette_value_missing
+            Should a warning be emitted if there are values missing from `palette`?
+
+        style_var
+            Variable to use for grouping data into different (line)style groups
+
+        style_var_label
+            Label to use as the header for the style section in the legend
+
+        dashes
+            Dash/linestyle to use for the different groups in the data.
+
+            If any groups are not included in `dashes`,
+            they are auto-filled.
+
+        warn_on_dashes_value_missing
+            Should a warning be emitted if there are values missing from `dashes`?
+
+        linewidth
+            Width to use for plotting lines.
+
+        unit_var
+            Variable/column in the multi-index which stores information
+            about the unit of each timeseries.
+
+        unit_aware
+            Should the values be extracted in a unit-aware way?
+
+            If `True`, we use the default application registry
+            (retrieved with [pint.get_application_registry][]).
+            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+        time_units
+            Units of the time axis of the data.
+
+            These are required if `unit_aware` is not `False`.
+
+        x_label
+            Label to apply to the x-axis.
+
+            If `None`, no label will be applied.
+
+        y_label
+            Label to apply to the y-axis.
+
+            If `True`, we will try and infer the y-label based on the data's units.
+
+            If `None`, no label will be applied.
+
+        warn_infer_y_label_with_multi_unit
+            Should a warning be raised if we try to infer the y-unit
+            but the data has more than one unit?
+
+        observed
+            Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Returns
+        -------
+        :
+             Initialised instance
+        """
         if hue_var_label is None:
             hue_var_label = hue_var.capitalize()
 
@@ -915,7 +1185,7 @@ class PlumePlotter:
             quantile_items.append(
                 mpatches.Patch(color="k", alpha=plume.alpha, label=label)
             )
-            generated_quantile_items.append(pid_line)
+            generated_quantile_items.append(pid_plume)
 
         hue_items = [
             mlines.Line2D([0], [0], color=colour, label=hue_value)
@@ -953,6 +1223,27 @@ class PlumePlotter:
         ] = create_legend_default,
         quantile_legend_round: int = 2,
     ) -> matplotlib.axes.Axes:
+        """
+        Plot
+
+        Parameters
+        ----------
+        ax
+            Axes onto which to plot
+
+        create_legend
+            Function to use to create the legend.
+
+            This allows the user to have full control over the creation of the legend.
+
+        quantile_legend_round
+            Rounding to apply to quantile values when creating the legend
+
+        Returns
+        -------
+        :
+            Axes on which the data was plotted
+        """
         if ax is None:
             try:
                 import matplotlib.pyplot as plt
@@ -983,14 +1274,12 @@ class PlumePlotter:
         return ax
 
 
-def plot_plume(  # noqa: PLR0913
+# Something funny happening with relative x-refs, hence _func suffix
+def plot_plume_func(  # noqa: PLR0913
     pdf: pd.DataFrame,
+    quantiles_plumes: QUANTILES_PLUMES_LIKE,
     ax: matplotlib.axes.Axes | None = None,
     *,
-    quantiles_plumes: QUANTILES_PLUMES_LIKE = (
-        (0.5, 0.7),
-        ((0.05, 0.95), 0.2),
-    ),
     quantile_var: str = "quantile",
     quantile_var_label: str | None = None,
     quantile_legend_round: int = 3,
@@ -1002,7 +1291,7 @@ def plot_plume(  # noqa: PLR0913
     style_var_label: str | None = None,
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     warn_on_dashes_value_missing: bool = True,
-    linewidth: float = 3.0,
+    linewidth: float = 2.0,
     unit_var: str = "unit",
     unit_aware: bool | pint.facets.PlainRegistry = False,
     time_units: str | None = None,
@@ -1014,6 +1303,123 @@ def plot_plume(  # noqa: PLR0913
     ] = create_legend_default,
     observed: bool = True,
 ) -> matplotlib.axes.Axes:
+    """
+    Plot a plume plot
+
+    Parameters
+    ----------
+    pdf
+        [pd.DataFrame][pandas.DataFrame] to use for plotting
+
+        It must contain quantiles already.
+        For data without quantiles, please see
+        [plot_plume_after_calculating_quantiles_func][(m).].
+
+    quantiles_plumes
+        Quantiles to plot in each plume.
+
+        If the first element of each tuple is a tuple,
+        a plume is plotted between the given quantiles.
+        Otherwise, if the first element is a plain float,
+        a line is plotted for the given quantile.
+
+    ax
+        Axes on which to plot.
+
+        If not supplied, a new axes is created.
+
+    quantile_var
+        Variable/column in the multi-index which stores information
+        about the quantile that each timeseries represents.
+
+    quantile_var_label
+        Label to use as the header for the quantile section in the legend
+
+    quantile_legend_round
+        Rounding to apply to quantile values when creating the legend
+
+    hue_var
+        Variable to use for grouping data into different colour groups
+
+    hue_var_label
+        Label to use as the header for the hue/colour section in the legend
+
+    palette
+        Colour to use for the different groups in the data.
+
+        If any groups are not included in `palette`,
+        they are auto-filled.
+
+    warn_on_palette_value_missing
+        Should a warning be emitted if there are values missing from `palette`?
+
+    style_var
+        Variable to use for grouping data into different (line)style groups
+
+    style_var_label
+        Label to use as the header for the style section in the legend
+
+    dashes
+        Dash/linestyle to use for the different groups in the data.
+
+        If any groups are not included in `dashes`,
+        they are auto-filled.
+
+    warn_on_dashes_value_missing
+        Should a warning be emitted if there are values missing from `dashes`?
+
+    linewidth
+        Width to use for plotting lines.
+
+    unit_var
+        Variable/column in the multi-index which stores information
+        about the unit of each timeseries.
+
+    unit_aware
+        Should the plot be done in a unit-aware way?
+
+        If `True`, we use the default application registry
+        (retrieved with [pint.get_application_registry][]).
+        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+        For details, see matplotlib and pint support plotting with units
+        ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
+        [last version that we checked at the time of writing](https://pint.readthedocs.io/en/0.24.4/user/plotting.html)).
+
+    time_units
+        Units of the time axis of the data.
+
+        These are required if `unit_aware` is not `False`.
+
+    x_label
+        Label to apply to the x-axis.
+
+        If `None`, no label will be applied.
+
+    y_label
+        Label to apply to the y-axis.
+
+        If `True`, we will try and infer the y-label based on the data's units.
+
+        If `None`, no label will be applied.
+
+    warn_infer_y_label_with_multi_unit
+        Should a warning be raised if we try to infer the y-unit
+        but the data has more than one unit?
+
+    create_legend
+        Function to use to create the legend.
+
+        This allows the user to have full control over the creation of the legend.
+
+    observed
+        Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+    Returns
+    -------
+    :
+        Axes on which the data was plotted
+    """
     plotter = PlumePlotter.from_df(
         df=pdf,
         quantiles_plumes=quantiles_plumes,
@@ -1044,7 +1450,8 @@ def plot_plume(  # noqa: PLR0913
     return ax
 
 
-def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
+# Something funny happening with relative x-refs, hence _func suffix
+def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
     pdf: pd.DataFrame,
     ax: matplotlib.axes.Axes | None = None,
     *,
@@ -1075,6 +1482,125 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
     ] = create_legend_default,
     observed: bool = True,
 ) -> matplotlib.axes.Axes:
+    """
+    Plot a plume plot, calculating the required quantiles first
+
+    Parameters
+    ----------
+    pdf
+        [pd.DataFrame][pandas.DataFrame] to use for plotting
+
+        It must contain quantiles already.
+        For data without quantiles, please see
+        [plot_plume_after_calculating_quantiles_func][(m).].
+
+    ax
+        Axes on which to plot.
+
+        If not supplied, a new axes is created.
+
+    quantile_over
+        Variable(s)/column(s) over which to calculate the quantiles.
+
+        The data is grouped by all columns except `quantile_over`
+        when calculating the quantiles.
+
+    quantiles_plumes
+        Quantiles to plot in each plume.
+
+        If the first element of each tuple is a tuple,
+        a plume is plotted between the given quantiles.
+        Otherwise, if the first element is a plain float,
+        a line is plotted for the given quantile.
+
+    quantile_var_label
+        Label to use as the header for the quantile section in the legend
+
+    quantile_legend_round
+        Rounding to apply to quantile values when creating the legend
+
+    hue_var
+        Variable to use for grouping data into different colour groups
+
+    hue_var_label
+        Label to use as the header for the hue/colour section in the legend
+
+    palette
+        Colour to use for the different groups in the data.
+
+        If any groups are not included in `palette`,
+        they are auto-filled.
+
+    warn_on_palette_value_missing
+        Should a warning be emitted if there are values missing from `palette`?
+
+    style_var
+        Variable to use for grouping data into different (line)style groups
+
+    style_var_label
+        Label to use as the header for the style section in the legend
+
+    dashes
+        Dash/linestyle to use for the different groups in the data.
+
+        If any groups are not included in `dashes`,
+        they are auto-filled.
+
+    warn_on_dashes_value_missing
+        Should a warning be emitted if there are values missing from `dashes`?
+
+    linewidth
+        Width to use for plotting lines.
+
+    unit_var
+        Variable/column in the multi-index which stores information
+        about the unit of each timeseries.
+
+    unit_aware
+        Should the plot be done in a unit-aware way?
+
+        If `True`, we use the default application registry
+        (retrieved with [pint.get_application_registry][]).
+        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+        For details, see matplotlib and pint support plotting with units
+        ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
+        [last version that we checked at the time of writing](https://pint.readthedocs.io/en/0.24.4/user/plotting.html)).
+
+    time_units
+        Units of the time axis.
+
+        These are required if `unit_aware` is not `False`.
+
+    x_label
+        Label to apply to the x-axis.
+
+        If `None`, no label will be applied.
+
+    y_label
+        Label to apply to the y-axis.
+
+        If `True`, we will try and infer the y-label based on the data's units.
+
+        If `None`, no label will be applied.
+
+    warn_infer_y_label_with_multi_unit
+        Should a warning be raised if we try to infer the y-unit
+        but the data has more than one unit?
+
+    create_legend
+        Function to use to create the legend.
+
+        This allows the user to have full control over the creation of the legend.
+
+    observed
+        Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+    Returns
+    -------
+    :
+        Axes on which the data was plotted
+    """
     quantile_var = "quantile"
     pdf_q = fix_index_name_after_groupby_quantile(
         groupby_except(pdf, quantile_over).quantile(get_quantiles(quantiles_plumes)),
@@ -1082,7 +1608,7 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
         copy=False,
     )
 
-    return plot_plume(
+    return plot_plume_func(
         pdf=pdf_q,
         ax=ax,
         quantiles_plumes=quantiles_plumes,
