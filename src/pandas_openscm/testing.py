@@ -140,7 +140,7 @@ def create_test_df(
         Random number generator to use.
 
         If not supplied, we create an instance using
-        [numpy.random.default_rng][].
+        [numpy.random.default_rng](https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng).
 
     Returns
     -------

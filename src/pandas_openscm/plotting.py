@@ -279,7 +279,7 @@ def get_values_line(
 
     MissingOptionalDependencyError
         `unit_aware` is `True`
-        and [pint][] is not installed.
+        and [pint](https://pint.readthedocs.io/) is not installed.
     """
     res_no_units = (pdf.columns.values.squeeze(), pdf.values.squeeze())
     if not unit_aware:
@@ -399,7 +399,7 @@ def get_values_plume(  # noqa: PLR0913
 
     MissingOptionalDependencyError
         `unit_aware` is `True`
-        and [pint][] is not installed.
+        and [pint](https://pint.readthedocs.io/) is not installed.
     """
     res_no_units = (
         pdf.columns.values.squeeze(),
