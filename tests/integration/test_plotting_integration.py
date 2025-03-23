@@ -674,7 +674,7 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
     openscm_units.unit_registry.setup_matplotlib(enable=True)
 
     df = create_test_df(
-        variables=(("variable_1", "ppm"), ("variable_2", "ppb")),
+        variables=(("variable_1", "ctCO2"), ("variable_2", "dtCO2")),
         n_scenarios=3,
         n_runs=10,
         timepoints=np.arange(2025.0, 2150.0),
@@ -714,8 +714,9 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         linewidth=1.5,
         unit_var="units",
         unit_aware=openscm_units.unit_registry,
-        x_label="Year",
-        y_label="Value",
+        time_units="decade",
+        x_label=None,  # let unit-awareness take over
+        y_label=None,  # let unit-awareness take over
         # warn_infer_y_label_with_multi_unit tested elsewhere
         create_legend=create_legend,
         observed=False,
