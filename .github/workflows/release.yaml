@@ -36,6 +36,8 @@ jobs:
           PROJECT_VERSION=`sed -ne 's/^version = "\([0-9\.a]*\)"/\1/p' pyproject.toml`
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
       - name: Generate pdm.lock
+        # Required for building the locked version of the package
+        # with pdm-build-locked (see pyproject.toml)
         run: |
           pdm lock --group ":all" --strategy inherit_metadata
       - name: Build package for PyPI
