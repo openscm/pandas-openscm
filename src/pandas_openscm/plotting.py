@@ -822,7 +822,7 @@ def plot_plume(  # noqa: PLR0913
         observed=observed,
     )
 
-    plotter.plot(
+    ax = plotter.plot(
         ax=ax, create_legend=create_legend, quantile_legend_round=quantile_legend_round
     )
 

@@ -18,6 +18,7 @@ import pytest
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.plotting import (
+    PlumePlotter,
     SingleLinePlotter,
     get_default_colour_cycler,
     get_quantiles,
@@ -26,6 +27,7 @@ from pandas_openscm.plotting import (
 )
 from pandas_openscm.testing import create_test_df
 
+matplotlib = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 pytest_regressions = pytest.importorskip("pytest_regressions")
 
@@ -133,6 +135,48 @@ def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
         .quantile([0.05, 0.5, 0.95])
         .openscm.fix_index_name_after_groupby_quantile(),
         plot_kwargs={},
+        image_regression=image_regression,
+        tmp_path=tmp_path,
+    )
+
+
+def test_default_ax_auto_creation(tmp_path, image_regression, setup_pandas_accessor):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=5,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=83747),
+    )
+
+    res = (
+        df.openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile()
+        .openscm.plot_plume()
+    )
+    assert isinstance(res, matplotlib.axes.Axes)
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(out_file, bbox_extra_artists=(res.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+
+def test_plot_plume_no_labels(tmp_path, image_regression, setup_pandas_accessor):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=5,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=84747),
+    )
+
+    check_plots(
+        df=df.openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile(),
+        plot_kwargs=dict(y_label=None, x_label=None),
         image_regression=image_regression,
         tmp_path=tmp_path,
     )
@@ -683,6 +727,48 @@ def test_get_default_colour_cycler_no_matplotlib():
             ),
         ):
             get_default_colour_cycler()
+
+
+def test_generate_legend_handles_no_matplotlib():
+    pp = PlumePlotter(
+        lines=[],
+        plumes=[],
+        hue_var_label="a",
+        style_var_label="b",
+        quantile_var_label="c",
+        palette={},
+        dashes=None,
+        x_label=None,
+        y_label=None,
+    )
+    with patch.dict(sys.modules, {"matplotlib": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`generate_legend_handles` requires matplotlib to be installed"
+            ),
+        ):
+            pp.generate_legend_handles()
+
+
+def test_plot_no_matplotlib():
+    pp = PlumePlotter(
+        lines=[],
+        plumes=[],
+        hue_var_label="a",
+        style_var_label="b",
+        quantile_var_label="c",
+        palette={},
+        dashes=None,
+        x_label=None,
+        y_label=None,
+    )
+    with patch.dict(sys.modules, {"matplotlib": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape("`plot(ax=None, ...)` requires matplotlib to be installed"),
+        ):
+            pp.plot()
 
 
 def test_single_line_plotter_wrong_shape_y_vals():
