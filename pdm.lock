@@ -5,7 +5,7 @@
 groups = ["default", "all-dev", "db", "db-full", "dev", "docs", "full", "plots", "progress", "tests", "tests-full", "tests-min"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:80a381d1ca4f4e365ba48270c37473fe231a0b1441aee60e71239b860e43dad7"
+content_hash = "sha256:d0370058a7ecdd48fa188b138ec90705fad9f5c30948ce77011d43e02de466b7"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -803,7 +803,7 @@ name = "flexcache"
 version = "0.3"
 requires_python = ">=3.9"
 summary = "Saves and loads to the cache a transformed versions of a source object."
-groups = ["all-dev", "docs", "tests", "tests-full"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 dependencies = [
     "typing-extensions",
 ]
@@ -817,7 +817,7 @@ name = "flexparser"
 version = "0.4"
 requires_python = ">=3.9"
 summary = "Parsing made fun ... using typing."
-groups = ["all-dev", "docs", "tests", "tests-full"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 dependencies = [
     "typing-extensions",
 ]
@@ -2563,7 +2563,7 @@ name = "pint"
 version = "0.24.4"
 requires_python = ">=3.9"
 summary = "Physical quantities module"
-groups = ["all-dev", "docs", "tests", "tests-full"]
+groups = ["all-dev", "dev", "docs", "tests", "tests-full"]
 dependencies = [
     "flexcache>=0.3",
     "flexparser>=0.4",

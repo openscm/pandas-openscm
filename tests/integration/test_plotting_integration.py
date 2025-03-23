@@ -25,7 +25,7 @@ from pandas_openscm.plotting import (
     get_quantiles,
     get_values_line,
     get_values_plume,
-    plot_plume_after_calculating_quantilesa,
+    plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
 )
 from pandas_openscm.testing import create_test_df
@@ -103,7 +103,9 @@ def check_plots_incl_quantile_calculation(
     fig, ax = plt.subplots()
 
     with exp:
-        return_val = plot_plume_after_calculating_quantilesa(df, ax=ax, **method_kwargs)
+        return_val = plot_plume_after_calculating_quantiles_func(
+            df, ax=ax, **method_kwargs
+        )
 
     assert return_val == ax
 
