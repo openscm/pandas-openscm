@@ -326,7 +326,7 @@ def test_plot_plume_quantiles(
             ["scenario", "variable", "unit"],
             "run",
             None,
-            dict(unit_col=None),
+            dict(unit_var=None),
             id="multi-var-with-no-style-var",
         ),
     ),
@@ -599,9 +599,10 @@ def test_plot_plume_missing_multiple_quantiles(
 
 def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_path):
     openscm_units = pytest.importorskip("openscm_units")
+    openscm_units.unit_registry.setup_matplotlib(enable=True)
 
     df = create_test_df(
-        variables=(("variable_1", "ppm"), ("variable_2", "ppb")),
+        variables=(("variable_1", "tCO2"), ("variable_2", "dtCO2")),
         n_scenarios=3,
         n_runs=10,
         timepoints=np.arange(2025.0, 2150.0),
@@ -645,13 +646,14 @@ def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_
         },
         warn_on_dashes_value_missing=False,
         linewidth=1.5,
-        unit_col="units",
-        x_label="Year",
-        y_label="Value",
+        unit_var="units",
+        unit_aware=openscm_units.unit_registry,
+        time_units="month",
+        x_label=None,  # let unit-awareness take over
+        y_label=None,  # let unit-awareness take over
         # warn_infer_y_label_with_multi_unit tested elsewhere
         create_legend=create_legend,
         observed=False,
-        unit_aware=openscm_units.unit_registry,
     )
 
     check_plots(
@@ -661,11 +663,15 @@ def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_
         tmp_path=tmp_path,
     )
 
+    # Teardown
+    openscm_units.unit_registry.setup_matplotlib(enable=False)
+
 
 def test_plot_plume_after_calculating_quantiles_option_passing(
     setup_pandas_accessor, image_regression, tmp_path
 ):
     openscm_units = pytest.importorskip("openscm_units")
+    openscm_units.unit_registry.setup_matplotlib(enable=True)
 
     df = create_test_df(
         variables=(("variable_1", "ppm"), ("variable_2", "ppb")),
@@ -706,13 +712,13 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         },
         warn_on_dashes_value_missing=False,
         linewidth=1.5,
-        unit_col="units",
+        unit_var="units",
+        unit_aware=openscm_units.unit_registry,
         x_label="Year",
         y_label="Value",
         # warn_infer_y_label_with_multi_unit tested elsewhere
         create_legend=create_legend,
         observed=False,
-        unit_aware=openscm_units.unit_registry,
     )
 
     check_plots_incl_quantile_calculation(
@@ -721,6 +727,9 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         image_regression=image_regression,
         tmp_path=tmp_path,
     )
+
+    # Teardown
+    openscm_units.unit_registry.setup_matplotlib(enable=False)
 
 
 @pytest.mark.parametrize(

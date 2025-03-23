@@ -8,7 +8,7 @@ import warnings
 from collections.abc import Collection, Iterable
 from functools import partial
 from itertools import cycle
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar, overload
 
 import numpy as np
 import pandas as pd
@@ -151,6 +151,132 @@ def get_pdf_from_pre_calculated(
     pdf = in_df.loc[in_df.index.get_level_values(quantile_col).isin(quantiles)]
 
     return pdf
+
+
+def extract_single_unit(df: pd.DataFrame, unit_var: str) -> str:
+    units = df.index.get_level_values(unit_var).unique()
+    if len(units) != 1:
+        raise AssertionError(units)
+
+    return units[0]
+
+
+@overload
+def get_values_line(
+    pdf: pd.DataFrame,
+    *,
+    unit_aware: Literal[False],
+    unit_var: str,
+    time_units: str | None,
+) -> tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]: ...
+
+
+@overload
+def get_values_line(
+    pdf: pd.DataFrame,
+    *,
+    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_var: str,
+    time_units: str | None,
+) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
+
+
+def get_values_line(
+    pdf: pd.DataFrame,
+    *,
+    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_var: str,
+    time_units: str | None,
+) -> (
+    tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
+    | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
+):
+    res_no_units = (pdf.columns.values.squeeze(), pdf.values.squeeze())
+    if not unit_aware:
+        return res_no_units
+
+    if time_units is None:
+        msg = "If `unit_aware` != False, then `time_units` must not be `None`"
+        raise TypeError(msg)
+
+    if isinstance(unit_aware, bool):
+        ur = pint.get_application_registry()
+    else:
+        ur = unit_aware
+
+    res = (
+        res_no_units[0] * ur(time_units),
+        res_no_units[1] * ur(extract_single_unit(pdf, unit_var)),
+    )
+
+    return res
+
+
+@overload
+def get_values_plume(
+    pdf: pd.DataFrame,
+    *,
+    quantiles: tuple[float, float],
+    quantile_var: str,
+    unit_aware: Literal[False],
+    unit_var: str,
+    time_units: str | None,
+) -> tuple[
+    NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT
+]: ...
+
+
+@overload
+def get_values_plume(
+    pdf: pd.DataFrame,
+    *,
+    quantiles: tuple[float, float],
+    quantile_var: str,
+    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_var: str,
+    time_units: str | None,
+) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
+
+
+def get_values_plume(
+    pdf: pd.DataFrame,
+    *,
+    quantiles: tuple[float, float],
+    quantile_var: str,
+    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_var: str,
+    time_units: str | None,
+) -> (
+    tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
+    | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
+):
+    res_no_units = (
+        pdf.columns.values.squeeze(),
+        *[
+            pdf.loc[pdf.index.get_level_values(quantile_var).isin({q})].values.squeeze()
+            for q in quantiles
+        ],
+    )
+    if not unit_aware:
+        return res_no_units
+
+    if time_units is None:
+        msg = "If `unit_aware` != False, then `time_units` must not be `None`"
+        raise TypeError(msg)
+
+    if isinstance(unit_aware, bool):
+        ur = pint.get_application_registry()
+    else:
+        ur = unit_aware
+
+    unit = extract_single_unit(pdf, unit_var)
+    res = (
+        res_no_units[0] * ur(time_units),
+        res_no_units[1] * ur(unit),
+        res_no_units[2] * ur(unit),
+    )
+
+    return res
 
 
 def create_legend_default(
@@ -509,25 +635,27 @@ class PlumePlotter:
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
-        unit_col: str | None = "unit",
+        unit_var: str | None = "unit",
+        unit_aware: bool | pint.facets.PlainRegistry = False,
+        time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
         warn_infer_y_label_with_multi_unit: bool = True,
         observed: bool = True,
     ) -> PlumePlotter:
-        """
-        Initialise from a [pd.DataFrame][pandas.DataFrame]
-
-        Parameters
-        ----------
-        df
-            [pd.DataFrame][pandas.DataFrame] from which to initialise
-
-        Returns
-        -------
-        :
-            Initialised instance
-        """
+        # """
+        # Initialise from a [pd.DataFrame][pandas.DataFrame]
+        #
+        # Parameters
+        # ----------
+        # df
+        #     [pd.DataFrame][pandas.DataFrame] from which to initialise
+        #
+        # Returns
+        # -------
+        # :
+        #     Initialised instance
+        # """
         if hue_var_label is None:
             hue_var_label = hue_var.capitalize()
 
@@ -537,7 +665,12 @@ class PlumePlotter:
         if quantile_var_label is None:
             quantile_var_label = quantile_var.capitalize()
 
-        infer_y_label = isinstance(y_label, bool) and y_label and unit_col is not None
+        infer_y_label = (
+            (not unit_aware)
+            and isinstance(y_label, bool)
+            and y_label
+            and unit_var is not None
+        )
 
         palette_complete = fill_out_palette(
             df.index.get_level_values(hue_var).unique(),
@@ -587,8 +720,12 @@ class PlumePlotter:
                         continue
 
                     line_plotter = SingleLinePlotter(
-                        x_vals=pdf.columns.values.squeeze(),
-                        y_vals=pdf.values.squeeze(),
+                        *get_values_line(
+                            pdf,
+                            unit_aware=unit_aware,
+                            unit_var=unit_var,
+                            time_units=time_units,
+                        ),
                         quantile=q,
                         linewidth=linewidth,
                         linestyle=linestyle,
@@ -605,23 +742,28 @@ class PlumePlotter:
                         continue
 
                     plume_plotter = SinglePlumePlotter(
-                        x_vals=pdf.columns.values.squeeze(),
-                        y_vals_lower=gpdf(quantiles=(q[0],)).values.squeeze(),
-                        y_vals_upper=gpdf(quantiles=(q[1],)).values.squeeze(),
+                        *get_values_plume(
+                            pdf,
+                            quantiles=q,
+                            quantile_var=quantile_var,
+                            unit_aware=unit_aware,
+                            unit_var=unit_var,
+                            time_units=time_units,
+                        ),
                         quantiles=q,
                         color=colour,
                         alpha=alpha,
                     )
                     plumes.append(plume_plotter)
 
-                if infer_y_label and unit_col in pdf.index.names:
-                    values_units.extend(pdf.index.get_level_values(unit_col).unique())
+                if infer_y_label and unit_var in pdf.index.names:
+                    values_units.extend(pdf.index.get_level_values(unit_var).unique())
 
         if infer_y_label:
-            if unit_col not in df.index.names:
+            if unit_var not in df.index.names:
                 warnings.warn(
                     "Not auto-setting the y_label "
-                    f"because {unit_col=} is not in {df.index.names=}"
+                    f"because {unit_var=} is not in {df.index.names=}"
                 )
                 y_label = None
 
@@ -792,7 +934,9 @@ def plot_plume(  # noqa: PLR0913
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
-    unit_col: str = "unit",
+    unit_var: str = "unit",
+    unit_aware: bool | pint.facets.PlainRegistry = False,
+    time_units: str | None = None,
     x_label: str | None = "time",
     y_label: str | bool | None = True,
     warn_infer_y_label_with_multi_unit: bool = True,
@@ -815,7 +959,9 @@ def plot_plume(  # noqa: PLR0913
         dashes=dashes,
         warn_on_dashes_value_missing=warn_on_dashes_value_missing,
         linewidth=linewidth,
-        unit_col=unit_col,
+        unit_var=unit_var,
+        unit_aware=unit_aware,
+        time_units=time_units,
         x_label=x_label,
         y_label=y_label,
         warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
@@ -850,7 +996,7 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
-    unit_col: str = "unit",
+    unit_var: str = "unit",
     x_label: str | None = "time",
     y_label: str | bool | None = True,
     warn_infer_y_label_with_multi_unit: bool = True,
@@ -882,7 +1028,7 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
         dashes=dashes,
         warn_on_dashes_value_missing=warn_on_dashes_value_missing,
         linewidth=linewidth,
-        unit_col=unit_col,
+        unit_var=unit_var,
         x_label=x_label,
         y_label=y_label,
         warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
