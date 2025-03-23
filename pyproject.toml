@@ -77,6 +77,7 @@ dev = [
     "mypy==1.14.0",
     "pandas-indexing>=0.6.2",
     "pandas-stubs>=2.2.2.240807",
+    "pint>=0.24.4",
     # Required for liccheck, see https://github.com/dhatim/python-license-check/pull/113
     "pip==24.3.1",
     "pre-commit==4.0.1",
@@ -104,12 +105,14 @@ docs = [
     "ruff==0.8.6",
     # Key dependencies for notebook_based_docs
     # ----------------------------------------
+    "filelock>=3.16.1",
     "ipywidgets>=8.1.5",
     "jupyterlab==4.3.4",
     "jupytext==1.16.6",
     "mkdocs-jupyter==0.25.1",
+    "openscm-units>=0.6.3",
     "pandas-indexing>=0.6.2",
-    "filelock>=3.16.1",
+    "pint>=0.24.4",
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.
@@ -129,7 +132,11 @@ tests-full = [
     "hypothesis>=6.125.3",
     # Key dependencies
     # ----------------
+    "openscm-units>=0.6.3",
+    "pandas-indexing>=0.6.2",
+    "pint>=0.24.4",
     "pytest-cov>=6.0.0",
+    "pytest-regressions>=2.7.0",
 ]
 # Test dependencies
 # (partly split because liccheck uses toml,
@@ -137,7 +144,6 @@ tests-full = [
 tests = [
     {include-group = "tests-min"},
     {include-group = "tests-full"},
-    "pandas-indexing>=0.6.2",
 ]
 all-dev = [
     {include-group = "dev"},
@@ -242,6 +248,9 @@ ignore = [
     "D100",
     "E402",
     "S101",
+]
+"docs/how-to-guides/how-to-make-a-plume-plot.py" = [
+    "E501",
 ]
 "scripts/*" = [
     "S101",

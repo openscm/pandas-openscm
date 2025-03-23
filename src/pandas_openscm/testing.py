@@ -103,6 +103,7 @@ def create_test_df(
     n_scenarios: int,
     n_runs: int,
     timepoints: np.typing.NDArray[np.floating[Any]],
+    rng: np.random.Generator | None = None,
 ) -> pd.DataFrame:
     """
     Create a [pd.DataFrame][pandas.DataFrame] to use in testing
@@ -135,11 +136,20 @@ def create_test_df(
     timepoints
         Time points to use with the data.
 
+    rng
+        Random number generator to use.
+
+        If not supplied, we create an instance using
+        [numpy.random.default_rng](https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng).
+
     Returns
     -------
     :
         Generated test [pd.DataFrame][pandas.DataFrame].
     """
+    if rng is None:
+        rng = np.random.default_rng()
+
     idx = pd.MultiIndex.from_frame(
         pd.DataFrame(
             (
@@ -160,7 +170,7 @@ def create_test_df(
     # Give the data a bit of structure so it looks different when plotted.
     values = 50.0 * np.linspace(0.3, 1, n_ts)[:, np.newaxis] * np.linspace(
         0, 1, timepoints.size
-    )[np.newaxis, :] + np.random.default_rng().random((n_ts, timepoints.size))
+    )[np.newaxis, :] + rng.random((n_ts, timepoints.size))
 
     df = pd.DataFrame(
         values,

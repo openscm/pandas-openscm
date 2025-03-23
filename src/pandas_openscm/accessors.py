@@ -19,15 +19,31 @@ almost always goes wrong so I would stay away from this as long as we can.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
 
+from pandas_openscm.grouping import (
+    fix_index_name_after_groupby_quantile,
+    groupby_except,
+)
 from pandas_openscm.index_manipulation import convert_index_to_category_index
 from pandas_openscm.indexing import mi_loc
+from pandas_openscm.plotting import (
+    create_legend_default,
+    plot_plume_after_calculating_quantiles_func,
+    plot_plume_func,
+)
 
 if TYPE_CHECKING:
+    import matplotlib
     import pandas_indexing as pix
+    import pint
+
+    from pandas_openscm.plotting import (
+        PALETTE_LIKE,
+        QUANTILES_PLUMES_LIKE,
+    )
 
 
 class DataFramePandasOpenSCMAccessor:
@@ -50,6 +66,58 @@ class DataFramePandasOpenSCMAccessor:
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
+
+    def fix_index_name_after_groupby_quantile(
+        self, new_name: str = "quantile", copy: bool = False
+    ) -> pd.DataFrame:
+        """
+        Fix the index name after performing a `groupby(...).quantile(...)` operation
+
+        By default, pandas doesn't assign a name to the quantile level
+        when doing an operation of the form given above.
+        This fixes this, but it does assume
+        that the quantile level is the only unnamed level in the index.
+
+        Parameters
+        ----------
+        new_name
+            New name to give to the quantile column
+
+        copy
+            Whether to copy `df` before manipulating the index name
+
+        Returns
+        -------
+        :
+            `df`, with the last level in its index renamed to `new_name`.
+        """
+        return fix_index_name_after_groupby_quantile(
+            self._df, new_name=new_name, copy=copy
+        )
+
+    def groupby_except(
+        self, non_groupers: str | list[str], observed: bool = True
+    ) -> pd.core.groupby.generic.DataFrameGroupBy[Any]:
+        """
+        Group by all index levels except specified levels
+
+        This is the inverse of [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Parameters
+        ----------
+        non_groupers
+            Columns to exclude from the grouping
+
+        observed
+            Whether to only return observed combinations or not
+
+        Returns
+        -------
+        :
+            The [pd.DataFrame][pandas.DataFrame],
+            grouped by all columns except `non_groupers`.
+        """
+        return groupby_except(df=self._df, non_groupers=non_groupers, observed=observed)
 
     def mi_loc(
         self,
@@ -88,9 +156,340 @@ class DataFramePandasOpenSCMAccessor:
         """
         return mi_loc(self._df, locator)
 
-    def to_category_index(
+    def plot_plume(  # noqa: PLR0913
         self,
-    ) -> pd.DataFrame:
+        quantiles_plumes: QUANTILES_PLUMES_LIKE,
+        ax: matplotlib.axes.Axes | None = None,
+        *,
+        quantile_var: str = "quantile",
+        quantile_var_label: str | None = None,
+        quantile_legend_round: int = 3,
+        hue_var: str = "scenario",
+        hue_var_label: str | None = None,
+        palette: PALETTE_LIKE[Any] | None = None,
+        warn_on_palette_value_missing: bool = True,
+        style_var: str = "variable",
+        style_var_label: str | None = None,
+        dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+        warn_on_dashes_value_missing: bool = True,
+        linewidth: float = 2.0,
+        unit_var: str = "unit",
+        unit_aware: bool | pint.facets.PlainRegistry = False,
+        time_units: str | None = None,
+        x_label: str | None = "time",
+        y_label: str | bool | None = True,
+        warn_infer_y_label_with_multi_unit: bool = True,
+        create_legend: Callable[
+            [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
+        ] = create_legend_default,
+        observed: bool = True,
+    ) -> matplotlib.axes.Axes:
+        """
+        Plot a plume plot
+
+        Parameters
+        ----------
+        quantiles_plumes
+            Quantiles to plot in each plume.
+
+            If the first element of each tuple is a tuple,
+            a plume is plotted between the given quantiles.
+            Otherwise, if the first element is a plain float,
+            a line is plotted for the given quantile.
+
+        ax
+            Axes on which to plot.
+
+            If not supplied, a new axes is created.
+
+        quantile_var
+            Variable/column in the multi-index which stores information
+            about the quantile that each timeseries represents.
+
+        quantile_var_label
+            Label to use as the header for the quantile section in the legend
+
+        quantile_legend_round
+            Rounding to apply to quantile values when creating the legend
+
+        hue_var
+            Variable to use for grouping data into different colour groups
+
+        hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+        palette
+            Colour to use for the different groups in the data.
+
+            If any groups are not included in `palette`,
+            they are auto-filled.
+
+        warn_on_palette_value_missing
+            Should a warning be emitted if there are values missing from `palette`?
+
+        style_var
+            Variable to use for grouping data into different (line)style groups
+
+        style_var_label
+            Label to use as the header for the style section in the legend
+
+        dashes
+            Dash/linestyle to use for the different groups in the data.
+
+            If any groups are not included in `dashes`,
+            they are auto-filled.
+
+        warn_on_dashes_value_missing
+            Should a warning be emitted if there are values missing from `dashes`?
+
+        linewidth
+            Width to use for plotting lines.
+
+        unit_var
+            Variable/column in the multi-index which stores information
+            about the unit of each timeseries.
+
+        unit_aware
+            Should the plot be done in a unit-aware way?
+
+            If `True`, we use the default application registry
+            (retrieved with [pint.get_application_registry][]).
+            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+            For details, see matplotlib and pint support plotting with units
+            ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
+            [last version that we checked at the time of writing](https://pint.readthedocs.io/en/0.24.4/user/plotting.html)).
+
+        time_units
+            Units of the time axis of the data.
+
+            These are required if `unit_aware` is not `False`.
+
+        x_label
+            Label to apply to the x-axis.
+
+            If `None`, no label will be applied.
+
+        y_label
+            Label to apply to the y-axis.
+
+            If `True`, we will try and infer the y-label based on the data's units.
+
+            If `None`, no label will be applied.
+
+        warn_infer_y_label_with_multi_unit
+            Should a warning be raised if we try to infer the y-unit
+            but the data has more than one unit?
+
+        create_legend
+            Function to use to create the legend.
+
+            This allows the user to have full control over the creation of the legend.
+
+        observed
+            Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Returns
+        -------
+        :
+            Axes on which the data was plotted
+        """
+        return plot_plume_func(
+            self._df,
+            ax=ax,
+            quantiles_plumes=quantiles_plumes,
+            quantile_var=quantile_var,
+            quantile_var_label=quantile_var_label,
+            quantile_legend_round=quantile_legend_round,
+            hue_var=hue_var,
+            hue_var_label=hue_var_label,
+            palette=palette,
+            warn_on_palette_value_missing=warn_on_palette_value_missing,
+            style_var=style_var,
+            style_var_label=style_var_label,
+            dashes=dashes,
+            warn_on_dashes_value_missing=warn_on_dashes_value_missing,
+            linewidth=linewidth,
+            unit_var=unit_var,
+            unit_aware=unit_aware,
+            time_units=time_units,
+            x_label=x_label,
+            y_label=y_label,
+            warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
+            create_legend=create_legend,
+            observed=observed,
+        )
+
+    def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
+        self,
+        ax: matplotlib.axes.Axes | None = None,
+        *,
+        quantile_over: str | list[str],
+        quantiles_plumes: QUANTILES_PLUMES_LIKE = (
+            (0.5, 0.7),
+            ((0.05, 0.95), 0.2),
+        ),
+        quantile_var_label: str | None = None,
+        quantile_legend_round: int = 2,
+        hue_var: str = "scenario",
+        hue_var_label: str | None = None,
+        palette: PALETTE_LIKE[Any] | None = None,
+        warn_on_palette_value_missing: bool = True,
+        style_var: str = "variable",
+        style_var_label: str | None = None,
+        dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+        warn_on_dashes_value_missing: bool = True,
+        linewidth: float = 3.0,
+        unit_var: str = "unit",
+        unit_aware: bool | pint.facets.PlainRegistry = False,
+        time_units: str | None = None,
+        x_label: str | None = "time",
+        y_label: str | bool | None = True,
+        warn_infer_y_label_with_multi_unit: bool = True,
+        create_legend: Callable[
+            [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
+        ] = create_legend_default,
+        observed: bool = True,
+    ) -> matplotlib.axes.Axes:
+        """
+        Plot a plume plot, calculating the required quantiles first
+
+        Parameters
+        ----------
+        ax
+            Axes on which to plot.
+
+            If not supplied, a new axes is created.
+
+        quantile_over
+            Variable(s)/column(s) over which to calculate the quantiles.
+
+            The data is grouped by all columns except `quantile_over`
+            when calculating the quantiles.
+
+        quantiles_plumes
+            Quantiles to plot in each plume.
+
+            If the first element of each tuple is a tuple,
+            a plume is plotted between the given quantiles.
+            Otherwise, if the first element is a plain float,
+            a line is plotted for the given quantile.
+
+        quantile_var_label
+            Label to use as the header for the quantile section in the legend
+
+        quantile_legend_round
+            Rounding to apply to quantile values when creating the legend
+
+        hue_var
+            Variable to use for grouping data into different colour groups
+
+        hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+        palette
+            Colour to use for the different groups in the data.
+
+            If any groups are not included in `palette`,
+            they are auto-filled.
+
+        warn_on_palette_value_missing
+            Should a warning be emitted if there are values missing from `palette`?
+
+        style_var
+            Variable to use for grouping data into different (line)style groups
+
+        style_var_label
+            Label to use as the header for the style section in the legend
+
+        dashes
+            Dash/linestyle to use for the different groups in the data.
+
+            If any groups are not included in `dashes`,
+            they are auto-filled.
+
+        warn_on_dashes_value_missing
+            Should a warning be emitted if there are values missing from `dashes`?
+
+        linewidth
+            Width to use for plotting lines.
+
+        unit_var
+            Variable/column in the multi-index which stores information
+            about the unit of each timeseries.
+
+        unit_aware
+            Should the plot be done in a unit-aware way?
+
+            If `True`, we use the default application registry
+            (retrieved with [pint.get_application_registry][]).
+            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+            For details, see matplotlib and pint support plotting with units
+            ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
+            [last version that we checked at the time of writing](https://pint.readthedocs.io/en/0.24.4/user/plotting.html)).
+
+        time_units
+            Units of the time axis.
+
+            These are required if `unit_aware` is not `False`.
+
+        x_label
+            Label to apply to the x-axis.
+
+            If `None`, no label will be applied.
+
+        y_label
+            Label to apply to the y-axis.
+
+            If `True`, we will try and infer the y-label based on the data's units.
+
+            If `None`, no label will be applied.
+
+        warn_infer_y_label_with_multi_unit
+            Should a warning be raised if we try to infer the y-unit
+            but the data has more than one unit?
+
+        create_legend
+            Function to use to create the legend.
+
+            This allows the user to have full control over the creation of the legend.
+
+        observed
+            Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Returns
+        -------
+        :
+            Axes on which the data was plotted
+        """
+        return plot_plume_after_calculating_quantiles_func(
+            self._df,
+            ax=ax,
+            quantile_over=quantile_over,
+            quantiles_plumes=quantiles_plumes,
+            quantile_var_label=quantile_var_label,
+            quantile_legend_round=quantile_legend_round,
+            hue_var=hue_var,
+            hue_var_label=hue_var_label,
+            palette=palette,
+            warn_on_palette_value_missing=warn_on_palette_value_missing,
+            style_var=style_var,
+            style_var_label=style_var_label,
+            dashes=dashes,
+            warn_on_dashes_value_missing=warn_on_dashes_value_missing,
+            linewidth=linewidth,
+            unit_var=unit_var,
+            unit_aware=unit_aware,
+            time_units=time_units,
+            x_label=x_label,
+            y_label=y_label,
+            warn_infer_y_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
+            create_legend=create_legend,
+            observed=observed,
+        )
+
+    def to_category_index(self) -> pd.DataFrame:
         """
         Convert the index's values to categories
 

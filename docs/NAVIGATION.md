@@ -6,6 +6,7 @@ See https://oprypin.github.io/mkdocs-literate-nav/
 - [Home](index.md)
 - [Installation](installation.md)
 - [How-to guides](how-to-guides/index.md)
+    - [How to make a plume plot](how-to-guides/how-to-make-a-plume-plot.py)
     - [How to use our database, OpenSCMDB](how-to-guides/how-to-use-openscmdb.py)
 - [Tutorials](tutorials/index.md)
 - [Further background](further-background/index.md)
