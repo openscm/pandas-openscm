@@ -77,12 +77,6 @@ licence-check:  ## Check that licences of the dependencies are suitable
 	uv run liccheck -r $(TEMP_FILE) -R licence-check.txt
 	rm -f $(TEMP_FILE)
 
-.PHONY: pdm-lock
-pdm-lock: pdm.lock  ## create/update the `pdm.lock` file
-
-pdm.lock: pyproject.toml
-	pdm lock --group :all --strategy inherit_metadata
-
 .PHONY: virtual-environment
 virtual-environment:  ## update virtual environment, create a new one if it doesn't already exist
 	uv sync --all-extras --group all-dev
