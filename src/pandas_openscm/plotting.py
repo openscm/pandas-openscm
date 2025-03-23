@@ -154,7 +154,7 @@ def get_pdf_from_pre_calculated(
 
 
 def extract_single_unit(df: pd.DataFrame, unit_var: str) -> str:
-    units = df.index.get_level_values(unit_var).unique()
+    units = df.index.get_level_values(unit_var).unique().tolist()
     if len(units) != 1:
         raise AssertionError(units)
 
@@ -200,7 +200,15 @@ def get_values_line(
         raise TypeError(msg)
 
     if isinstance(unit_aware, bool):
+        try:
+            import pint
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(  # noqa: TRY003
+                "get_values_line(..., unit_aware=True, ...)", requirement="pint"
+            ) from exc
+
         ur = pint.get_application_registry()
+
     else:
         ur = unit_aware
 
@@ -265,7 +273,14 @@ def get_values_plume(
         raise TypeError(msg)
 
     if isinstance(unit_aware, bool):
+        try:
+            import pint
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(  # noqa: TRY003
+                "get_values_plume(..., unit_aware=True, ...)", requirement="pint"
+            ) from exc
         ur = pint.get_application_registry()
+
     else:
         ur = unit_aware
 
@@ -759,7 +774,11 @@ class PlumePlotter:
                 if infer_y_label and unit_var in pdf.index.names:
                     values_units.extend(pdf.index.get_level_values(unit_var).unique())
 
-        if infer_y_label:
+        if unit_aware and isinstance(y_label, bool) and y_label:
+            # Let unit-aware plotting do its thing
+            y_label = None
+
+        elif infer_y_label:
             if unit_var not in df.index.names:
                 warnings.warn(
                     "Not auto-setting the y_label "

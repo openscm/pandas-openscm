@@ -20,8 +20,11 @@ from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.plotting import (
     PlumePlotter,
     SingleLinePlotter,
+    extract_single_unit,
     get_default_colour_cycler,
     get_quantiles,
+    get_values_line,
+    get_values_plume,
     plot_plume,
     plot_plume_after_calculating_quantiles,
 )
@@ -738,7 +741,7 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
     (
         pytest.param(
             True,
-            (("variable_1", "W"), ("variable_2", "kW")),
+            (("variable_1", "cW"), ("variable_2", "mW")),
             id="default-unit-registry",
         ),
         pytest.param(
@@ -760,6 +763,14 @@ def test_plot_plume_unit_aware(
     In other words, even if the units are different,
     if they're compatible, they're plotted with the same units.
     """
+    if isinstance(unit_aware, bool):
+        pint = pytest.importorskip("pint")
+        ur = pint.get_application_registry()
+    else:
+        ur = unit_aware
+
+    ur.setup_matplotlib(enable=True)
+
     fig, ax = plt.subplots()
 
     res = (
@@ -777,6 +788,7 @@ def test_plot_plume_unit_aware(
             ax=ax,
             quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
             unit_aware=unit_aware,
+            time_units="yr",
         )
     )
 
@@ -793,6 +805,9 @@ def test_plot_plume_unit_aware(
 
     plt.close()
 
+    # Teardown
+    ur.setup_matplotlib(enable=False)
+
 
 def test_plot_plume_unit_aware_incompatible_units(setup_pandas_accessor):
     """
@@ -801,36 +816,87 @@ def test_plot_plume_unit_aware_incompatible_units(setup_pandas_accessor):
     In other words, if the units are incompatible,
     then trying to plot on the same axes raises an error.
     """
-    pint_errors = pytest.importorskip("pint.errors")
+    pint = pytest.importorskip("pint")
 
-    df = create_test_df(
-        # Incompatible units
-        variables=(("variable_1", "m"), ("variable_2", "kg")),
+    ur = pint.get_application_registry()
+    ur.setup_matplotlib(enable=True)
+
+    df_m = create_test_df(
+        variables=(("variable_1", "m"),),
         n_scenarios=3,
         n_runs=10,
         timepoints=np.arange(1950.0, 2050.0),
         rng=np.random.default_rng(seed=8888),
     )
 
-    with pytest.raises(pint_errors.DimensionalityError, match="hiya"):
+    df_kg = create_test_df(
+        variables=(("variable_2", "kg"),),
+        n_scenarios=3,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 2050.0),
+        rng=np.random.default_rng(seed=8889),
+    )
+
+    _, ax = plt.subplots()
+
+    # Plot first df
+    df_m_grouped = (
+        df_m.openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile()
+    )
+    df_m_grouped.openscm.plot_plume(
+        ax=ax,
+        quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
+        unit_aware=True,
+        time_units="yr",
+    )
+
+    with pytest.raises(
+        matplotlib.units.ConversionError,
+        match=re.escape("Failed to convert value(s) to axis units"),
+    ):
+        # Plotting an incompatible unit raises.
         # Test plot_plume accesor (to double check argument passing)
         (
-            df.openscm.groupby_except("run")
+            df_kg.openscm.groupby_except("run")
             .quantile([0.05, 0.5, 0.95])
             .openscm.fix_index_name_after_groupby_quantile()
         ).openscm.plot_plume(
+            ax=ax,
             quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
             unit_aware=True,
+            time_units="yr",
         )
 
-    with pytest.raises(pint_errors.DimensionalityError, match="hiya"):
+    with pytest.raises(
+        matplotlib.units.ConversionError,
+        match=re.escape("Failed to convert value(s) to axis units"),
+    ):
+        # Test that different x-axis also fails
+        df_m_grouped.openscm.plot_plume(
+            ax=ax,
+            quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
+            unit_aware=True,
+            time_units="kg",
+        )
+
+    with pytest.raises(
+        matplotlib.units.ConversionError,
+        match=re.escape("Failed to convert value(s) to axis units"),
+    ):
         # Test plot_plume_after_calculating_quantiles accesor
         # (to double check argument passing)
-        df.openscm.plot_plume_after_calculating_quantiles(
+        df_kg.openscm.plot_plume_after_calculating_quantiles(
+            ax=ax,
             quantile_over="run",
             quantiles_plumes=((0.5, 0.9), ((0.05, 0.95), 0.2)),
             unit_aware=True,
+            time_units="yr",
         )
+
+    # Teardown
+    ur.setup_matplotlib(enable=False)
 
 
 def test_get_default_colour_cycler_no_matplotlib():
@@ -842,6 +908,71 @@ def test_get_default_colour_cycler_no_matplotlib():
             ),
         ):
             get_default_colour_cycler()
+
+
+def test_extract_single_unit_raises_if_more_than_one():
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "W")),
+        n_scenarios=1,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1965.0),
+    )
+
+    with pytest.raises(
+        AssertionError,
+        match=re.escape("['K', 'W']"),
+    ):
+        extract_single_unit(df, unit_var="unit")
+
+
+def test_get_values_line_unit_aware_no_pint():
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=5,
+        n_runs=10,
+        timepoints=np.arange(1950.0, 1965.0),
+    )
+
+    with patch.dict(sys.modules, {"pint": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`get_values_line(..., unit_aware=True, ...)` "
+                "requires pint to be installed"
+            ),
+        ):
+            get_values_line(df, unit_aware=True, unit_var="unit", time_units="yr")
+
+
+def test_get_values_plume_unit_aware_no_pint(setup_pandas_accessor):
+    df = (
+        create_test_df(
+            variables=(("variable_1", "K"), ("variable_2", "K")),
+            n_scenarios=5,
+            n_runs=10,
+            timepoints=np.arange(1950.0, 1965.0),
+        )
+        .openscm.groupby_except("run")
+        .quantile([0.25, 0.75])
+        .openscm.fix_index_name_after_groupby_quantile()
+    )
+
+    with patch.dict(sys.modules, {"pint": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`get_values_plume(..., unit_aware=True, ...)` "
+                "requires pint to be installed"
+            ),
+        ):
+            get_values_plume(
+                df,
+                quantiles=[0.25, 0.75],
+                quantile_var="quantile",
+                unit_aware=True,
+                unit_var="unit",
+                time_units="yr",
+            )
 
 
 def test_generate_legend_handles_no_matplotlib():
