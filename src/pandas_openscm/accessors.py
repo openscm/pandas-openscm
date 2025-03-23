@@ -40,7 +40,10 @@ if TYPE_CHECKING:
     import pandas_indexing as pix
     import pint
 
-    from pandas_openscm.plotting import COLOUR_VALUE_LIKE, QUANTILES_PLUMES_LIKE
+    from pandas_openscm.plotting import (
+        PALETTE_LIKE,
+        QUANTILES_PLUMES_LIKE,
+    )
 
 
 class DataFramePandasOpenSCMAccessor:
@@ -94,7 +97,7 @@ class DataFramePandasOpenSCMAccessor:
 
     def groupby_except(
         self, non_groupers: str | list[str], observed: bool = True
-    ) -> pd.core.groupby.generic.DataFrameGroupBy:
+    ) -> pd.core.groupby.generic.DataFrameGroupBy[Any]:
         """
         Group by all index levels except specified levels
 
@@ -167,8 +170,7 @@ class DataFramePandasOpenSCMAccessor:
         quantile_legend_round: int = 2,
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
-        palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
-        | None = None,
+        palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
         style_var: str = "variable",
         style_var_label: str | None = None,
@@ -176,7 +178,7 @@ class DataFramePandasOpenSCMAccessor:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_var: str = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry | None = None,
+        unit_aware: bool | pint.facets.PlainRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -226,8 +228,7 @@ class DataFramePandasOpenSCMAccessor:
         quantile_legend_round: int = 2,
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
-        palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
-        | None = None,
+        palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
         style_var: str = "variable",
         style_var_label: str | None = None,
@@ -235,7 +236,7 @@ class DataFramePandasOpenSCMAccessor:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_var: str = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry | None = None,
+        unit_aware: bool | pint.facets.PlainRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,

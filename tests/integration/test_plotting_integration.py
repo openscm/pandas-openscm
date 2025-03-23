@@ -392,6 +392,7 @@ def test_plot_plume_extra_palette(
             "scenario_3": "tab:orange",
         },
         style_var="variable",
+        warn_infer_y_label_with_multi_unit=False,
     )
 
     check_plots_incl_quantile_calculation(

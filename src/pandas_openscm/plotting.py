@@ -5,10 +5,20 @@ Plotting
 from __future__ import annotations
 
 import warnings
-from collections.abc import Collection, Iterable
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from functools import partial
 from itertools import cycle
-from typing import TYPE_CHECKING, Any, Callable, Literal, TypeVar, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Literal,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 import pandas as pd
@@ -26,20 +36,40 @@ if TYPE_CHECKING:
     import matplotlib
     import pint
 
-    COLOUR_VALUE_LIKE: TypeAlias = (
-        str | tuple[float, float, float] | tuple[float, float, float, float]
-    )
-    """Types that allow a colour to be specified in matplotlib"""
+    COLOUR_VALUE_LIKE: TypeAlias = Union[
+        Union[
+            str,
+            tuple[float, float, float],
+            tuple[float, float, float, float],
+            tuple[Union[tuple[float, float, float], str], float],
+            tuple[tuple[float, float, float, float], float],
+        ],
+    ]
+    """Type that allows a colour to be specified in matplotlib"""
 
-    DASH_VALUE_LIKE: TypeAlias = str | tuple[float, tuple[float, ...]]
+    T = TypeVar("T")
+
+    class PALETTE_LIKE(
+        Generic[T],
+        Mapping[T, COLOUR_VALUE_LIKE],
+    ):
+        """Palette-like type"""
+
+    # PALETTE_LIKE: TypeAlias = dict[
+    #     Any, Union[COLOUR_VALUE_LIKE, tuple[COLOUR_VALUE_LIKE, float]]
+    # ]
+
+    DASH_VALUE_LIKE: TypeAlias = Union[str, tuple[float, tuple[float, ...]]]
     """Types that allow a dash to be specified in matplotlib"""
 
     QUANTILES_PLUMES_LIKE: TypeAlias = tuple[
-        tuple[float, float] | tuple[tuple[float, float], float], ...
+        Union[tuple[float, float], tuple[tuple[float, float], float]], ...
     ]
     """Type that quantiles and the alpha to use for plotting their line/plume"""
 
-    NP_ARRAY_OF_FLOAT_OR_INT = np.typing.NDArray[np.floating[Any] | np.integer[Any]]
+    NP_ARRAY_OF_FLOAT_OR_INT = np.typing.NDArray[
+        Union[np.floating[Any], np.integer[Any]]
+    ]
     """Numpy array like"""
 
     PINT_NUMPY_ARRAY: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[
@@ -50,8 +80,6 @@ if TYPE_CHECKING:
 
     No shape hints because that doesn't seem to be supported by numpy yet.
     """
-
-    T = TypeVar("T")
 
 
 class MissingQuantileError(KeyError):
@@ -82,7 +110,9 @@ class MissingQuantileError(KeyError):
         super().__init__(error_msg)
 
 
-def get_quantiles(quantiles_plumes: QUANTILES_PLUMES_LIKE) -> tuple[float, ...]:
+def get_quantiles(
+    quantiles_plumes: QUANTILES_PLUMES_LIKE,
+) -> np.typing.NDArray[np.floating[Any]]:
     """
     Get just the quantiles from a `QUANTILES_PLUMES_LIKE`
 
@@ -105,7 +135,7 @@ def get_quantiles(quantiles_plumes: QUANTILES_PLUMES_LIKE) -> tuple[float, ...]:
             for q in q_def:
                 quantiles_l.append(q)
 
-    return tuple(set(quantiles_l))
+    return np.unique(np.array(quantiles_l))  # type: ignore # numpy and mypy not playing nice
 
 
 def get_pdf_from_pre_calculated(
@@ -158,7 +188,7 @@ def extract_single_unit(df: pd.DataFrame, unit_var: str) -> str:
     if len(units) != 1:
         raise AssertionError(units)
 
-    return units[0]
+    return cast(str, units[0])
 
 
 @overload
@@ -166,7 +196,7 @@ def get_values_line(
     pdf: pd.DataFrame,
     *,
     unit_aware: Literal[False],
-    unit_var: str,
+    unit_var: str | None,
     time_units: str | None,
 ) -> tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]: ...
 
@@ -176,7 +206,7 @@ def get_values_line(
     pdf: pd.DataFrame,
     *,
     unit_aware: Literal[True] | pint.facets.PlainRegistry,
-    unit_var: str,
+    unit_var: str | None,
     time_units: str | None,
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
 
@@ -185,7 +215,7 @@ def get_values_line(
     pdf: pd.DataFrame,
     *,
     unit_aware: bool | pint.facets.PlainRegistry,
-    unit_var: str,
+    unit_var: str | None,
     time_units: str | None,
 ) -> (
     tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
@@ -194,6 +224,10 @@ def get_values_line(
     res_no_units = (pdf.columns.values.squeeze(), pdf.values.squeeze())
     if not unit_aware:
         return res_no_units
+
+    if unit_var is None:
+        msg = "If `unit_aware` != False, then `unit_var` must not be `None`"
+        raise TypeError(msg)
 
     if time_units is None:
         msg = "If `unit_aware` != False, then `time_units` must not be `None`"
@@ -207,7 +241,7 @@ def get_values_line(
                 "get_values_line(..., unit_aware=True, ...)", requirement="pint"
             ) from exc
 
-        ur = pint.get_application_registry()
+        ur = pint.get_application_registry()  # type: ignore
 
     else:
         ur = unit_aware
@@ -227,7 +261,7 @@ def get_values_plume(
     quantiles: tuple[float, float],
     quantile_var: str,
     unit_aware: Literal[False],
-    unit_var: str,
+    unit_var: str | None,
     time_units: str | None,
 ) -> tuple[
     NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT
@@ -241,7 +275,7 @@ def get_values_plume(
     quantiles: tuple[float, float],
     quantile_var: str,
     unit_aware: Literal[True] | pint.facets.PlainRegistry,
-    unit_var: str,
+    unit_var: str | None,
     time_units: str | None,
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
 
@@ -252,7 +286,7 @@ def get_values_plume(
     quantiles: tuple[float, float],
     quantile_var: str,
     unit_aware: bool | pint.facets.PlainRegistry,
-    unit_var: str,
+    unit_var: str | None,
     time_units: str | None,
 ) -> (
     tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
@@ -260,13 +294,19 @@ def get_values_plume(
 ):
     res_no_units = (
         pdf.columns.values.squeeze(),
-        *[
-            pdf.loc[pdf.index.get_level_values(quantile_var).isin({q})].values.squeeze()
-            for q in quantiles
-        ],
+        pdf.loc[
+            pdf.index.get_level_values(quantile_var).isin({quantiles[0]})
+        ].values.squeeze(),
+        pdf.loc[
+            pdf.index.get_level_values(quantile_var).isin({quantiles[1]})
+        ].values.squeeze(),
     )
     if not unit_aware:
         return res_no_units
+
+    if unit_var is None:
+        msg = "If `unit_aware` != False, then `unit_var` must not be `None`"
+        raise TypeError(msg)
 
     if time_units is None:
         msg = "If `unit_aware` != False, then `time_units` must not be `None`"
@@ -279,7 +319,8 @@ def get_values_plume(
             raise MissingOptionalDependencyError(  # noqa: TRY003
                 "get_values_plume(..., unit_aware=True, ...)", requirement="pint"
             ) from exc
-        ur = pint.get_application_registry()
+
+        ur = pint.get_application_registry()  # type: ignore
 
     else:
         ur = unit_aware
@@ -313,7 +354,7 @@ def create_legend_default(
     ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1.05, 0.5))
 
 
-def get_default_colour_cycler() -> Iterable[COLOUR_VALUE_LIKE]:
+def get_default_colour_cycler() -> Iterator[COLOUR_VALUE_LIKE]:
     """
     Get the default colour cycler
 
@@ -336,15 +377,17 @@ def get_default_colour_cycler() -> Iterable[COLOUR_VALUE_LIKE]:
 
 def fill_out_palette(
     hue_values: Iterable[T],
-    palette_user_supplied: dict[T, COLOUR_VALUE_LIKE] | None,
+    palette_user_supplied: PALETTE_LIKE[T] | None,
     warn_on_value_missing: bool,
-) -> dict[T, COLOUR_VALUE_LIKE]:
+) -> PALETTE_LIKE[T]:
     if palette_user_supplied is None:
         # Make it all ourselves.
         # Don't warn as the user didn't set any values
         # so it is clear they want us to fill in everything.
         colour_cycler = get_default_colour_cycler()
-        palette_out = {v: next(colour_cycler) for v in hue_values}
+        palette_out: PALETTE_LIKE[T] = {  # type: ignore # not sure what I've done wrong
+            v: next(colour_cycler) for v in hue_values
+        }
 
         return palette_out
 
@@ -354,7 +397,7 @@ def fill_out_palette(
     ]
     if not missing_from_user_supplied:
         # Just return the values we need
-        return {v: palette_user_supplied[v] for v in hue_values}
+        return {v: palette_user_supplied[v] for v in hue_values}  # type: ignore # not sure what mypy doesn't like
 
     if warn_on_value_missing:
         msg = (
@@ -364,21 +407,20 @@ def fill_out_palette(
         )
         warnings.warn(msg)
 
-    palette_out = {}
     colour_cycler = get_default_colour_cycler()
-    palette_out = {
-        v: (
-            palette_user_supplied[v]
-            if v in palette_user_supplied
+    palette_out = {  # type: ignore # not sure what I've done wrong
+        k: (
+            palette_user_supplied[k]
+            if k in palette_user_supplied
             else next(colour_cycler)
         )
-        for v in hue_values
+        for k in hue_values
     }
 
     return palette_out
 
 
-def get_default_dash_cycler() -> Iterable[DASH_VALUE_LIKE]:
+def get_default_dash_cycler() -> Iterator[DASH_VALUE_LIKE]:
     """
     Get the default dash cycler
 
@@ -493,7 +535,7 @@ class SingleLinePlotter:
         :
             Label for the line
         """
-        label = np.round(self.quantile, quantile_legend_round)
+        label = str(np.round(self.quantile, quantile_legend_round))
 
         return label
 
@@ -616,7 +658,7 @@ class PlumePlotter:
     quantile_var_label: str
     """Label for the quantile variable in the legend"""
 
-    palette: dict[Any, COLOUR_VALUE_LIKE]
+    palette: PALETTE_LIKE[Any]
     """Palette used for plotting different values of the hue variable"""
 
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None
@@ -642,10 +684,9 @@ class PlumePlotter:
         quantile_legend_round: int = 2,
         hue_var: str = "scenario",
         hue_var_label: str | None = None,
-        palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
-        | None = None,
+        palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
-        style_var: str = "variable",
+        style_var: str | None = "variable",
         style_var_label: str | None = None,
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         warn_on_dashes_value_missing: bool = True,
@@ -715,7 +756,7 @@ class PlumePlotter:
 
             gpdf = partial(get_pdf_from_pre_calculated, gdf, quantile_col=quantile_var)
 
-            def warn_about_missing_quantile(exc: Exception) -> pd.DataFrame | None:
+            def warn_about_missing_quantile(exc: Exception) -> None:
                 warnings.warn(
                     f"Quantiles missing for {info_d}. Original exception: {exc}"
                 )
@@ -723,6 +764,9 @@ class PlumePlotter:
             for q, alpha in quantiles_plumes:
                 if isinstance(q, float):
                     if style_var is not None:
+                        if dashes_complete is None:  # pragma: no cover
+                            # should be impossible to hit this
+                            raise AssertionError
                         linestyle = dashes_complete[info_d[style_var]]
                     else:
                         linestyle = "-"
@@ -737,7 +781,7 @@ class PlumePlotter:
                     line_plotter = SingleLinePlotter(
                         *get_values_line(
                             pdf,
-                            unit_aware=unit_aware,
+                            unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
                             unit_var=unit_var,
                             time_units=time_units,
                         ),
@@ -761,7 +805,7 @@ class PlumePlotter:
                             pdf,
                             quantiles=q,
                             quantile_var=quantile_var,
-                            unit_aware=unit_aware,
+                            unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
                             unit_var=unit_var,
                             time_units=time_units,
                         ),
@@ -802,6 +846,10 @@ class PlumePlotter:
 
                     y_label = None
 
+        if isinstance(y_label, bool):
+            msg = "y_label should have been converted before getting here"
+            raise TypeError(msg)
+
         res = PlumePlotter(
             lines=lines,
             plumes=plumes,
@@ -840,29 +888,34 @@ class PlumePlotter:
                 "generate_legend_handles", requirement="matplotlib"
             ) from exc
 
-        generated_quantile_items = []
-        quantile_items = []
+        generated_quantile_items: list[
+            Union[
+                tuple[float, float, str],
+                tuple[tuple[float, float], float, str],
+            ]
+        ] = []
+        quantile_items: list[matplotlib.artist.Artist] = []
         for line in self.lines:
             label = line.get_label(quantile_legend_round=quantile_legend_round)
-            pid = (line.quantile, line.alpha, label)
-            if pid in generated_quantile_items:
+            pid_line = (line.quantile, line.alpha, label)
+            if pid_line in generated_quantile_items:
                 continue
 
             quantile_items.append(
                 mlines.Line2D([0], [0], color="k", alpha=line.alpha, label=label)
             )
-            generated_quantile_items.append(pid)
+            generated_quantile_items.append(pid_line)
 
         for plume in self.plumes:
             label = plume.get_label(quantile_legend_round=quantile_legend_round)
-            pid = (plume.quantiles, plume.alpha, label)
-            if pid in generated_quantile_items:
+            pid_plume = (plume.quantiles, plume.alpha, label)
+            if pid_plume in generated_quantile_items:
                 continue
 
             quantile_items.append(
                 mpatches.Patch(color="k", alpha=plume.alpha, label=label)
             )
-            generated_quantile_items.append(pid)
+            generated_quantile_items.append(pid_line)
 
         hue_items = [
             mlines.Line2D([0], [0], color=colour, label=hue_value)
@@ -917,10 +970,8 @@ class PlumePlotter:
             line.plot(ax=ax)
 
         create_legend(
-            ax=ax,
-            handles=self.generate_legend_handles(
-                quantile_legend_round=quantile_legend_round
-            ),
+            ax,
+            self.generate_legend_handles(quantile_legend_round=quantile_legend_round),
         )
 
         if self.x_label is not None:
@@ -945,8 +996,7 @@ def plot_plume(  # noqa: PLR0913
     quantile_legend_round: int = 3,
     hue_var: str = "scenario",
     hue_var_label: str | None = None,
-    palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
-    | None = None,
+    palette: PALETTE_LIKE[Any] | None = None,
     warn_on_palette_value_missing: bool = True,
     style_var: str = "variable",
     style_var_label: str | None = None,
@@ -1007,8 +1057,7 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
     quantile_legend_round: int = 2,
     hue_var: str = "scenario",
     hue_var_label: str | None = None,
-    palette: dict[Any, COLOUR_VALUE_LIKE | tuple[COLOUR_VALUE_LIKE, float]]
-    | None = None,
+    palette: PALETTE_LIKE[Any] | None = None,
     warn_on_palette_value_missing: bool = True,
     style_var: str = "variable",
     style_var_label: str | None = None,
@@ -1016,7 +1065,7 @@ def plot_plume_after_calculating_quantiles(  # noqa: PLR0913
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
     unit_var: str = "unit",
-    unit_aware: bool | pint.facets.PlainRegistry | None = None,
+    unit_aware: bool | pint.facets.PlainRegistry = False,
     time_units: str | None = None,
     x_label: str | None = "time",
     y_label: str | bool | None = True,

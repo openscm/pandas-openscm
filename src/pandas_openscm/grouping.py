@@ -4,12 +4,14 @@ Support for grouping in various ways
 
 from __future__ import annotations
 
+from typing import Any
+
 import pandas as pd
 
 
 def groupby_except(
     df: pd.DataFrame, non_groupers: str | list[str], observed: bool = True
-) -> pd.core.groupby.generic.DataFrameGroupBy:
+) -> pd.core.groupby.generic.DataFrameGroupBy[Any]:
     """
     Group by all index levels except specified levels
 
@@ -34,7 +36,7 @@ def groupby_except(
     if isinstance(non_groupers, str):
         non_groupers = [non_groupers]
 
-    return df.groupby(df.index.names.difference(non_groupers), observed=observed)
+    return df.groupby(df.index.names.difference(non_groupers), observed=observed)  # type: ignore # pandas-stubs confused
 
 
 def fix_index_name_after_groupby_quantile(
