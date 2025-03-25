@@ -53,8 +53,8 @@ jobs:
         # chcp 65001  # use utf-8
         python -c 'import pandas_openscm; f = open("version.txt", "w"); f.write(f"INSTALLED_VERSION=v{pandas_openscm.__version__}"); f.close()'
         echo "Showing version.txt"
-        type version.txt
-        type version.txt >> $env:GITHUB_ENV
+        cat version.txt
+        cat version.txt >> $env:GITHUB_ENV
     - name: Check installed version environment variable
       shell: bash -leo pipefail {0}
       run: |
