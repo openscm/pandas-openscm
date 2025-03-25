@@ -50,7 +50,7 @@ jobs:
       shell: bash -leo pipefail {0}
       if: matrix.os == 'windows-latest'
       run: |
-        chcp 65001  # use utf-8
+        # chcp 65001  # use utf-8
         python -c 'import pandas_openscm; f = open("version.txt", "w"); f.write(f"INSTALLED_VERSION=v{pandas_openscm.__version__}"); f.close()'
         echo "Showing version.txt"
         type version.txt
