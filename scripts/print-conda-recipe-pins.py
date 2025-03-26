@@ -46,17 +46,30 @@ def main() -> None:
             dependency.split(">")[0].split("<")[0].split(">=")[0].split("<=")[0]
         )
 
+        package_version_lines = []
         for line in requirements_info:
             if line.startswith(package_name):
-                package_version_line = line
-                break
-        else:
+                package_version_lines.append(line)
+
+        if not package_version_lines:
             msg = f"Didn't find pin information for {package_name}"
             raise AssertionError(msg)
 
-        version = package_version_line.split("==")[-1]
-        vv = Version(version)
-        max_pin = f"{vv.major}.{vv.minor}.{vv.micro + 1}"
+        if len(package_version_lines) == 1:
+            version = package_version_lines[0].split("==")[-1]  # .split(";")[0]
+            vv = Version(version)
+            min_pin = version
+            max_pin = f"{vv.major}.{vv.minor}.{vv.micro + 1}"
+        else:
+            print(f"Using range for {dependency}. " f"{package_version_lines=}.")
+            versions = [
+                # Assume some split based on Python version
+                Version(v.split("==")[-1].split(";")[0].strip())
+                for v in package_version_lines
+            ]
+            min_pin = min(versions)
+            max_version = max(versions)
+            max_pin = f"{max_version.major}.{max_version.minor}.{max_version.micro + 1}"
 
         if package_name in pypi_to_conda_name_map:
             conda_name = pypi_to_conda_name_map[package_name]
@@ -64,7 +77,7 @@ def main() -> None:
             conda_name = package_name
 
         version_info_l.append(
-            VersionInfoHere(name=conda_name, min_pin=version, max_pin=max_pin)
+            VersionInfoHere(name=conda_name, min_pin=min_pin, max_pin=max_pin)
         )
 
     print("Pins for library")
