@@ -12,6 +12,11 @@ Pandas accessors for OpenSCM-related functionality.
 [![PyPI](https://img.shields.io/pypi/v/pandas-openscm.svg)](https://pypi.org/project/pandas-openscm/)
 [![PyPI install](https://github.com/openscm/pandas-openscm/actions/workflows/install-pypi.yaml/badge.svg?branch=main)](https://github.com/openscm/pandas-openscm/actions/workflows/install-pypi.yaml)
 
+**Conda :**
+[![Conda](https://img.shields.io/conda/vn/conda-forge/pandas-openscm.svg)](https://anaconda.org/conda-forge/pandas-openscm)
+[![Conda platforms](https://img.shields.io/conda/pn/conda-forge/pandas-openscm.svg)](https://anaconda.org/conda-forge/pandas-openscm)
+[![Conda install](https://github.com/openscm/pandas-openscm/actions/workflows/install-conda.yaml/badge.svg?branch=main)](https://github.com/openscm/pandas-openscm/actions/workflows/install-conda.yaml)
+
 **Tests :**
 [![CI](https://github.com/openscm/pandas-openscm/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/openscm/pandas-openscm/actions/workflows/ci.yaml)
 [![Coverage](https://codecov.io/gh/openscm/pandas-openscm/branch/main/graph/badge.svg)](https://codecov.io/gh/openscm/pandas-openscm)
@@ -60,6 +65,16 @@ because of breaking updates to dependencies.
 
 The locked version of Pandas-OpenSCM can be installed with
 
+=== "mamba"
+    ```sh
+    mamba install -c conda-forge pandas-openscm-locked
+    ```
+
+=== "conda"
+    ```sh
+    conda install -c conda-forge pandas-openscm-locked
+    ```
+
 === "pip"
     ```sh
     pip install 'pandas-openscm[locked]'
@@ -84,12 +99,32 @@ please [raise an issue](https://github.com/openscm/pandas-openscm/issues).
 
 The (non-locked) version of Pandas-OpenSCM can be installed with
 
+=== "mamba"
+    ```sh
+    mamba install -c conda-forge pandas-openscm
+    ```
+
+=== "conda"
+    ```sh
+    conda install -c conda-forge pandas-openscm
+    ```
+
 === "pip"
     ```sh
     pip install pandas-openscm
     ```
 
 Additional dependencies can be installed using
+
+=== "mamba"
+    If you are installing with mamba, we recommend
+    installing the extras by hand because there is no stable
+    solution yet (see [conda issue #7502](https://github.com/conda/conda/issues/7502))
+
+=== "conda"
+    If you are installing with conda, we recommend
+    installing the extras by hand because there is no stable
+    solution yet (see [conda issue #7502](https://github.com/conda/conda/issues/7502))
 
 === "pip"
     ```sh

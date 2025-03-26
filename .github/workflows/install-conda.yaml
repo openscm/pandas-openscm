@@ -25,9 +25,7 @@ jobs:
         # Test against all security and bugfix versions: https://devguide.python.org/versions/
         python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
         # Check both 'library' install and the 'application' (i.e. locked) install
-        # For now, no locked version released on conda
-        # install-target: ["pandas-openscm", "pandas-openscm-locked"]
-        install-target: ["pandas-openscm"]
+        install-target: ["pandas-openscm", "pandas-openscm-locked"]
     runs-on: "${{ matrix.os }}"
     steps:
     - name: Setup (micro)mamba and install package
@@ -49,7 +47,6 @@ jobs:
       shell: bash -leo pipefail {0}
       if: matrix.os == 'windows-latest'
       run: |
-        # chcp 65001  # use utf-8
         python -c 'import pandas_openscm; f = open("version.txt", "w"); f.write(f"INSTALLED_VERSION=v{pandas_openscm.__version__}"); f.close()'
         echo "Showing version.txt"
         cat version.txt
