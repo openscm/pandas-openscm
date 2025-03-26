@@ -31,15 +31,15 @@ jobs:
         uses: pdm-project/setup-pdm@v4.1
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Add version to environment
-        run: |
-          PROJECT_VERSION=`sed -ne 's/^version = "\([0-9\.a]*\)"/\1/p' pyproject.toml`
-          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
       - name: Generate pdm.lock
         # Required for building the locked version of the package
         # with pdm-build-locked (see pyproject.toml)
         run: |
-          pdm lock --group ":all" --strategy inherit_metadata
+          pdm lock --group :all --strategy inherit_metadata
+      - name: Add version to environment
+        run: |
+          PROJECT_VERSION=`sed -ne 's/^version = "\([0-9\.a]*\)"/\1/p' pyproject.toml`
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
       - name: Build package for PyPI
         run: |
           uv build

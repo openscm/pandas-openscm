@@ -266,7 +266,7 @@ jobs:
         # Required for building the locked version of the package
         # with pdm-build-locked (see pyproject.toml)
         run: |
-          pdm lock --group ":all" --strategy inherit_metadata
+          pdm lock --group :all --strategy inherit_metadata
       - name: Build package
         run: |
           uv build
