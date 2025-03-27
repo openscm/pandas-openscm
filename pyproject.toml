@@ -1,6 +1,6 @@
 [project]
 name = "pandas-openscm"
-version = "0.3.2"
+version = "0.3.3a1"
 description = "Pandas accessors for OpenSCM-related functionality."
 authors = [
     { name = "Zebedee Nicholls", email = "zebedee.nicholls@climate-energy-college.org" },
