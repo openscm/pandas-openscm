@@ -21,6 +21,18 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.3.2 (2025-03-27)
+
+### 🆕 Features
+
+- Added release of the package on conda ([#9](https://github.com/openscm/pandas-openscm/pull/9))
+- Added a basic de-serialisation, i.e. IO, module [pandas_openscm.io][pandas_openscmio] ([#11](https://github.com/openscm/pandas-openscm/pull/11))
+
+### 🔧 Trivial/Internal Changes
+
+- [#9](https://github.com/openscm/pandas-openscm/pull/9), [#12](https://github.com/openscm/pandas-openscm/pull/12)
+
+
 ## Pandas-OpenSCM v0.3.1 (2025-03-23)
 
 ### 🔧 Trivial/Internal Changes
