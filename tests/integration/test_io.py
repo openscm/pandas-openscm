@@ -41,8 +41,12 @@ def test_load_timeseries_csv_basic(tmp_path, index_columns):
 
     assert loaded.index.names == index_columns
     # No mangling done
-    assert all(isinstance(c, str) for c in loaded.columns)
-    assert all(str(v) in loaded.columns for v in timepoints)
+    assert all(isinstance(c, str) for c in loaded.columns.values)
+
+    all_cols_as_str = [str(v) for v in [*start.index.names, *timepoints]]
+    non_index_cols = set(all_cols_as_str) - set(index_columns)
+    loaded_cols = loaded.columns.tolist()
+    assert all(str(v) in loaded_cols for v in non_index_cols)
 
 
 @pytest.mark.parametrize("lower_column_names", (True, False))
@@ -59,7 +63,9 @@ def test_load_timeseries_csv_lower_column_names(tmp_path, lower_column_names):
 
     # Write with capitalised columns
     to_write = start.reset_index()
-    to_write.columns = to_write.columns.str.capitalize()
+    to_write.columns = [
+        v.capitalize() if isinstance(v, str) else v for v in to_write.columns
+    ]
     to_write.to_csv(out_path, index=False)
 
     if lower_column_names:
@@ -72,15 +78,27 @@ def test_load_timeseries_csv_lower_column_names(tmp_path, lower_column_names):
     )
 
     assert loaded.index.names == index_columns
-    assert all(isinstance(c, str) for c in loaded.columns)
+    assert all(isinstance(c, str) for c in loaded.columns.values)
     assert all(str(v) in loaded.columns for v in timepoints)
 
 
-@pytest.mark.parametrize("out_column_type", (int, float, np.float64))
-def test_load_timeseries_csv_basic_out_column_type(tmp_path, out_column_type):
+@pytest.mark.parametrize(
+    # Column type and value type are not the same
+    # because columns are held as numpy arrays.
+    "out_column_type, exp_column_value_type",
+    (
+        (int, np.int64),
+        (float, np.float64),
+        (np.float64, np.float64),
+        (np.float32, np.float32),
+    ),
+)
+def test_load_timeseries_csv_basic_out_column_type(
+    tmp_path, out_column_type, exp_column_value_type
+):
     out_path = tmp_path / "test_load_timeseries_csv.csv"
 
-    timepoints = np.arange(1990.0, 2010.0 + 1.0)
+    timepoints = np.arange(1990.0, 2010.0 + 1.0, dtype=int)
     start = create_test_df(
         variables=[(f"variable_{i}", "Mt") for i in range(5)],
         n_scenarios=3,
@@ -99,11 +117,16 @@ def test_load_timeseries_csv_basic_out_column_type(tmp_path, out_column_type):
     )
 
     assert loaded.index.names == index_columns
-    assert all(isinstance(c, out_column_type) for c in loaded.columns)
+    assert all(isinstance(c, exp_column_value_type) for c in loaded.columns.values)
 
 
 @pytest.mark.xfail(reason="Not implemented")
 def test_load_timeseries_csv_infer_index_cols(tmp_path):
+    # Suggested cases here:
+    # - datetime columns
+    # - int columns
+    # - float columns
+    # - array columns
     out_path = tmp_path / "test_load_timeseries_csv.csv"
 
     timepoints = np.arange(1990.0, 2010.0 + 1.0)
@@ -126,5 +149,5 @@ def test_load_timeseries_csv_infer_index_cols(tmp_path):
 
     exp_index_columns = ["scenario", "variable", "unit", "run"]
     assert loaded.index.names == exp_index_columns
-    assert all(isinstance(c, str) for c in loaded.columns)
+    assert all(isinstance(c, str) for c in loaded.columns.values)
     assert all(str(v) in loaded.columns for v in timepoints)
