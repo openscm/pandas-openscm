@@ -21,6 +21,13 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.3.3 (2025-03-30)
+
+### 🆕 Features
+
+- - Added a method for converting to long data, see [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.to_long_data][pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.to_long_data] ([#12](https://github.com/openscm/pandas-openscm/pull/12))
+
+
 ## Pandas-OpenSCM v0.3.2 (2025-03-27)
 
 ### 🆕 Features
