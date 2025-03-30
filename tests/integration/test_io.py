@@ -1,5 +1,5 @@
 """
-Tests of `pandas_openscm.io`
+Integration tests of `pandas_openscm.io`
 """
 
 from __future__ import annotations
