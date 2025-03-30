@@ -34,6 +34,7 @@ from pandas_openscm.plotting import (
     plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
 )
+from pandas_openscm.reshaping import ts_to_long_data
 
 if TYPE_CHECKING:
     import matplotlib
@@ -505,6 +506,121 @@ class DataFramePandasOpenSCMAccessor:
             converted to category type.
         """
         return convert_index_to_category_index(self._df)
+
+    def to_long_data(self, time_col_name: str = "time") -> pd.DataFrame:
+        """
+        Convert to long data
+
+        Here, long data means that each row contains a single value,
+        alongside metadata associated with that value
+        (for more details, see e.g.
+        https://data.europa.eu/apps/data-visualisation-guide/wide-versus-long-data).
+
+        Parameters
+        ----------
+        time_col_name
+            Name of the time column in the output
+
+        Returns
+        -------
+        :
+            DataFrame in long-form
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>>
+        >>> from pandas_openscm.accessors import register_pandas_accessor
+        >>>
+        >>> register_pandas_accessor()
+        >>>
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         [1.1, 0.8, 1.2],
+        ...         [2.1, np.nan, 8.4],
+        ...         [2.3, 3.2, 3.0],
+        ...         [1.2, 2.8, np.nan],
+        ...     ],
+        ...     columns=[2010.0, 2015.0, 2025.0],
+        ...     index=pd.MultiIndex.from_tuples(
+        ...         [
+        ...             ("sa", np.nan, "K"),
+        ...             ("sb", "v1", None),
+        ...             ("sa", "v2", "W"),
+        ...             ("sb", "v2", "W"),
+        ...         ],
+        ...         names=["scenario", "variable", "unit"],
+        ...     ),
+        ... )
+        >>>
+        >>> # Start with wide data
+        >>> df
+                                2010.0  2015.0  2025.0
+        scenario variable unit
+        sa       NaN      K        1.1     0.8     1.2
+        sb       v1       NaN      2.1     NaN     8.4
+        sa       v2       W        2.3     3.2     3.0
+        sb       v2       W        1.2     2.8     NaN
+        >>>
+        >>> # Convert to long data
+        >>> df.openscm.to_long_data()
+           scenario variable unit    time  value
+        0        sa      NaN    K  2010.0    1.1
+        1        sb       v1  NaN  2010.0    2.1
+        2        sa       v2    W  2010.0    2.3
+        3        sb       v2    W  2010.0    1.2
+        4        sa      NaN    K  2015.0    0.8
+        5        sb       v1  NaN  2015.0    NaN
+        6        sa       v2    W  2015.0    3.2
+        7        sb       v2    W  2015.0    2.8
+        8        sa      NaN    K  2025.0    1.2
+        9        sb       v1  NaN  2025.0    8.4
+        10       sa       v2    W  2025.0    3.0
+        11       sb       v2    W  2025.0    NaN
+        >>>
+        >>> # Specify a different time column name
+        >>> df.openscm.to_long_data(time_col_name="year")
+           scenario variable unit    year  value
+        0        sa      NaN    K  2010.0    1.1
+        1        sb       v1  NaN  2010.0    2.1
+        2        sa       v2    W  2010.0    2.3
+        3        sb       v2    W  2010.0    1.2
+        4        sa      NaN    K  2015.0    0.8
+        5        sb       v1  NaN  2015.0    NaN
+        6        sa       v2    W  2015.0    3.2
+        7        sb       v2    W  2015.0    2.8
+        8        sa      NaN    K  2025.0    1.2
+        9        sb       v1  NaN  2025.0    8.4
+        10       sa       v2    W  2025.0    3.0
+        11       sb       v2    W  2025.0    NaN
+        >>>
+        >>> # The result is just a pandas DataFrame,
+        >>> # so you can do whatever operations you want
+        >>> # on the result.
+        >>> # A common one is probably dropping all rows with NaN
+        >>> df.openscm.to_long_data(time_col_name="year").dropna()
+           scenario variable unit    year  value
+        2        sa       v2    W  2010.0    2.3
+        3        sb       v2    W  2010.0    1.2
+        6        sa       v2    W  2015.0    3.2
+        7        sb       v2    W  2015.0    2.8
+        10       sa       v2    W  2025.0    3.0
+        >>>
+        >>> # or just rows with NaN in particular columns
+        >>> df.openscm.to_long_data(time_col_name="year").dropna(subset=["variable"])
+           scenario variable unit    year  value
+        1        sb       v1  NaN  2010.0    2.1
+        2        sa       v2    W  2010.0    2.3
+        3        sb       v2    W  2010.0    1.2
+        5        sb       v1  NaN  2015.0    NaN
+        6        sa       v2    W  2015.0    3.2
+        7        sb       v2    W  2015.0    2.8
+        9        sb       v1  NaN  2025.0    8.4
+        10       sa       v2    W  2025.0    3.0
+        11       sb       v2    W  2025.0    NaN
+        """
+        return ts_to_long_data(self._df, time_col_name=time_col_name)
 
 
 def register_pandas_accessor(namespace: str = "openscm") -> None:
