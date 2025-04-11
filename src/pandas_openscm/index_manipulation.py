@@ -4,7 +4,7 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -50,41 +50,6 @@ def convert_index_to_category_index(pandas_obj: P) -> P:
         pandas_obj.values,
         index=new_index,
     )
-
-
-def update_index_from_candidates(
-    indf: pd.DataFrame, candidates: pandas.core.indexes.frozen.FrozenList
-) -> pd.DataFrame:
-    """
-    Update the index of data to align with the candidate columns as much as possible
-
-    Parameters
-    ----------
-    indf
-        Data of which to update the index
-
-    candidates
-        Candidate columns to use to create the updated index
-
-    Returns
-    -------
-    :
-        `indf` with its updated index.
-
-        All columns of `indf` that are in `candidates`
-        are used to create the index of the result.
-
-    Notes
-    -----
-    This overwrites any existing index of `indf`
-    so you will only want to use this function
-    when you're sure that there isn't anything of interest
-    already in the index of `indf`.
-    """
-    set_to_index = [v for v in candidates if v in indf.columns]
-    res = indf.set_index(set_to_index)
-
-    return res
 
 
 def unify_index_levels(
@@ -306,3 +271,139 @@ def unify_index_levels_check_index_types(
         raise TypeError(right)
 
     return unify_index_levels(left, right)
+
+
+def update_index_from_candidates(
+    indf: pd.DataFrame, candidates: pandas.core.indexes.frozen.FrozenList
+) -> pd.DataFrame:
+    """
+    Update the index of data to align with the candidate columns as much as possible
+
+    Parameters
+    ----------
+    indf
+        Data of which to update the index
+
+    candidates
+        Candidate columns to use to create the updated index
+
+    Returns
+    -------
+    :
+        `indf` with its updated index.
+
+        All columns of `indf` that are in `candidates`
+        are used to create the index of the result.
+
+    Notes
+    -----
+    This overwrites any existing index of `indf`
+    so you will only want to use this function
+    when you're sure that there isn't anything of interest
+    already in the index of `indf`.
+    """
+    set_to_index = [v for v in candidates if v in indf.columns]
+    res = indf.set_index(set_to_index)
+
+    return res
+
+
+def update_index_levels_func(
+    df: pd.DataFrame, updates: dict[Any, Callable[[Any], Any]], copy: bool = True
+) -> pd.DataFrame:
+    """
+    Update the index levels of a [pd.DataFrame][pandas.DataFrame]
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    updates
+        Updates to apply to `df`'s index
+
+        Each key is the index level to which the updates will be applied.
+        Each value is a function which updates the levels to their new values.
+
+    copy
+        Should `df` be copied before returning?
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if copy:
+        df = df.copy()
+
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
+    df.index = update_levels(df.index, updates=updates)
+
+    return df
+
+
+def update_levels(
+    ini: pd.MultiIndex, updates: dict[Any, Callable[[Any], Any]]
+) -> pd.MultiIndex:
+    """
+    Update the levels of a [pd.MultiIndex][pandas.MultiIndex]
+
+    Parameters
+    ----------
+    ini
+        Input index
+
+    updates
+        Updates to apply
+
+        Each key is the level to which the updates will be applied.
+        Each value is a function which updates the levels to their new values.
+
+    Returns
+    -------
+    :
+        `ini` with updates applied
+
+    Raises
+    ------
+    KeyError
+        A level in `updates` is not a level in `ini`
+    """
+    levels: list[pd.Index[Any]] = list(ini.levels)
+    codes: list[list[int]] = list(ini.codes)
+
+    for level, updater in updates.items():
+        if level not in ini.names:
+            msg = (
+                f"{level} is not available in the index. Available levels: {ini.names}"
+            )
+            raise KeyError(msg)
+
+        level_idx = ini.names.index(level)
+        new_level = levels[level_idx].map(updater)
+        if not new_level.has_duplicates:
+            # Fast route: no clashes so no need to update the codes
+            levels[level_idx] = new_level
+
+        else:
+            # Slow route: have to update the codes too
+            dup_level = ini.get_level_values(level).map(updater)
+            new_level = new_level.unique()
+            new_codes = new_level.get_indexer(dup_level)  # type: ignore
+            levels[level_idx] = new_level
+            codes[level_idx] = new_codes
+
+    res = pd.MultiIndex(
+        levels=levels,
+        codes=codes,
+        names=ini.names,
+    )
+
+    return res
