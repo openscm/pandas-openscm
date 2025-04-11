@@ -163,3 +163,18 @@ def test_accessor(setup_pandas_accessor):
     # Test function too
     res = update_index_levels_func(start, updates)
     pd.testing.assert_frame_equal(res, exp)
+
+
+def test_accessor_not_multiindex(setup_pandas_accessor):
+    start = pd.DataFrame(np.arange(2 * 4).reshape((4, 2)))
+
+    error_msg = re.escape(
+        "This function is only intended to be used "
+        "when `df`'s index is an instance of `MultiIndex`. "
+        "Received type(df.index)="
+    )
+    with pytest.raises(TypeError, match=error_msg):
+        start.openscm.update_index_levels({})
+
+    with pytest.raises(TypeError, match=error_msg):
+        update_index_levels_func(start, {})

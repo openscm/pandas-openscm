@@ -336,6 +336,14 @@ def update_index_levels_func(
     if copy:
         df = df.copy()
 
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
     df.index = update_levels(df.index, updates=updates)
 
     return df
@@ -388,7 +396,7 @@ def update_levels(
             # Slow route: have to update the codes too
             dup_level = ini.get_level_values(level).map(updater)
             new_level = new_level.unique()
-            new_codes = new_level.get_indexer(dup_level)
+            new_codes = new_level.get_indexer(dup_level)  # type: ignore
             levels[level_idx] = new_level
             codes[level_idx] = new_codes
 
