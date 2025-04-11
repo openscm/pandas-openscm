@@ -308,6 +308,39 @@ def update_index_from_candidates(
     return res
 
 
+def update_index_levels_func(
+    df: pd.DataFrame, updates: dict[Any, Callable[[Any], Any]], copy: bool = True
+) -> pd.DataFrame:
+    """
+    Update the index levels of a [pd.DataFrame][pandas.DataFrame]
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    updates
+        Updates to apply to `df`'s index
+
+        Each key is the index level to which the updates will be applied.
+        Each value is a function which updates the levels to their new values.
+
+    copy
+        Should `df` be copied before returning?
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if copy:
+        df = df.copy()
+
+    df.index = update_levels(df.index, updates=updates)
+
+    return df
+
+
 def update_levels(
     ini: pd.MultiIndex, updates: dict[Any, Callable[[Any], Any]]
 ) -> pd.MultiIndex:
@@ -329,6 +362,11 @@ def update_levels(
     -------
     :
         `ini` with updates applied
+
+    Raises
+    ------
+    KeyError
+        A level in `updates` is not a level in `ini`
     """
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[list[int]] = list(ini.codes)
