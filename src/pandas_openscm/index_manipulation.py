@@ -309,7 +309,10 @@ def update_index_from_candidates(
 
 
 def update_index_levels_func(
-    df: pd.DataFrame, updates: dict[Any, Callable[[Any], Any]], copy: bool = True
+    df: pd.DataFrame,
+    updates: dict[Any, Callable[[Any], Any]],
+    copy: bool = True,
+    remove_unused_levels: bool = True,
 ) -> pd.DataFrame:
     """
     Update the index levels of a [pd.DataFrame][pandas.DataFrame]
@@ -328,6 +331,11 @@ def update_index_levels_func(
     copy
         Should `df` be copied before returning?
 
+    remove_unused_levels
+        Call `df.index.remove_unused_levels` before updating the levels
+
+        This avoids trying to update levels that aren't being used.
+
     Returns
     -------
     :
@@ -344,13 +352,17 @@ def update_index_levels_func(
         )
         raise TypeError(msg)
 
-    df.index = update_levels(df.index, updates=updates)
+    df.index = update_levels(
+        df.index, updates=updates, remove_unused_levels=remove_unused_levels
+    )
 
     return df
 
 
 def update_levels(
-    ini: pd.MultiIndex, updates: dict[Any, Callable[[Any], Any]]
+    ini: pd.MultiIndex,
+    updates: dict[Any, Callable[[Any], Any]],
+    remove_unused_levels: bool = True,
 ) -> pd.MultiIndex:
     """
     Update the levels of a [pd.MultiIndex][pandas.MultiIndex]
@@ -366,6 +378,11 @@ def update_levels(
         Each key is the level to which the updates will be applied.
         Each value is a function which updates the levels to their new values.
 
+    remove_unused_levels
+        Call `ini.remove_unused_levels` before updating the levels
+
+        This avoids trying to update levels that aren't being used.
+
     Returns
     -------
     :
@@ -376,6 +393,9 @@ def update_levels(
     KeyError
         A level in `updates` is not a level in `ini`
     """
+    if remove_unused_levels:
+        ini = ini.remove_unused_levels()
+
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[list[int]] = list(ini.codes)
 

@@ -134,9 +134,9 @@ def test_doesnt_trip_over_droped_levels(setup_pandas_accessor):
     start = pd.MultiIndex.from_tuples(
         [
             ("sa", "va", "kg", 0),
-            ("sb", "vb", "m", -1),
-            ("sa", "va", "kg", -2),
-            ("sa", "vb", "kg", 2),
+            ("sb", "vb", "m", 1),
+            ("sa", "va", "kg", 2),
+            ("sa", "vb", "kg", -2),
         ],
         names=["scenario", "variable", "unit", "run_id"],
     )
@@ -156,10 +156,13 @@ def test_doesnt_trip_over_droped_levels(setup_pandas_accessor):
     pd.testing.assert_index_equal(res, exp)
 
     # If you turn the drop off, you get an error
-    with pytest.raises(
-        ValueError, match=re.escape("Value must be greater than zero, received -1")
-    ):
-        update_levels(start.iloc[:-1], updates=updates, drop_unused_levels=False)
+    exp_error_no_removal = pytest.raises(
+        ValueError, match=re.escape("Value must be greater than zero, received -2")
+    )
+    with exp_error_no_removal:
+        # Even though we're not using the levels,
+        # they still get mapped if we don't remove them
+        update_levels(start[:-1], updates=updates, remove_unused_levels=False)
 
     # Same thing but from a DataFrame
     start_df = pd.DataFrame(
@@ -173,24 +176,18 @@ def test_doesnt_trip_over_droped_levels(setup_pandas_accessor):
     )
 
     pd.testing.assert_frame_equal(res_df, exp_df)
-    # If you turn the drop off, you get an error
-    with pytest.raises(
-        ValueError, match=re.escape("Value must be greater than zero, received -1")
-    ):
+    with exp_error_no_removal:
         update_index_levels_func(
-            start_df.iloc[:-1, :], updates=updates, drop_unused_index_levels=False
+            start_df.iloc[:-1, :], updates=updates, remove_unused_levels=False
         )
 
     # Lastly, test the accessor
     pd.testing.assert_frame_equal(
         start_df.iloc[:-1, :].openscm.update_index_levels(updates), exp_df
     )
-    # If you turn the drop off, you get an error
-    with pytest.raises(
-        ValueError, match=re.escape("Value must be greater than zero, received -1")
-    ):
+    with exp_error_no_removal:
         start_df.iloc[:-1, :].openscm.update_index_levels(
-            updates, drop_unused_index_levels=False
+            updates, remove_unused_levels=False
         )
 
 
