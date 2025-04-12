@@ -21,6 +21,15 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.4.1 (2025-04-12)
+
+### 🐛 Bug Fixes
+
+- Fixed up [pandas_openscm.index_manipulation.update_levels][].
+  It now drops unused levels by default first, to avoid applying the updates to values that aren't being used.
+  The same fixes are propagated to [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.update_index_levels][] and [pandas_openscm.index_manipulation.update_index_levels_func][]. ([#14](https://github.com/openscm/pandas-openscm/pull/14))
+
+
 ## Pandas-OpenSCM v0.4.0 (2025-04-11)
 
 ### 🆕 Features
