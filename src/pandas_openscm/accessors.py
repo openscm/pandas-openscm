@@ -626,7 +626,10 @@ class DataFramePandasOpenSCMAccessor:
         return ts_to_long_data(self._df, time_col_name=time_col_name)
 
     def update_index_levels(
-        self, updates: dict[Any, Callable[[Any], Any]]
+        self,
+        updates: dict[Any, Callable[[Any], Any]],
+        copy: bool = True,
+        remove_unused_levels: bool = True,
     ) -> pd.DataFrame:
         """
         Update the index levels
@@ -639,13 +642,28 @@ class DataFramePandasOpenSCMAccessor:
             Each key is the index level to which the updates will be applied.
             Each value is a function which updates the levels to their new values.
 
+        copy
+            Should the [pd.DataFrame][pandas.DataFrame] be copied before returning?
+
+        remove_unused_levels
+            Remove unused levels before applying the update
+
+            Specifically, call
+            [pd.MultiIndex.remove_unused_levels][pandas.MultiIndex.remove_unused_levels].
+
+            This avoids trying to update levels that aren't being used.
+
         Returns
         -------
         :
             [pd.DataFrame][pandas.DataFrame] with updates applied to its index
         """
-        # Have to copy as the index is replaced in place
-        return update_index_levels_func(self._df, updates=updates, copy=True)
+        return update_index_levels_func(
+            self._df,
+            updates=updates,
+            copy=copy,
+            remove_unused_levels=remove_unused_levels,
+        )
 
 
 def register_pandas_accessor(namespace: str = "openscm") -> None:
