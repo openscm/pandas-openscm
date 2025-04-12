@@ -123,6 +123,77 @@ def test_update_index_levels_missing_level():
         update_levels(start, updates=updates)
 
 
+def test_doesnt_trip_over_droped_levels(setup_pandas_accessor):
+    def update_func(in_v: int) -> int:
+        if in_v < 0:
+            msg = f"Value must be greater than zero, received {in_v}"
+            raise ValueError(msg)
+
+        return in_v * -1
+
+    start = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "va", "kg", 0),
+            ("sb", "vb", "m", -1),
+            ("sa", "va", "kg", -2),
+            ("sa", "vb", "kg", 2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+
+    updates = {"run_id": update_func}
+
+    res = update_levels(start[:-1], updates=updates)
+
+    exp = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "va", "kg", 0),
+            ("sb", "vb", "m", -1),
+            ("sa", "va", "kg", -2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+    pd.testing.assert_index_equal(res, exp)
+
+    # If you turn the drop off, you get an error
+    with pytest.raises(
+        ValueError, match=re.escape("Value must be greater than zero, received -1")
+    ):
+        update_levels(start.iloc[:-1], updates=updates, drop_unused_levels=False)
+
+    # Same thing but from a DataFrame
+    start_df = pd.DataFrame(
+        np.zeros((start.shape[0], 3)), columns=[2010, 2020, 2030], index=start
+    )
+
+    res_df = update_index_levels_func(start_df.iloc[:-1, :], updates=updates)
+
+    exp_df = pd.DataFrame(
+        np.zeros((exp.shape[0], 3)), columns=start_df.columns, index=exp
+    )
+
+    pd.testing.assert_frame_equal(res_df, exp_df)
+    # If you turn the drop off, you get an error
+    with pytest.raises(
+        ValueError, match=re.escape("Value must be greater than zero, received -1")
+    ):
+        update_index_levels_func(
+            start_df.iloc[:-1, :], updates=updates, drop_unused_index_levels=False
+        )
+
+    # Lastly, test the accessor
+    pd.testing.assert_frame_equal(
+        start_df.iloc[:-1, :].openscm.update_index_levels(updates), exp_df
+    )
+    # If you turn the drop off, you get an error
+    with pytest.raises(
+        ValueError, match=re.escape("Value must be greater than zero, received -1")
+    ):
+        start_df.iloc[:-1, :].openscm.update_index_levels(
+            updates, drop_unused_index_levels=False
+        )
+
+
 def test_accessor(setup_pandas_accessor):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
