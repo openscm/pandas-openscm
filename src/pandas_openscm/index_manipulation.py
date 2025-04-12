@@ -394,7 +394,7 @@ def update_levels(
         A level in `updates` is not a level in `ini`
     """
     if remove_unused_levels:
-        ini = ini.remove_unused_levels()
+        ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[list[int]] = list(ini.codes)
