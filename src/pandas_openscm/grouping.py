@@ -10,7 +10,9 @@ import pandas as pd
 
 
 def groupby_except(
-    df: pd.DataFrame, non_groupers: str | list[str], observed: bool = True
+    df: pd.DataFrame,  # TODO: update to support Series too
+    non_groupers: str | list[str],
+    observed: bool = True,
 ) -> pd.core.groupby.generic.DataFrameGroupBy[Any]:
     """
     Group by all index levels except specified levels
