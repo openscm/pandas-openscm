@@ -36,6 +36,8 @@ if TYPE_CHECKING:
     import pint
     from typing_extensions import TypeAlias
 
+    from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
+
     COLOUR_VALUE_LIKE: TypeAlias = Union[
         Union[
             str,
@@ -55,10 +57,6 @@ if TYPE_CHECKING:
     ):
         """Palette-like type"""
 
-    # PALETTE_LIKE: TypeAlias = dict[
-    #     Any, Union[COLOUR_VALUE_LIKE, tuple[COLOUR_VALUE_LIKE, float]]
-    # ]
-
     DASH_VALUE_LIKE: TypeAlias = Union[str, tuple[float, tuple[float, ...]]]
     """Types that allow a dash to be specified in matplotlib"""
 
@@ -66,20 +64,6 @@ if TYPE_CHECKING:
         Union[tuple[float, float], tuple[tuple[float, float], float]], ...
     ]
     """Type that quantiles and the alpha to use for plotting their line/plume"""
-
-    NP_ARRAY_OF_FLOAT_OR_INT = np.typing.NDArray[
-        Union[np.floating[Any], np.integer[Any]]
-    ]
-    """Numpy array like"""
-
-    PINT_NUMPY_ARRAY: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[
-        NP_ARRAY_OF_FLOAT_OR_INT
-    ]
-    """
-    Type alias for a pint quantity that wraps a numpy array
-
-    No shape hints because that doesn't seem to be supported by numpy yet.
-    """
 
 
 class MissingQuantileError(KeyError):
