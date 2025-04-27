@@ -309,7 +309,7 @@ def update_index_from_candidates(
 
 
 def update_index_levels_func(
-    df: pd.DataFrame,
+    df: pd.DataFrame,  # TODO: update to support Series too
     updates: dict[Any, Callable[[Any], Any]],
     copy: bool = True,
     remove_unused_levels: bool = True,
