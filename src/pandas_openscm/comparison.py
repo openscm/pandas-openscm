@@ -56,6 +56,76 @@ def compare_close(
 
         Only indexes where `left` and `right` differ are returned,
         i.e. if the result is empty, `left` and `right` are equal for all indexes.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> left = pd.DataFrame(
+    ...     [[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
+    ...     columns=pd.Index([2.0, 4.0, 10.0], name="time"),
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         [("v1", "kg"), ("v2", "m"), ("v3", "yr")], names=["variable", "unit"]
+    ...     ),
+    ... )
+    >>> left
+    time           2.0   4.0   10.0
+    variable unit
+    v1       kg     1.0   2.0   3.0
+    v2       m      1.1   1.2   1.3
+    v3       yr    -1.1   0.0   0.5
+    >>>
+    >>> right = pd.DataFrame(
+    ...     [[1.1, 2.1, 3.1], [1.11, 1.2, 1.31], [-1.12, 0.0000001, 0.5]],
+    ...     columns=pd.Index([2.0, 4.0, 10.0], name="time"),
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         [("v1", "kg"), ("v2", "m"), ("v3", "yr")], names=["variable", "unit"]
+    ...     ),
+    ... )
+    >>> right
+    >>>
+    >>> # Default tolerances are quite tight
+    >>> compare_close(left, right, "left", "right")
+                        left         right
+    variable unit time
+    v1       kg   2.0    1.0  1.100000e+00
+                  4.0    2.0  2.100000e+00
+                  10.0   3.0  3.100000e+00
+    v2       m    2.0    1.1  1.110000e+00
+                  10.0   1.3  1.310000e+00
+    v3       yr   2.0   -1.1 -1.120000e+00
+                  4.0    0.0  1.000000e-07
+    >>>
+    >>> from functools import partial
+    >>> import numpy as np
+    >>>
+    >>> # We can use `functools.partial` to loosen the tolerances
+    >>> compare_close(
+    ...     left, right, "left", "right", isclose=partial(np.isclose, atol=0.01)
+    ... )
+    >>>
+    >>> compare_close(
+    ...     left,
+    ...     right,
+    ...     # Not you can also change the displayed names
+    ...     left_name="Bill",
+    ...     right_name="Ben",
+    ...     isclose=partial(np.isclose, rtol=0.1),
+    ... )
+                             Bill           Ben
+    variable unit time
+    v3       yr   4.0         0.0  1.000000e-07
+    >>>
+    >>> # If we make the tolerance sufficiently loose,
+    >>> # all points are considered equal
+    >>> # and the result is empty.
+    >>> loose_comparison = compare_close(
+    ...     left,
+    ...     right,
+    ...     "left",
+    ...     "right",
+    ...     isclose=partial(np.isclose, rtol=0.1, atol=0.001),
+    ... )
+    >>> loose_comparison.empty
     """
     left_stacked = left.stack()
     left_stacked.name = left_name

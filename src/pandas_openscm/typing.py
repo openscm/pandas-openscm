@@ -28,16 +28,17 @@ NP_ARRAY_OF_BOOL: TypeAlias = npt.NDArray[np.bool]
 Type alias for an array of boolean values
 """
 
-PINT_NUMPY_ARRAY: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[
-    NP_ARRAY_OF_FLOAT_OR_INT
-]
-"""
-Type alias for a pint quantity that wraps a numpy array
+if TYPE_CHECKING:
+    PINT_NUMPY_ARRAY: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[
+        NP_ARRAY_OF_FLOAT_OR_INT
+    ]
+    """
+    Type alias for a pint quantity that wraps a numpy array
 
-No shape hints because that doesn't seem to be supported by numpy yet.
-"""
+    No shape hints because that doesn't seem to be supported by numpy yet.
+    """
 
-PINT_SCALAR: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[NP_FLOAT_OR_INT]
-"""
-Type alias for a pint quantity that wraps a numpy scalar
-"""
+    PINT_SCALAR: TypeAlias = pint.facets.numpy.quantity.NumpyQuantity[NP_FLOAT_OR_INT]
+    """
+    Type alias for a pint quantity that wraps a numpy scalar
+    """
