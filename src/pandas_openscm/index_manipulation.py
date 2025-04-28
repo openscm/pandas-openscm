@@ -406,7 +406,7 @@ def create_new_level_and_codes_by_mapping(
 
 def update_levels(
     ini: pd.MultiIndex,
-    updates: dict[Any, Callable[[Any], Any]],
+    updates: dict[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
     remove_unused_levels: bool = True,
 ) -> pd.MultiIndex:
     """
@@ -421,7 +421,8 @@ def update_levels(
         Updates to apply
 
         Each key is the level to which the updates will be applied.
-        Each value is a function which updates the levels to their new values.
+        Each value is a mapper of the form used by
+        [pd.Index.map][pandas.Index.map].
 
     remove_unused_levels
         Call `ini.remove_unused_levels` before updating the levels
@@ -437,6 +438,42 @@ def update_levels(
     ------
     KeyError
         A level in `updates` is not a level in `ini`
+
+    Examples
+    --------
+    >>> start = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         ("sa", "ma", "v1", "kg"),
+    ...         ("sb", "ma", "v2", "m"),
+    ...         ("sa", "mb", "v1", "kg"),
+    ...         ("sa", "mb", "v2", "m"),
+    ...     ],
+    ...     names=["scenario", "model", "variable", "unit"],
+    ... )
+    >>> start
+    MultiIndex([('sa', 'ma', 'v1', 'kg'),
+                ('sb', 'ma', 'v2',  'm'),
+                ('sa', 'mb', 'v1', 'kg'),
+                ('sa', 'mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>> update_levels(
+    ...     start,
+    ...     {"model": lambda x: f"model {x}", "scenario": lambda x: f"scenario {x}"},
+    ... )
+    MultiIndex([('scenario sa', 'model ma', 'v1', 'kg'),
+                ('scenario sb', 'model ma', 'v2',  'm'),
+                ('scenario sa', 'model mb', 'v1', 'kg'),
+                ('scenario sa', 'model mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>> update_levels(
+    ...     start,
+    ...     {"variable": {"v1": "variable one", "v2": "variable two"}},
+    ... )
+    MultiIndex([('sa', 'ma', 'variable one', 'kg'),
+                ('sb', 'ma', 'variable two',  'm'),
+                ('sa', 'mb', 'variable one', 'kg'),
+                ('sa', 'mb', 'variable two',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
     """
     if remove_unused_levels:
         ini = ini.remove_unused_levels()  # type: ignore
