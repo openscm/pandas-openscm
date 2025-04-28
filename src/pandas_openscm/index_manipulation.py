@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -359,6 +360,50 @@ def update_index_levels_func(
     return df
 
 
+def create_new_level_and_codes_by_mapping(
+    ini: pd.MultiIndex,
+    level_to_create_from: str,
+    mapper: Callable[[Any], Any],
+) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
+    """
+    Create a new level and associated codes by mapping an existing level
+
+    This is a thin function intended for internal use
+    to handle some slightly tricky logic.
+
+    Parameters
+    ----------
+    ini
+        Input index
+
+    level_to_create_from
+        Level to create the new level from
+
+    mapper
+        Function to use to map existing levels to new levels
+
+    Returns
+    -------
+    new_level :
+        New level
+
+    new_codes :
+        New codes
+    """
+    level_to_map_from_idx = ini.names.index(level_to_create_from)
+    new_level = ini.levels[level_to_map_from_idx].map(mapper)
+    if not new_level.has_duplicates:
+        # Fast route, can just return new level and codes from level we mapped from
+        return new_level, ini.codes[level_to_map_from_idx]
+
+    # Slow route: have to update the codes
+    dup_level = ini.get_level_values(level_to_create_from).map(mapper)
+    new_level = new_level.unique()
+    new_codes = new_level.get_indexer(dup_level)  # type: ignore
+
+    return new_level, new_codes
+
+
 def update_levels(
     ini: pd.MultiIndex,
     updates: dict[Any, Callable[[Any], Any]],
@@ -406,19 +451,15 @@ def update_levels(
             )
             raise KeyError(msg)
 
-        level_idx = ini.names.index(level)
-        new_level = levels[level_idx].map(updater)
-        if not new_level.has_duplicates:
-            # Fast route: no clashes so no need to update the codes
-            levels[level_idx] = new_level
+        new_level, new_codes = create_new_level_and_codes_by_mapping(
+            ini=ini,
+            level_to_create_from=level,
+            mapper=updater,
+        )
 
-        else:
-            # Slow route: have to update the codes too
-            dup_level = ini.get_level_values(level).map(updater)
-            new_level = new_level.unique()
-            new_codes = new_level.get_indexer(dup_level)  # type: ignore
-            levels[level_idx] = new_level
-            codes[level_idx] = new_codes
+        level_idx = ini.names.index(level)
+        levels[level_idx] = new_level
+        codes[level_idx] = new_codes
 
     res = pd.MultiIndex(
         levels=levels,
