@@ -4,6 +4,7 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
@@ -312,7 +313,7 @@ def update_index_from_candidates(
 def create_new_level_and_codes_by_mapping(
     ini: pd.MultiIndex,
     level_to_create_from: str,
-    mapper: Callable[[Any], Any],
+    mapper: Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
 ) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
     """
     Create a new level and associated codes by mapping an existing level
@@ -355,7 +356,7 @@ def create_new_level_and_codes_by_mapping(
 
 def update_index_levels_func(
     df: pd.DataFrame,
-    updates: dict[Any, Callable[[Any], Any]],
+    updates: Mapping[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
     copy: bool = True,
     remove_unused_levels: bool = True,
 ) -> pd.DataFrame:
@@ -406,7 +407,7 @@ def update_index_levels_func(
 
 def update_levels(
     ini: pd.MultiIndex,
-    updates: dict[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
+    updates: Mapping[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
     remove_unused_levels: bool = True,
 ) -> pd.MultiIndex:
     """
@@ -481,7 +482,7 @@ def update_levels(
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int]] = list(ini.codes)
+    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
 
     for level, updater in updates.items():
         if level not in ini.names:
@@ -684,7 +685,7 @@ def update_levels_from_other(
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int]] = list(ini.codes)
+    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
     names: list[str] = list(ini.names)
 
     for level, (source, updater) in update_sources.items():
