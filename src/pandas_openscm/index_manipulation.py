@@ -309,6 +309,50 @@ def update_index_from_candidates(
     return res
 
 
+def create_new_level_and_codes_by_mapping(
+    ini: pd.MultiIndex,
+    level_to_create_from: str,
+    mapper: Callable[[Any], Any],
+) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
+    """
+    Create a new level and associated codes by mapping an existing level
+
+    This is a thin function intended for internal use
+    to handle some slightly tricky logic.
+
+    Parameters
+    ----------
+    ini
+        Input index
+
+    level_to_create_from
+        Level to create the new level from
+
+    mapper
+        Function to use to map existing levels to new levels
+
+    Returns
+    -------
+    new_level :
+        New level
+
+    new_codes :
+        New codes
+    """
+    level_to_map_from_idx = ini.names.index(level_to_create_from)
+    new_level = ini.levels[level_to_map_from_idx].map(mapper)
+    if not new_level.has_duplicates:
+        # Fast route, can just return new level and codes from level we mapped from
+        return new_level, ini.codes[level_to_map_from_idx]
+
+    # Slow route: have to update the codes
+    dup_level = ini.get_level_values(level_to_create_from).map(mapper)
+    new_level = new_level.unique()
+    new_codes = new_level.get_indexer(dup_level)  # type: ignore
+
+    return new_level, new_codes
+
+
 def update_index_levels_func(
     df: pd.DataFrame,
     updates: dict[Any, Callable[[Any], Any]],
@@ -358,50 +402,6 @@ def update_index_levels_func(
     )
 
     return df
-
-
-def create_new_level_and_codes_by_mapping(
-    ini: pd.MultiIndex,
-    level_to_create_from: str,
-    mapper: Callable[[Any], Any],
-) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
-    """
-    Create a new level and associated codes by mapping an existing level
-
-    This is a thin function intended for internal use
-    to handle some slightly tricky logic.
-
-    Parameters
-    ----------
-    ini
-        Input index
-
-    level_to_create_from
-        Level to create the new level from
-
-    mapper
-        Function to use to map existing levels to new levels
-
-    Returns
-    -------
-    new_level :
-        New level
-
-    new_codes :
-        New codes
-    """
-    level_to_map_from_idx = ini.names.index(level_to_create_from)
-    new_level = ini.levels[level_to_map_from_idx].map(mapper)
-    if not new_level.has_duplicates:
-        # Fast route, can just return new level and codes from level we mapped from
-        return new_level, ini.codes[level_to_map_from_idx]
-
-    # Slow route: have to update the codes
-    dup_level = ini.get_level_values(level_to_create_from).map(mapper)
-    new_level = new_level.unique()
-    new_codes = new_level.get_indexer(dup_level)  # type: ignore
-
-    return new_level, new_codes
 
 
 def update_levels(
@@ -507,6 +507,71 @@ def update_levels(
     )
 
     return res
+
+
+def update_index_levels_from_other_func(
+    df: pd.DataFrame,
+    update_sources: dict[
+        Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+    ],
+    copy: bool = True,
+    remove_unused_levels: bool = True,
+) -> pd.DataFrame:
+    """
+    Update the index levels based on other levels of a [pd.DataFrame][pandas.DataFrame]
+
+    If the level to be updated doesn't exist,
+    it is created.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    update_sources
+        Updates to apply to `df`'s index
+
+        Each key is the level to which the updates will be applied
+        (or the level that will be created if it doesn't already exist).
+
+        Each value is a tuple of which the first element
+        is the level to use to generate the values (the 'source level')
+        and the second is mapper of the form used by
+        [pd.Index.map][pandas.Index.map]
+        which will be applied to the source level
+        to update/create the level of interest.
+
+    copy
+        Should `df` be copied before returning?
+
+    remove_unused_levels
+        Call `df.index.remove_unused_levels` before updating the levels
+
+        This avoids trying to update levels that aren't being used.
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if copy:
+        df = df.copy()
+
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
+    df.index = update_levels_from_other(
+        df.index,
+        update_sources=update_sources,
+        remove_unused_levels=remove_unused_levels,
+    )
+
+    return df
 
 
 def update_levels_from_other(
