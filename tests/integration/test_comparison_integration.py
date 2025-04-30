@@ -12,7 +12,7 @@ from pandas_openscm.comparison import compare_close
 
 
 @pytest.fixture
-def test_df():
+def simple_df():
     return pd.DataFrame(
         data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
         columns=pd.Index([2.0, 4.0, 10.0], name="time"),
@@ -22,15 +22,17 @@ def test_df():
     )
 
 
-def test_equal(test_df):
-    assert compare_close(test_df, test_df, left_name="left", right_name="right").empty
+def test_equal(simple_df):
+    assert compare_close(
+        simple_df, simple_df, left_name="left", right_name="right"
+    ).empty
 
 
-def test_equal_misaligned(test_df):
-    left = test_df
+def test_equal_misaligned(simple_df):
+    left = simple_df
 
     # switch rows 2 and 3
-    right = test_df.sample(frac=1, random_state=1)
+    right = simple_df.sample(frac=1, random_state=1)
 
     assert compare_close(left, right, left_name="left", right_name="right").empty
 
