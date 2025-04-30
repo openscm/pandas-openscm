@@ -23,9 +23,19 @@ def test_equal():
 
 
 def test_equal_misaligned():
-    # TODO: write test of what happens when we put in two equal DataFrames
-    # that have a different row order
-    assert False, "To implement"
+
+    left = pd.DataFrame(
+        data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
+        columns=pd.Index([2.0, 4.0, 10.0], name="time"),
+        index=pd.MultiIndex.from_tuples(
+            [("v1", "kg"), ("v2", "m"), ("v3", "yr")], names=["variable", "unit"]
+        ),
+    )
+
+    # randomly shuffle the all rows (with random seed so we can reproduce)
+    right = left.sample(frac=1, random_state=1)
+
+    assert compare_close(left, right, left_name="left", right_name="right").empty
 
 
 def test_compare_close():
