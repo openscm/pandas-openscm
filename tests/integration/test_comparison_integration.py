@@ -32,7 +32,7 @@ def test_equal_misaligned(simple_df):
     left = simple_df
 
     # switch rows 2 and 3
-    right = simple_df.sample(frac=1, random_state=1)
+    right = left.iloc[[0, 2, 1], :].copy()
 
     assert compare_close(left, right, left_name="left", right_name="right").empty
 
