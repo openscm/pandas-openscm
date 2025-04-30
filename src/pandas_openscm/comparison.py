@@ -148,7 +148,8 @@ def compare_close(
 
     left_stacked_aligned, right_stacked_aligned = left_stacked.align(right_stacked)
     differences_locator = ~isclose(
-        left_stacked_aligned.values, right_stacked_aligned.values
+        left_stacked_aligned.values,  # type: ignore
+        right_stacked_aligned.values,  # type: ignore
     )
 
     res = pd.concat(
