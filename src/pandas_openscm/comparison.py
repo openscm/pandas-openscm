@@ -82,6 +82,12 @@ def compare_close(
     ...     ),
     ... )
     >>> right
+    time           2.0           4.0   10.0
+    variable unit
+    v1       kg    1.10  2.100000e+00  3.10
+    v2       m     1.11  1.200000e+00  1.31
+    v3       yr   -1.12  1.000000e-07  0.50
+
     >>>
     >>> # Default tolerances are quite tight
     >>> compare_close(left, right, "left", "right")
@@ -102,11 +108,17 @@ def compare_close(
     >>> compare_close(
     ...     left, right, "left", "right", isclose=partial(np.isclose, atol=0.01)
     ... )
+                        left  right
+    variable unit time
+    v1       kg   2.0    1.0   1.10
+                  4.0    2.0   2.10
+                  10.0   3.0   3.10
+    v3       yr   2.0   -1.1  -1.12
     >>>
     >>> compare_close(
     ...     left,
     ...     right,
-    ...     # Not you can also change the displayed names
+    ...     # Note you can also change the displayed names
     ...     left_name="Bill",
     ...     right_name="Ben",
     ...     isclose=partial(np.isclose, rtol=0.1),
@@ -126,6 +138,7 @@ def compare_close(
     ...     isclose=partial(np.isclose, rtol=0.1, atol=0.001),
     ... )
     >>> loose_comparison.empty
+    True
     """
     left_stacked = left.stack()
     left_stacked.name = left_name
