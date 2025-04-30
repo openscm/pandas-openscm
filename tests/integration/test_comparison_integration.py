@@ -37,25 +37,27 @@ def test_equal_misaligned(simple_df):
     assert compare_close(left, right, left_name="left", right_name="right").empty
 
 
+def create_test_df(
+    data,
+    columns=(2.0, 4.0, 10.0),
+    index=(("v1", "kg"), ("v2", "m"), ("v3", "yr")),
+):
+    return pd.DataFrame(
+        data=data,
+        columns=pd.Index(columns, name="time"),
+        index=pd.MultiIndex.from_tuples(index, names=["variable", "unit"]),
+    )
+
+
 @pytest.mark.parametrize(
     "left, right, left_name, right_name, isclose, exp",
     (
         pytest.param(
-            pd.DataFrame(
+            create_test_df(
                 data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
-                columns=pd.Index([2.0, 4.0, 10.0], name="time"),
-                index=pd.MultiIndex.from_tuples(
-                    [("v1", "kg"), ("v2", "m"), ("v3", "yr")],
-                    names=["variable", "unit"],
-                ),
             ),
-            pd.DataFrame(
+            create_test_df(
                 data=[[1.5, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
-                columns=pd.Index([2.0, 4.0, 10.0], name="time"),
-                index=pd.MultiIndex.from_tuples(
-                    [("v1", "kg"), ("v2", "m"), ("v3", "yr")],
-                    names=["variable", "unit"],
-                ),
             ),
             "left",
             "right",
@@ -64,30 +66,17 @@ def test_equal_misaligned(simple_df):
                 data=[[1.0, 1.5]],
                 columns=["left", "right"],
                 index=pd.MultiIndex.from_tuples(
-                    [
-                        ("v1", "kg", 2.0),
-                    ],
-                    names=["variable", "unit", "time"],
+                    [("v1", "kg", 2.0)], names=["variable", "unit", "time"]
                 ),
             ),
             id="values outside relative tolerance",
         ),
         pytest.param(
-            pd.DataFrame(
+            create_test_df(
                 data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
-                columns=pd.Index([2.0, 4.0, 10.0], name="time"),
-                index=pd.MultiIndex.from_tuples(
-                    [("v1", "kg"), ("v2", "m"), ("v3", "yr")],
-                    names=["variable", "unit"],
-                ),
             ),
-            pd.DataFrame(
+            create_test_df(
                 data=[[1.5, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
-                columns=pd.Index([2.0, 4.0, 10.0], name="time"),
-                index=pd.MultiIndex.from_tuples(
-                    [("v1", "kg"), ("v2", "m"), ("v3", "yr")],
-                    names=["variable", "unit"],
-                ),
             ),
             "name1_left",
             "name2_right",
@@ -99,21 +88,11 @@ def test_equal_misaligned(simple_df):
             id="values within relative tolerance",
         ),
         pytest.param(
-            pd.DataFrame(
+            create_test_df(
                 data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.7], [-1.1, 0.0, 0.5]],
-                columns=pd.Index([2.0, 4.0, 10.0], name="time"),
-                index=pd.MultiIndex.from_tuples(
-                    [("v1", "kg"), ("v2", "m"), ("v3", "yr")],
-                    names=["variable", "unit"],
-                ),
             ),
-            pd.DataFrame(
+            create_test_df(
                 data=[[1.5, 2.0, 3.5], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
-                columns=pd.Index([2.0, 4.0, 10.0], name="time"),
-                index=pd.MultiIndex.from_tuples(
-                    [("v1", "kg"), ("v2", "m"), ("v3", "yr")],
-                    names=["variable", "unit"],
-                ),
             ),
             "name1_left",
             "name2_right",
