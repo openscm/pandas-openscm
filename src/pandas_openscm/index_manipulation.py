@@ -4,9 +4,11 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -308,9 +310,53 @@ def update_index_from_candidates(
     return res
 
 
+def create_new_level_and_codes_by_mapping(
+    ini: pd.MultiIndex,
+    level_to_create_from: str,
+    mapper: Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
+    """
+    Create a new level and associated codes by mapping an existing level
+
+    This is a thin function intended for internal use
+    to handle some slightly tricky logic.
+
+    Parameters
+    ----------
+    ini
+        Input index
+
+    level_to_create_from
+        Level to create the new level from
+
+    mapper
+        Function to use to map existing levels to new levels
+
+    Returns
+    -------
+    new_level :
+        New level
+
+    new_codes :
+        New codes
+    """
+    level_to_map_from_idx = ini.names.index(level_to_create_from)
+    new_level = ini.levels[level_to_map_from_idx].map(mapper)
+    if not new_level.has_duplicates:
+        # Fast route, can just return new level and codes from level we mapped from
+        return new_level, ini.codes[level_to_map_from_idx]
+
+    # Slow route: have to update the codes
+    dup_level = ini.get_level_values(level_to_create_from).map(mapper)
+    new_level = new_level.unique()
+    new_codes = new_level.get_indexer(dup_level)  # type: ignore
+
+    return new_level, new_codes
+
+
 def update_index_levels_func(
     df: pd.DataFrame,
-    updates: dict[Any, Callable[[Any], Any]],
+    updates: Mapping[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
     copy: bool = True,
     remove_unused_levels: bool = True,
 ) -> pd.DataFrame:
@@ -361,7 +407,7 @@ def update_index_levels_func(
 
 def update_levels(
     ini: pd.MultiIndex,
-    updates: dict[Any, Callable[[Any], Any]],
+    updates: Mapping[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
     remove_unused_levels: bool = True,
 ) -> pd.MultiIndex:
     """
@@ -376,7 +422,8 @@ def update_levels(
         Updates to apply
 
         Each key is the level to which the updates will be applied.
-        Each value is a function which updates the levels to their new values.
+        Each value is a mapper of the form used by
+        [pd.Index.map][pandas.Index.map].
 
     remove_unused_levels
         Call `ini.remove_unused_levels` before updating the levels
@@ -392,12 +439,50 @@ def update_levels(
     ------
     KeyError
         A level in `updates` is not a level in `ini`
+
+    Examples
+    --------
+    >>> start = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         ("sa", "ma", "v1", "kg"),
+    ...         ("sb", "ma", "v2", "m"),
+    ...         ("sa", "mb", "v1", "kg"),
+    ...         ("sa", "mb", "v2", "m"),
+    ...     ],
+    ...     names=["scenario", "model", "variable", "unit"],
+    ... )
+    >>> start
+    MultiIndex([('sa', 'ma', 'v1', 'kg'),
+                ('sb', 'ma', 'v2',  'm'),
+                ('sa', 'mb', 'v1', 'kg'),
+                ('sa', 'mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>>
+    >>> update_levels(
+    ...     start,
+    ...     {"model": lambda x: f"model {x}", "scenario": lambda x: f"scenario {x}"},
+    ... )
+    MultiIndex([('scenario sa', 'model ma', 'v1', 'kg'),
+                ('scenario sb', 'model ma', 'v2',  'm'),
+                ('scenario sa', 'model mb', 'v1', 'kg'),
+                ('scenario sa', 'model mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>>
+    >>> update_levels(
+    ...     start,
+    ...     {"variable": {"v1": "variable one", "v2": "variable two"}},
+    ... )
+    MultiIndex([('sa', 'ma', 'variable one', 'kg'),
+                ('sb', 'ma', 'variable two',  'm'),
+                ('sa', 'mb', 'variable one', 'kg'),
+                ('sa', 'mb', 'variable two',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
     """
     if remove_unused_levels:
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int]] = list(ini.codes)
+    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
 
     for level, updater in updates.items():
         if level not in ini.names:
@@ -406,24 +491,226 @@ def update_levels(
             )
             raise KeyError(msg)
 
-        level_idx = ini.names.index(level)
-        new_level = levels[level_idx].map(updater)
-        if not new_level.has_duplicates:
-            # Fast route: no clashes so no need to update the codes
-            levels[level_idx] = new_level
+        new_level, new_codes = create_new_level_and_codes_by_mapping(
+            ini=ini,
+            level_to_create_from=level,
+            mapper=updater,
+        )
 
-        else:
-            # Slow route: have to update the codes too
-            dup_level = ini.get_level_values(level).map(updater)
-            new_level = new_level.unique()
-            new_codes = new_level.get_indexer(dup_level)  # type: ignore
-            levels[level_idx] = new_level
-            codes[level_idx] = new_codes
+        level_idx = ini.names.index(level)
+        levels[level_idx] = new_level
+        codes[level_idx] = new_codes
 
     res = pd.MultiIndex(
         levels=levels,
         codes=codes,
         names=ini.names,
     )
+
+    return res
+
+
+def update_index_levels_from_other_func(
+    df: pd.DataFrame,
+    update_sources: dict[
+        Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+    ],
+    copy: bool = True,
+    remove_unused_levels: bool = True,
+) -> pd.DataFrame:
+    """
+    Update the index levels based on other levels of a [pd.DataFrame][pandas.DataFrame]
+
+    If the level to be updated doesn't exist,
+    it is created.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    update_sources
+        Updates to apply to `df`'s index
+
+        Each key is the level to which the updates will be applied
+        (or the level that will be created if it doesn't already exist).
+
+        Each value is a tuple of which the first element
+        is the level to use to generate the values (the 'source level')
+        and the second is mapper of the form used by
+        [pd.Index.map][pandas.Index.map]
+        which will be applied to the source level
+        to update/create the level of interest.
+
+    copy
+        Should `df` be copied before returning?
+
+    remove_unused_levels
+        Call `df.index.remove_unused_levels` before updating the levels
+
+        This avoids trying to update levels that aren't being used.
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if copy:
+        df = df.copy()
+
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
+    df.index = update_levels_from_other(
+        df.index,
+        update_sources=update_sources,
+        remove_unused_levels=remove_unused_levels,
+    )
+
+    return df
+
+
+def update_levels_from_other(
+    ini: pd.MultiIndex,
+    update_sources: dict[
+        Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+    ],
+    remove_unused_levels: bool = True,
+) -> pd.MultiIndex:
+    """
+    Update levels based on other levels in a [pd.MultiIndex][pandas.MultiIndex]
+
+    If the level to be updated doesn't exist,
+    it is created.
+
+    Parameters
+    ----------
+    ini
+        Input index
+
+    update_sources
+        Updates to apply and their source levels
+
+        Each key is the level to which the updates will be applied
+        (or the level that will be created if it doesn't already exist).
+
+        Each value is a tuple of which the first element
+        is the level to use to generate the values (the 'source level')
+        and the second is mapper of the form used by
+        [pd.Index.map][pandas.Index.map]
+        which will be applied to the source level
+        to update/create the level of interest.
+
+    remove_unused_levels
+        Call `ini.remove_unused_levels` before updating the levels
+
+        This avoids trying to update bsaed on levels that aren't being used.
+
+    Returns
+    -------
+    :
+        `ini` with updates applied
+
+    Raises
+    ------
+    KeyError
+        A source level in `update_sources` is not a level in `ini`
+
+    Examples
+    --------
+    >>> start = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         ("sa", "ma", "v1", "kg"),
+    ...         ("sb", "ma", "v2", "m"),
+    ...         ("sa", "mb", "v1", "kg"),
+    ...         ("sa", "mb", "v2", "m"),
+    ...     ],
+    ...     names=["scenario", "model", "variable", "unit"],
+    ... )
+    >>> start
+    MultiIndex([('sa', 'ma', 'v1', 'kg'),
+                ('sb', 'ma', 'v2',  'm'),
+                ('sa', 'mb', 'v1', 'kg'),
+                ('sa', 'mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>>
+    >>> # Create a new level based on an existing level
+    >>> update_levels_from_other(
+    ...     start,
+    ...     {
+    ...         "unit squared": ("unit", lambda x: f"{x}**2"),
+    ...         "class": ("model", {"ma": "delta", "mb": "gamma"}),
+    ...     },
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 'kg**2', 'delta'),
+                ('sb', 'ma', 'v2',  'm',  'm**2', 'delta'),
+                ('sa', 'mb', 'v1', 'kg', 'kg**2', 'gamma'),
+                ('sa', 'mb', 'v2',  'm',  'm**2', 'gamma')],
+               names=['scenario', 'model', 'variable', 'unit', 'unit squared', 'class'])
+    >>>
+    >>> # Update an existing level based on another level
+    >>> update_levels_from_other(
+    ...     start,
+    ...     {
+    ...         "unit": ("variable", {"v1": "g", "v2": "km"}),
+    ...         "model": ("scenario", lambda x: f"model {x}"),
+    ...     },
+    ... )
+    MultiIndex([('sa', 'model sa', 'v1',  'g'),
+                ('sb', 'model sb', 'v2', 'km'),
+                ('sa', 'model sa', 'v1',  'g'),
+                ('sa', 'model sa', 'v2', 'km')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>>
+    >>> # Both at the same time
+    >>> update_levels_from_other(
+    ...     start,
+    ...     {
+    ...         "title": ("scenario", lambda x: x.capitalize()),
+    ...         "unit": ("unit", {"v1": "g", "v2": "km"}),
+    ...     },
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', nan, 'Sa'),
+                ('sb', 'ma', 'v2', nan, 'Sb'),
+                ('sa', 'mb', 'v1', nan, 'Sa'),
+                ('sa', 'mb', 'v2', nan, 'Sa')],
+               names=['scenario', 'model', 'variable', 'unit', 'title'])
+    """
+    if remove_unused_levels:
+        ini = ini.remove_unused_levels()  # type: ignore
+
+    levels: list[pd.Index[Any]] = list(ini.levels)
+    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    names: list[str] = list(ini.names)
+
+    for level, (source, updater) in update_sources.items():
+        if source not in ini.names:
+            msg = (
+                f"{source} is not available in the index. Available levels: {ini.names}"
+            )
+            raise KeyError(msg)
+
+        new_level, new_codes = create_new_level_and_codes_by_mapping(
+            ini=ini,
+            level_to_create_from=source,
+            mapper=updater,
+        )
+
+        if level in ini.names:
+            level_idx = ini.names.index(level)
+            levels[level_idx] = new_level
+            codes[level_idx] = new_codes
+
+        else:
+            levels.append(new_level)
+            codes.append(new_codes)
+            names.append(level)
+
+    res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 
     return res

@@ -29,6 +29,7 @@ from pandas_openscm.grouping import (
 )
 from pandas_openscm.index_manipulation import (
     convert_index_to_category_index,
+    update_index_levels_from_other_func,
     update_index_levels_func,
 )
 from pandas_openscm.indexing import mi_loc
@@ -661,6 +662,55 @@ class DataFramePandasOpenSCMAccessor:
         return update_index_levels_func(
             self._df,
             updates=updates,
+            copy=copy,
+            remove_unused_levels=remove_unused_levels,
+        )
+
+    def update_index_levels_from_other(
+        self,
+        update_sources: dict[
+            Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+        ],
+        copy: bool = True,
+        remove_unused_levels: bool = True,
+    ) -> pd.DataFrame:
+        """
+        Update the index levels based on other index levels
+
+        Parameters
+        ----------
+        update_sources
+            Updates to apply to `df`'s index
+
+            Each key is the level to which the updates will be applied
+            (or the level that will be created if it doesn't already exist).
+
+            Each value is a tuple of which the first element
+            is the level to use to generate the values (the 'source level')
+            and the second is mapper of the form used by
+            [pd.Index.map][pandas.Index.map]
+            which will be applied to the source level
+            to update/create the level of interest.
+
+        copy
+            Should the [pd.DataFrame][pandas.DataFrame] be copied before returning?
+
+        remove_unused_levels
+            Remove unused levels before applying the update
+
+            Specifically, call
+            [pd.MultiIndex.remove_unused_levels][pandas.MultiIndex.remove_unused_levels].
+
+            This avoids trying to update levels that aren't being used.
+
+        Returns
+        -------
+        :
+            [pd.DataFrame][pandas.DataFrame] with updates applied to its index
+        """
+        return update_index_levels_from_other_func(
+            self._df,
+            update_sources=update_sources,
             copy=copy,
             remove_unused_levels=remove_unused_levels,
         )
