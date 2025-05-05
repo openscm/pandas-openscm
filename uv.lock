@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -2449,7 +2450,7 @@ wheels = [
 
 [[package]]
 name = "pandas-openscm"
-version = "0.3.2a1"
+version = "0.4.2a1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -2612,6 +2613,7 @@ requires-dist = [
     { name = "tqdm", marker = "extra == 'progress'", specifier = ">=4.0.0" },
     { name = "xarray", marker = "extra == 'db-full'", specifier = ">=2024.7.0" },
 ]
+provides-extras = ["db", "db-full", "plots", "progress", "full"]
 
 [package.metadata.requires-dev]
 all-dev = [
