@@ -21,6 +21,14 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.4.2 (2025-05-05)
+
+### 🆕 Features
+
+- Add compare_close function to compare two dataframes. ([#16](https://github.com/openscm/pandas-openscm/pull/16))
+- Added [pandas_openscm.index_manipulation.update_levels_from_other][] and the corresponding accessor [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.update_index_levels_from_other][] ([#17](https://github.com/openscm/pandas-openscm/pull/17))
+
+
 ## Pandas-OpenSCM v0.4.1 (2025-04-12)
 
 ### 🐛 Bug Fixes
