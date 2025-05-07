@@ -732,6 +732,7 @@ def set_levels(
 
     Returns
     -------
+    :
         New MultiIndex with the levels set to the provided values
 
     Raises
@@ -760,3 +761,44 @@ def set_levels(
             df[level] = [value] * len(ini)
 
     return pd.MultiIndex.from_frame(df)
+
+
+def set_index_levels(
+    df: pd.DataFrame,
+    levels_to_set: dict[str, Any | Collection[Any]],
+    copy: bool = True,
+) -> pd.DataFrame:
+    """
+    Set the index levels of a [pd.DataFrame][pandas.DataFrame]
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    levels_to_set
+        Mapping of level names to values to set
+
+    copy
+        Should `df` be copied before returning?
+
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if copy:
+        df = df.copy()
+
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
+    df.index = set_levels(df.index, levels_to_set=levels_to_set)
+
+    return df
