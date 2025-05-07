@@ -728,7 +728,9 @@ def set_levels(
         Input MultiIndex
 
     levels_to_set
-        Mapping of level names to values to set
+        Mapping of level names to values to set. If values is of type `Collection`,
+        it must be of the same length as the MultiIndex. If it is not a `Collection`,
+        it will be set to the same value for all levels.
 
     Returns
     -------
@@ -742,6 +744,7 @@ def set_levels(
         ValueError
             If the length of the values is not equal to the length of the index
     """
+    # TODO mypy says this is unreachable
     if not isinstance(ini, pd.MultiIndex):
         msg = f"Expected MultiIndex, got {type(ini)}"
         raise TypeError(msg)
@@ -749,6 +752,7 @@ def set_levels(
     df = ini.to_frame(index=False)
 
     for level, value in levels_to_set.items():
+        # TODO do we need the isinstance check for strings here?
         if isinstance(value, Collection) and not isinstance(value, str):
             if len(value) != len(ini):
                 msg = (

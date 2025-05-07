@@ -159,9 +159,6 @@ def test_set_levels_with_a_dataframe():
 
 
 def test_set_levels_raises_type_error():
-    """
-    Test that set_levels raises an error when the levels to set are not in the index.
-    """
     start = pd.Index(range(10), name="index")
 
     levels_to_set = {"new_variable": "test"}
@@ -171,10 +168,6 @@ def test_set_levels_raises_type_error():
 
 
 def test_set_levels_raises_value_error():
-    """
-    Test that set_levels raises an error when the levels to set are same length
-    as index.
-    """
     start = pd.MultiIndex.from_tuples(
         [
             ("sa", "va", "kg", 0),
