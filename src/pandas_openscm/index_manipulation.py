@@ -4,7 +4,7 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
@@ -714,3 +714,56 @@ def update_levels_from_other(
     res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 
     return res
+
+
+def set_levels(
+    ini: pd.MultiIndex, levels_to_set: dict[str, Any | Collection[Any]]
+) -> pd.MultiIndex:
+    """
+    Set the levels of a MultiIndex to the provided values
+
+    Parameters
+    ----------
+    ini
+        Input MultiIndex
+
+    levels_to_set
+        Mapping of level names to values to set
+
+    Returns
+    -------
+        New MultiIndex with the levels set to the provided values
+
+    Raises
+    ------
+        TypeError
+            If `ini` is not a MultiIndex
+        ValueError
+            If the length of the values is not equal to the length of the index
+    """
+    # set the levels specified in levels_to_set to the provided values
+    #
+    # We should support both single values e.g. levels_to_set={"variable": "Emissions"}
+    # and values with the same length as the index itself e.g.
+    # levels_to_set={"variable": ["a", "b", "c"]}.
+    # Values of any other length should raise an error (because we don't know what to do
+    # if the index is say 4 elements long but the user only gives us 3 values)
+    #
+    # This should work whether the level to be set exists or not
+    # TODO: move to pandas-openscm
+    # TODO: split out method that just works on MultiIndex
+
+    new_names = levels_to_set.keys()
+    new_values = levels_to_set.values()
+
+    if not isinstance(ini, pd.MultiIndex):
+        raise TypeError(ini)
+
+    return pd.MultiIndex(
+        codes=[
+            *ini.codes,  # type: ignore #  not sure why check above isn't working
+            *([[0] * ini.shape[0]] * len(new_values)),  # type: ignore # fix when moving to pandas-openscm
+        ],
+        levels=[*ini.levels, *[pd.Index([value]) for value in new_values]],  # type: ignore # fix when moving to pandas-openscm
+        names=[*ini.names, *new_names],  # type: ignore # fix when moving to pandas-openscm
+    )
