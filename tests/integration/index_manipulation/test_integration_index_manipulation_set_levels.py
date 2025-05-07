@@ -51,12 +51,12 @@ from pandas_openscm.index_manipulation import set_levels
                 ],
                 names=["scenario", "variable", "unit", "run_id", "new_variable"],
             ),
-            id="set-multiple-levels",
+            id="set-multiple-values",
         ),
         pytest.param(
             pd.MultiIndex.from_tuples(
                 [
-                    ("sa", "va", "kg", 0),
+                    ("sa", "va", "kg", 5),
                     ("sb", "vb", "m", 1),
                     ("sa", "va", "kg", 2),
                 ],
@@ -65,7 +65,7 @@ from pandas_openscm.index_manipulation import set_levels
             {"variable": ["a", "b", "c"]},
             pd.MultiIndex.from_tuples(
                 [
-                    ("sa", "a", "kg", 0),
+                    ("sa", "a", "kg", 5),
                     ("sb", "b", "m", 1),
                     ("sa", "c", "kg", 2),
                 ],
@@ -110,6 +110,8 @@ def test_set_levels_raises_value_error():
     levels_to_set = {"new_variable": ["a", "b", "c", "d"]}
 
     with pytest.raises(
-        ValueError, match="Length of values does not match, got 4 but expected 3"
+        ValueError,
+        match="Length of values for level 'new_variable' "
+        "does not match index length: 4 != 3",
     ):
         set_levels(start, levels_to_set=levels_to_set)

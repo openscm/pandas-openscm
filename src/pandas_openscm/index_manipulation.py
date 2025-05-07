@@ -741,29 +741,22 @@ def set_levels(
         ValueError
             If the length of the values is not equal to the length of the index
     """
-    # set the levels specified in levels_to_set to the provided values
-    #
-    # We should support both single values e.g. levels_to_set={"variable": "Emissions"}
-    # and values with the same length as the index itself e.g.
-    # levels_to_set={"variable": ["a", "b", "c"]}.
-    # Values of any other length should raise an error (because we don't know what to do
-    # if the index is say 4 elements long but the user only gives us 3 values)
-    #
-    # This should work whether the level to be set exists or not
-    # TODO: move to pandas-openscm
-    # TODO: split out method that just works on MultiIndex
-
-    new_names = levels_to_set.keys()
-    new_values = levels_to_set.values()
-
     if not isinstance(ini, pd.MultiIndex):
-        raise TypeError(ini)
+        msg = f"Expected MultiIndex, got {type(ini)}"
+        raise TypeError(msg)
 
-    return pd.MultiIndex(
-        codes=[
-            *ini.codes,  # type: ignore #  not sure why check above isn't working
-            *([[0] * ini.shape[0]] * len(new_values)),  # type: ignore # fix when moving to pandas-openscm
-        ],
-        levels=[*ini.levels, *[pd.Index([value]) for value in new_values]],  # type: ignore # fix when moving to pandas-openscm
-        names=[*ini.names, *new_names],  # type: ignore # fix when moving to pandas-openscm
-    )
+    df = ini.to_frame(index=False)
+
+    for level, value in levels_to_set.items():
+        if isinstance(value, Collection) and not isinstance(value, str):
+            if len(value) != len(ini):
+                msg = (
+                    f"Length of values for level '{level}' does not "
+                    f"match index length: {len(value)} != {len(ini)}"
+                )
+                raise ValueError(msg)
+            df[level] = value
+        else:
+            df[level] = [value] * len(ini)
+
+    return pd.MultiIndex.from_frame(df)
