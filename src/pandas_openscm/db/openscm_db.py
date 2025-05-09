@@ -4,6 +4,7 @@ Definition of our key [OpenSCMDB][(m).] class
 
 from __future__ import annotations
 
+import tarfile
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 from attrs import define, field
 
+from pandas_openscm.db.backends import DATA_BACKENDS, INDEX_BACKENDS
 from pandas_openscm.db.deleting import delete_files
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend, OpenSCMDBIndexBackend
 from pandas_openscm.db.loading import (
@@ -286,6 +288,34 @@ class OpenSCMDB:
                 progress=progress,
                 max_workers=max_workers,
             )
+
+    @classmethod
+    def from_gzipped_tar_archive(
+        cls,
+        tar_archive: Path,
+        db_dir: Path,
+        backend_data: OpenSCMDBDataBackend | None = None,
+        backend_index: OpenSCMDBIndexBackend | None = None,
+    ) -> OpenSCMDB:
+        with tarfile.open(tar_archive, "r") as tar:
+            for member in tar.getmembers():
+                if not member.isreg():
+                    # Only extract files
+                    continue
+                # Extract to the db_dir
+                member.name = Path(member.name).name
+                tar.extract(member, db_dir)
+                if backend_index is None and member.name.startswith("index"):
+                    backend_index = INDEX_BACKENDS.guess_backend(member.name)
+
+                if backend_data is None and not any(
+                    member.name.startswith(v) for v in ["index", "filemap"]
+                ):
+                    backend_data = DATA_BACKENDS.guess_backend(member.name)
+
+        res = cls(backend_data=backend_data, backend_index=backend_index, db_dir=db_dir)
+
+        return res
 
     def get_new_data_file_path(self, file_id: int) -> Path:
         """
@@ -706,3 +736,9 @@ class OpenSCMDB:
                     progress=progress,
                     max_workers=max_workers,
                 )
+
+    def to_gzipped_tar_archive(self, out_file: Path, mode: str = "w:gz") -> Path:
+        with tarfile.open(out_file, mode) as tar:
+            tar.add(self.db_dir, arcname="db")
+
+        return out_file
