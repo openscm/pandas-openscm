@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.9"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -2450,7 +2449,7 @@ wheels = [
 
 [[package]]
 name = "pandas-openscm"
-version = "0.4.2a1"
+version = "0.4.3a1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -2600,7 +2599,7 @@ tests-min = [
 [package.metadata]
 requires-dist = [
     { name = "attrs", specifier = ">=24.3.0" },
-    { name = "filelock", marker = "extra == 'db'", specifier = ">=3.0.0" },
+    { name = "filelock", marker = "extra == 'db'", specifier = ">=3.12.3" },
     { name = "matplotlib", marker = "extra == 'plots'", specifier = ">=3.7.1" },
     { name = "netcdf4", marker = "extra == 'db-full'", specifier = ">=1.7.2" },
     { name = "numpy", specifier = ">=1.25.0" },
@@ -2613,7 +2612,6 @@ requires-dist = [
     { name = "tqdm", marker = "extra == 'progress'", specifier = ">=4.0.0" },
     { name = "xarray", marker = "extra == 'db-full'", specifier = ">=2024.7.0" },
 ]
-provides-extras = ["db", "db-full", "plots", "progress", "full"]
 
 [package.metadata.requires-dev]
 all-dev = [
