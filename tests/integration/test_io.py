@@ -85,7 +85,7 @@ def test_load_timeseries_csv_lower_column_names(tmp_path, lower_column_names):
 @pytest.mark.parametrize(
     # Column type and value type are not the same
     # because columns are held as numpy arrays.
-    "out_column_type, exp_column_value_type",
+    "out_columns_type, exp_column_value_type",
     (
         (int, np.int64),
         (float, np.float64),
@@ -93,8 +93,8 @@ def test_load_timeseries_csv_lower_column_names(tmp_path, lower_column_names):
         (np.float32, np.float32),
     ),
 )
-def test_load_timeseries_csv_basic_out_column_type(
-    tmp_path, out_column_type, exp_column_value_type
+def test_load_timeseries_csv_basic_out_columns_type(
+    tmp_path, out_columns_type, exp_column_value_type
 ):
     out_path = tmp_path / "test_load_timeseries_csv.csv"
 
@@ -113,11 +113,44 @@ def test_load_timeseries_csv_basic_out_column_type(
     index_columns = ["variable", "scenario", "run", "unit"]
 
     loaded = load_timeseries_csv(
-        out_path, index_columns=index_columns, out_column_type=out_column_type
+        out_path, index_columns=index_columns, out_columns_type=out_columns_type
     )
 
     assert loaded.index.names == index_columns
     assert all(isinstance(c, exp_column_value_type) for c in loaded.columns.values)
+
+
+@pytest.mark.parametrize(
+    "out_columns_name, exp_columns_name",
+    (
+        (None, None),
+        ("hi", "hi"),
+        ("time", "time"),
+    ),
+)
+def test_load_timeseries_csv_basic_out_columns_name(
+    tmp_path, out_columns_name, exp_columns_name
+):
+    out_path = tmp_path / "test_load_timeseries_csv.csv"
+
+    timepoints = np.arange(1990.0, 2010.0 + 1.0, dtype=int)
+    start = create_test_df(
+        variables=[(f"variable_{i}", "Mt") for i in range(5)],
+        n_scenarios=3,
+        n_runs=6,
+        timepoints=timepoints,
+    )
+    assert start.columns.name is None
+
+    start.to_csv(out_path)
+
+    index_columns = ["variable", "scenario", "run", "unit"]
+
+    loaded = load_timeseries_csv(
+        out_path, index_columns=index_columns, out_columns_name=out_columns_name
+    )
+
+    assert loaded.columns.name == exp_columns_name
 
 
 @pytest.mark.xfail(reason="Not implemented")
