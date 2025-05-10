@@ -4,7 +4,7 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
@@ -714,3 +714,95 @@ def update_levels_from_other(
     res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 
     return res
+
+
+def set_levels(
+    ini: pd.MultiIndex, levels_to_set: dict[str, Any | Collection[Any]]
+) -> pd.MultiIndex:
+    """
+    Set the levels of a MultiIndex to the provided values
+
+    Parameters
+    ----------
+    ini
+        Input MultiIndex
+
+    levels_to_set
+        Mapping of level names to values to set. If values is of type `Collection`,
+        it must be of the same length as the MultiIndex. If it is not a `Collection`,
+        it will be set to the same value for all levels.
+
+    Returns
+    -------
+    :
+        New MultiIndex with the levels set to the provided values
+
+    Raises
+    ------
+        TypeError
+            If `ini` is not a MultiIndex
+        ValueError
+            If the length of the values is not equal to the length of the index
+    """
+    # TODO mypy says this is unreachable
+    if not isinstance(ini, pd.MultiIndex):
+        msg = f"Expected MultiIndex, got {type(ini)}"
+        raise TypeError(msg)
+
+    df = ini.to_frame(index=False)
+
+    for level, value in levels_to_set.items():
+        # TODO do we need the isinstance check for strings here?
+        if isinstance(value, Collection) and not isinstance(value, str):
+            if len(value) != len(ini):
+                msg = (
+                    f"Length of values for level '{level}' does not "
+                    f"match index length: {len(value)} != {len(ini)}"
+                )
+                raise ValueError(msg)
+            df[level] = value
+        else:
+            df[level] = [value] * len(ini)
+
+    return pd.MultiIndex.from_frame(df)
+
+
+def set_index_levels(
+    df: pd.DataFrame,
+    levels_to_set: dict[str, Any | Collection[Any]],
+    copy: bool = True,
+) -> pd.DataFrame:
+    """
+    Set the index levels of a [pd.DataFrame][pandas.DataFrame]
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    levels_to_set
+        Mapping of level names to values to set
+
+    copy
+        Should `df` be copied before returning?
+
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if copy:
+        df = df.copy()
+
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
+    df.index = set_levels(df.index, levels_to_set=levels_to_set)
+
+    return df
