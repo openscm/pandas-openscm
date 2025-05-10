@@ -21,6 +21,7 @@ from pandas_openscm.db.loading import (
     load_db_index,
     load_db_metadata,
 )
+from pandas_openscm.db.path_handling import DBPath
 from pandas_openscm.db.reader import OpenSCMDBReader
 from pandas_openscm.db.rewriting import make_move_plan, rewrite_files
 from pandas_openscm.db.saving import save_data
@@ -297,6 +298,30 @@ class OpenSCMDB:
         backend_data: OpenSCMDBDataBackend | None = None,
         backend_index: OpenSCMDBIndexBackend | None = None,
     ) -> OpenSCMDB:
+        """
+        Initialise from a gzipped tar archive
+
+        This also unpacks the files to disk
+
+        Parameters
+        ----------
+        tar_archive
+            Tar archive from which to initialise
+
+        db_dir
+            Directory in which to unpack the database
+
+        backend_data
+            Backend to use for handling the data
+
+        backend_index
+            Backend to use for handling the index
+
+        Returns
+        -------
+        :
+            Initialised database
+        """
         with tarfile.open(tar_archive, "r") as tar:
             for member in tar.getmembers():
                 if not member.isreg():
@@ -317,7 +342,7 @@ class OpenSCMDB:
 
         return res
 
-    def get_new_data_file_path(self, file_id: int) -> Path:
+    def get_new_data_file_path(self, file_id: int) -> DBPath:
         """
         Get the path in which to write a new data file
 
@@ -329,7 +354,7 @@ class OpenSCMDB:
         Returns
         -------
         :
-            File in which to write the new data
+            Information about the path in which to write the new data
 
         Raises
         ------
@@ -341,7 +366,7 @@ class OpenSCMDB:
         if file_path.exists():
             raise FileExistsError(file_path)
 
-        return file_path
+        return DBPath.from_abs_path_and_db_dir(abs=file_path, db_dir=self.db_dir)
 
     def load(  # noqa: PLR0913
         self,
@@ -421,6 +446,7 @@ class OpenSCMDB:
                 backend_data=self.backend_data,
                 db_index=index,
                 db_file_map=file_map,
+                db_dir=self.db_dir,
                 selector=selector,
                 out_columns_type=out_columns_type,
                 parallel_op_config=parallel_op_config,
@@ -738,6 +764,24 @@ class OpenSCMDB:
                 )
 
     def to_gzipped_tar_archive(self, out_file: Path, mode: str = "w:gz") -> Path:
+        """
+        Convert to a gzipped tar archive
+
+        Parameters
+        ----------
+        out_file
+            File in which to write the output
+
+        mode
+            Mode to use to open `out_file`
+
+        Returns
+        -------
+        :
+            Path to the gzipped tar archive
+
+            This is the same as `out_file`, but is returned for convenience.
+        """
         with tarfile.open(out_file, mode) as tar:
             tar.add(self.db_dir, arcname="db")
 

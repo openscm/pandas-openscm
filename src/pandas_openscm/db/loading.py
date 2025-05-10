@@ -33,6 +33,7 @@ def load_data(  # noqa: PLR0913
     backend_data: OpenSCMDBDataBackend,
     db_index: pd.DataFrame,
     db_file_map: pd.Series[Path],  # type: ignore # pandas type hints confused about what they support
+    db_dir: Path,
     selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
     out_columns_type: type | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
@@ -52,6 +53,9 @@ def load_data(  # noqa: PLR0913
 
     db_file_map
         File map of the database from which to load
+
+    db_dir
+        The directory in which the database lives
 
     selector
         Selector to use to choose the data to load
@@ -97,7 +101,7 @@ def load_data(  # noqa: PLR0913
     else:
         index_to_load = mi_loc(db_index, selector)
 
-    files_to_load = (Path(v) for v in db_file_map[index_to_load["file_id"].unique()])
+    files_to_load = (db_dir / v for v in db_file_map[index_to_load["file_id"].unique()])
     loaded_l = load_data_files(
         files_to_load=files_to_load,
         backend_data=backend_data,

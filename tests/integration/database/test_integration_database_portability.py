@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandas_openscm.db import CSVDataBackend, CSVIndexBackend, OpenSCMDB
+from pandas_openscm.db import FeatherDataBackend, FeatherIndexBackend, OpenSCMDB
 from pandas_openscm.testing import assert_frame_alike
 
 
@@ -16,8 +16,8 @@ from pandas_openscm.testing import assert_frame_alike
     "backend_data_for_class_method, backend_index_for_class_method",
     (
         pytest.param(
-            CSVDataBackend(),
-            CSVIndexBackend(),
+            FeatherDataBackend(),
+            FeatherIndexBackend(),
             id="provided",
         ),
         pytest.param(
@@ -39,8 +39,8 @@ def test_move_db(
 
     db = OpenSCMDB(
         db_dir=initial_db_dir,
-        backend_data=CSVDataBackend(),
-        backend_index=CSVIndexBackend(),
+        backend_data=FeatherDataBackend(),
+        backend_index=FeatherIndexBackend(),
     )
 
     df_timeseries_like = pd.DataFrame(
