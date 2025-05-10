@@ -8,28 +8,47 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandas_openscm.db import FeatherDataBackend, FeatherIndexBackend, OpenSCMDB
+from pandas_openscm.db import (
+    CSVDataBackend,
+    CSVIndexBackend,
+    FeatherDataBackend,
+    FeatherIndexBackend,
+    OpenSCMDB,
+    netCDFDataBackend,
+    netCDFIndexBackend,
+)
 from pandas_openscm.testing import assert_frame_alike
+
+pytest.importorskip("filelock")
 
 
 @pytest.mark.parametrize(
-    "backend_data_for_class_method, backend_index_for_class_method",
+    "backend_data, backend_index",
     (
         pytest.param(
             FeatherDataBackend(),
             FeatherIndexBackend(),
-            id="provided",
+            id="feather",
         ),
         pytest.param(
-            None,
-            None,
-            id="guessed",
+            netCDFDataBackend(),
+            netCDFIndexBackend(),
+            id="netCDF",
+        ),
+        pytest.param(
+            CSVDataBackend(),
+            CSVIndexBackend(),
+            id="csv",
         ),
     ),
 )
-def test_move_db(
-    backend_data_for_class_method,
-    backend_index_for_class_method,
+@pytest.mark.parametrize("provide_backend_data_to_class_method", (True, False))
+@pytest.mark.parametrize("provide_backend_index_to_class_method", (True, False))
+def test_move_db(  # noqa: PLR0913
+    provide_backend_index_to_class_method,
+    provide_backend_data_to_class_method,
+    backend_data,
+    backend_index,
     tmpdir,
     setup_pandas_accessor,
 ):
@@ -39,8 +58,8 @@ def test_move_db(
 
     db = OpenSCMDB(
         db_dir=initial_db_dir,
-        backend_data=FeatherDataBackend(),
-        backend_index=FeatherIndexBackend(),
+        backend_data=backend_data,
+        backend_index=backend_index,
     )
 
     df_timeseries_like = pd.DataFrame(
@@ -63,19 +82,24 @@ def test_move_db(
     tar_archive = db.to_gzipped_tar_archive(tar_archive)
 
     # Expand elsewhere
+    from_gzipped_tar_archive_kwargs = {}
+    if provide_backend_data_to_class_method:
+        from_gzipped_tar_archive_kwargs["backend_data"] = backend_data
+
+    if provide_backend_index_to_class_method:
+        from_gzipped_tar_archive_kwargs["backend_index"] = backend_index
+
     db_other = OpenSCMDB.from_gzipped_tar_archive(
-        tar_archive,
-        db_dir=other_db_dir,
-        backend_data=backend_data_for_class_method,
-        backend_index=backend_index_for_class_method,
+        tar_archive, db_dir=other_db_dir, **from_gzipped_tar_archive_kwargs
     )
 
     # Delete the original
     db.delete()
 
-    assert_frame_alike(df_timeseries_like, db_other.load())
+    assert_frame_alike(df_timeseries_like, db_other.load(out_columns_type=int))
 
     locator = pd.Index(["scenario_b"], name="scenario")
     assert_frame_alike(
-        df_timeseries_like.openscm.mi_loc(locator), db_other.load(locator)
+        df_timeseries_like.openscm.mi_loc(locator),
+        db_other.load(locator, out_columns_type=int),
     )

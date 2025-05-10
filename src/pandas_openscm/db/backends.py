@@ -79,15 +79,19 @@ class DataBackendOptions:
         ValueError
             The backend could not be guessed from `data_file_name`
         """
-        ext = Path(data_file_name).suffix.strip(".")
-        try:
-            return self.get_instance(ext)
-        except KeyError as exc:
-            msg = (
-                f"Could not guess backend from filename {data_file_name}. "
-                f"we assumed the extension was {ext}."
-            )
-            raise ValueError(msg) from exc
+        ext = Path(data_file_name).suffix
+        for _, option_cls in self.options:
+            option = option_cls()
+            if ext == option.ext:
+                return option
+
+        known_options_and_extensions = [(v[0], v[1]().ext) for v in self.options]
+        msg = (
+            f"Could not guess backend from {data_file_name=!r}. "
+            "The file's extension does not match any of the available options: "
+            f"{known_options_and_extensions=}"
+        )
+        raise ValueError(msg)
 
 
 DATA_BACKENDS = DataBackendOptions(
@@ -167,15 +171,19 @@ class IndexBackendOptions:
         ValueError
             The backend could not be guessed from `index_file_name`
         """
-        ext = Path(index_file_name).suffix.strip(".")
-        try:
-            return self.get_instance(ext)
-        except KeyError as exc:
-            msg = (
-                f"Could not guess backend from filename {index_file_name}. "
-                f"we assumed the extension was {ext}."
-            )
-            raise ValueError(msg) from exc
+        ext = Path(index_file_name).suffix
+        for _, option_cls in self.options:
+            option = option_cls()
+            if ext == option.ext:
+                return option
+
+        known_options_and_extensions = [(v[0], v[1]().ext) for v in self.options]
+        msg = (
+            f"Could not guess backend from {index_file_name=!r}. "
+            "The file's extension does not match any of the available options: "
+            f"{known_options_and_extensions=}"
+        )
+        raise ValueError(msg)
 
 
 INDEX_BACKENDS = IndexBackendOptions(
