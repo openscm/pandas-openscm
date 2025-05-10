@@ -48,7 +48,10 @@ class DBPath:
             `value` is not within `self.abs`
         """
         if not str(self.abs).endswith(str(value)):
-            msg = f"{value} for {attribute.name} is not within {self.abs=}"
+            msg = (
+                f"{attribute.name} value, {value!r}, "
+                f"is not a sub-path of {self.abs=!r}"
+            )
             raise AssertionError(msg)
 
     @classmethod
