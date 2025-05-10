@@ -66,7 +66,7 @@ class DataBackendOptions:
 
         Parameters
         ----------
-        index_file_name
+        data_file_name
             Name of the data file from which to guess the backend
 
         Returns
