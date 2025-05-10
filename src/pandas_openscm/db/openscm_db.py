@@ -409,6 +409,8 @@ class OpenSCMDB:
         out_columns_name
             The name for the columns in the output.
 
+            If not supplied, we don't set the output columns' name.
+
             This can also be set with
             [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
             but we provide it here for convenience

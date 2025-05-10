@@ -14,6 +14,7 @@ def load_timeseries_csv(
     lower_column_names: bool = True,
     index_columns: list[str] | None = None,
     out_column_type: type | None = None,
+    out_columns_name: str | None = None,
 ) -> pd.DataFrame:
     """
     Load a CSV holding timeseries
@@ -47,6 +48,16 @@ def load_timeseries_csv(
 
         If not supplied, the raw type returned by pandas is returned.
 
+    out_columns_name
+        The name for the columns in the output.
+
+        If not supplied, the raw name returned by pandas is returned.
+
+        This can also be set with
+        [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+        but we provide it here for convenience
+        (and in case you couldn't find this trick for ages, like us).
+
     Returns
     -------
     :
@@ -64,5 +75,8 @@ def load_timeseries_csv(
 
     if out_column_type is not None:
         out.columns = out.columns.astype(out_column_type)
+
+    if out_columns_name is not None:
+        out = out.rename_axis(out_columns_name, axis="columns")
 
     return out

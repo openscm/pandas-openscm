@@ -34,9 +34,9 @@ def load_data(  # noqa: PLR0913
     db_index: pd.DataFrame,
     db_file_map: pd.Series[Path],  # type: ignore # pandas type hints confused about what they support
     db_dir: Path,
-    out_columns_name: str | None,
     selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
     out_columns_type: type | None = None,
+    out_columns_name: str | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
@@ -68,6 +68,8 @@ def load_data(  # noqa: PLR0913
 
     out_columns_name
         The name for the columns in the output.
+
+        If not supplied, we don't set the output columns' name.
 
         This can also be set with
         [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
