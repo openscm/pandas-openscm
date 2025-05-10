@@ -34,6 +34,7 @@ def load_data(  # noqa: PLR0913
     db_index: pd.DataFrame,
     db_file_map: pd.Series[Path],  # type: ignore # pandas type hints confused about what they support
     db_dir: Path,
+    out_columns_name: str | None,
     selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
     out_columns_type: type | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
@@ -64,6 +65,14 @@ def load_data(  # noqa: PLR0913
         Type to set the output columns to.
 
         If not supplied, we don't set the output columns' type.
+
+    out_columns_name
+        The name for the columns in the output.
+
+        This can also be set with
+        [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+        but we provide it here for convenience
+        (and in case you couldn't find this trick for ages, like us).
 
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
@@ -135,6 +144,9 @@ def load_data(  # noqa: PLR0913
 
     if out_columns_type is not None:
         res.columns = res.columns.astype(out_columns_type)
+
+    if out_columns_name is not None:
+        res = res.rename_axis(out_columns_name, axis="columns")
 
     return res
 

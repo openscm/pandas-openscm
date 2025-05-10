@@ -383,6 +383,7 @@ class OpenSCMDB:
         *,
         index_file_lock: filelock.BaseFileLock | None = None,
         out_columns_type: type | None = None,
+        out_columns_name: str | None = None,
         parallel_op_config: ParallelOpConfig | None = None,
         progress: bool = False,
         max_workers: int | None = None,
@@ -404,6 +405,14 @@ class OpenSCMDB:
             Type to set the output columns to.
 
             If not supplied, we don't set the output columns' type.
+
+        out_columns_name
+            The name for the columns in the output.
+
+            This can also be set with
+            [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+            but we provide it here for convenience
+            (and in case you couldn't find this trick for ages, like us).
 
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
@@ -458,6 +467,7 @@ class OpenSCMDB:
                 db_dir=self.db_dir,
                 selector=selector,
                 out_columns_type=out_columns_type,
+                out_columns_name=out_columns_name,
                 parallel_op_config=parallel_op_config,
                 progress=progress,
                 max_workers=max_workers,
