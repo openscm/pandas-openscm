@@ -339,11 +339,11 @@ class OpenSCMDB:
                 ):
                     backend_data = DATA_BACKENDS.guess_backend(member.name)
 
-        if backend_data is None:  # pragma: noqa
+        if backend_data is None:  # pragma: no cover
             # Should be impossible to get here
             raise TypeError(backend_data)
 
-        if backend_index is None:  # pragma: noqa
+        if backend_index is None:  # pragma: no cover
             # Should be impossible to get here
             raise TypeError(backend_index)
 

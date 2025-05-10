@@ -40,8 +40,29 @@ def test_available_backends_data():
 
 
 def test_unavailable_data_backend():
-    with pytest.raises(KeyError):
+    with pytest.raises(
+        KeyError, match=re.escape("option='junk' is not supported. Available options:")
+    ):
         DATA_BACKENDS.get_instance("junk")
+
+
+def test_guess_backend_data():
+    assert isinstance(DATA_BACKENDS.guess_backend("0.csv"), CSVDataBackend)
+    assert isinstance(DATA_BACKENDS.guess_backend("0.feather"), FeatherDataBackend)
+    assert isinstance(DATA_BACKENDS.guess_backend("0.in-mem"), InMemoryDataBackend)
+    assert isinstance(DATA_BACKENDS.guess_backend("0.nc"), netCDFDataBackend)
+
+
+def test_guess_data_backend_error():
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Could not guess backend from data_file_name='0.junk'. "
+            "The file's extension does not match any of the available options: "
+            "known_options_and_extensions="
+        ),
+    ):
+        DATA_BACKENDS.guess_backend("0.junk")
 
 
 def test_available_backends_index():
@@ -52,8 +73,29 @@ def test_available_backends_index():
 
 
 def test_unavailable_index_backend():
-    with pytest.raises(KeyError):
+    with pytest.raises(
+        KeyError, match=re.escape("option='junk' is not supported. Available options:")
+    ):
         INDEX_BACKENDS.get_instance("junk")
+
+
+def test_guess_backend_index():
+    assert isinstance(INDEX_BACKENDS.guess_backend("0.csv"), CSVIndexBackend)
+    assert isinstance(INDEX_BACKENDS.guess_backend("0.feather"), FeatherIndexBackend)
+    assert isinstance(INDEX_BACKENDS.guess_backend("0.in-mem"), InMemoryIndexBackend)
+    assert isinstance(INDEX_BACKENDS.guess_backend("0.nc"), netCDFIndexBackend)
+
+
+def test_guess_index_backend_error():
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Could not guess backend from index_file_name='index.junk'. "
+            "The file's extension does not match any of the available options: "
+            "known_options_and_extensions="
+        ),
+    ):
+        INDEX_BACKENDS.guess_backend("index.junk")
 
 
 def test_filelock_not_available_default_initialisation(tmpdir):
