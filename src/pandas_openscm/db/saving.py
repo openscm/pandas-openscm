@@ -15,6 +15,7 @@ import pandas as pd
 from attrs import define
 
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend, OpenSCMDBIndexBackend
+from pandas_openscm.db.path_handling import DBPath
 from pandas_openscm.index_manipulation import (
     unify_index_levels_check_index_types,
 )
@@ -63,7 +64,7 @@ def save_data(  # noqa: PLR0913
     data: pd.DataFrame,
     *,
     backend_data: OpenSCMDBDataBackend,
-    get_new_data_file_path: Callable[[int], Path],
+    get_new_data_file_path: Callable[[int], DBPath],
     backend_index: OpenSCMDBIndexBackend,
     index_file: Path,
     file_map_file: Path,
@@ -84,8 +85,20 @@ def save_data(  # noqa: PLR0913
     data
         Data to save
 
-    db
-        Database in which to save the data
+    backend_data
+        Backend to use to save the data
+
+    get_new_data_file_path
+        Callable which, given an integer, returns the path info for the new data file
+
+    backend_index
+        Backend to use to save the index
+
+    index_file
+        File in which to save the index
+
+    file_map_file
+        File in which to save the file map
 
     index_non_data
         Index that is already in the database but isn't related to data.
@@ -94,7 +107,7 @@ def save_data(  # noqa: PLR0913
         before we write the database's index.
 
     file_map_non_data
-        File map that is already in the database but isn't related to data.
+        File map that is already in the database but isn't related to `data`.
 
         If supplied, this is combined with the file map generated for `data`
         before we write the database's file map.
@@ -179,9 +192,9 @@ def save_data(  # noqa: PLR0913
     for increment, (_, df) in enumerate(grouper):
         file_id = min_file_id + increment
 
-        new_file_path = get_new_data_file_path(file_id)
+        new_db_path = get_new_data_file_path(file_id)
 
-        file_map_out.loc[file_id] = new_file_path  # type: ignore # pandas types confused about what they support
+        file_map_out.loc[file_id] = new_db_path.rel_db  # type: ignore # pandas types confused about what they support
         if index_non_data_unified_index is None:
             df_index_unified = df.index
         else:
@@ -202,7 +215,7 @@ def save_data(  # noqa: PLR0913
                 info=df,
                 info_kind=DBFileType.DATA,
                 backend=backend_data,
-                save_path=new_file_path,
+                save_path=new_db_path.abs,
             )
         )
 

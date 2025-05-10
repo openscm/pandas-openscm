@@ -32,12 +32,18 @@ class OpenSCMDBReader:
     Reader for reading data out of a database created with `OpenSCMDB`
 
     Holds the database file map and index in memory,
-    so this can be faster for repeated reads.
+    which can make repeated read operations faster
+    than using an `OpenSCMDB` instance.
     """
 
     backend_data: OpenSCMDBDataBackend = field(kw_only=True)
     """
     The backend for reading data from disk
+    """
+
+    db_dir: Path = field(kw_only=True)
+    """
+    The directory in which the database lives
     """
 
     db_file_map: pd.Series[Path] = field(kw_only=True)  # type: ignore # pandas type hints confused about what they support
@@ -85,11 +91,12 @@ class OpenSCMDBReader:
         """
         return convert_db_index_to_metadata(db_index=self.db_index)
 
-    def load(
+    def load(  # noqa: PLR0913
         self,
         selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
         *,
         out_columns_type: type | None = None,
+        out_columns_name: str | None = None,
         parallel_op_config: ParallelOpConfig | None = None,
         progress: bool = False,
         max_workers: int | None = None,
@@ -106,6 +113,16 @@ class OpenSCMDBReader:
             Type to set the output columns to.
 
             If not supplied, we don't set the output columns' type.
+
+        out_columns_name
+            The name for the columns in the output.
+
+            If not supplied, we don't set the output columns' name.
+
+            This can also be set with
+            [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+            but we provide it here for convenience
+            (and in case you couldn't find this trick for ages, like us).
 
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
@@ -142,8 +159,10 @@ class OpenSCMDBReader:
             backend_data=self.backend_data,
             db_index=self.db_index,
             db_file_map=self.db_file_map,
+            db_dir=self.db_dir,
             selector=selector,
             out_columns_type=out_columns_type,
+            out_columns_name=out_columns_name,
             parallel_op_config=parallel_op_config,
             progress=progress,
             max_workers=max_workers,

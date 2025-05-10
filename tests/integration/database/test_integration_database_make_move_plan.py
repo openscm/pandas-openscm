@@ -35,7 +35,10 @@ def test_make_move_plan_no_overwrite(tmpdir):
         columns=["scenario", "variable", "unit", "file_id"],
     ).set_index(["scenario", "variable", "unit"])
     file_map_start = pd.Series(
-        [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
+        [
+            db.get_new_data_file_path(fid).rel_db
+            for fid in index_start["file_id"].unique()
+        ],
         index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
@@ -67,6 +70,7 @@ def test_make_move_plan_no_overwrite(tmpdir):
         file_map_start=file_map_start,
         data_to_write=data_to_write,
         get_new_data_file_path=db.get_new_data_file_path,
+        db_dir=db.db_dir,
     )
 
     assert_move_plan_equal(res, exp)
@@ -90,7 +94,10 @@ def test_make_move_plan_full_overwrite(tmpdir):
         columns=["scenario", "variable", "unit", "file_id"],
     ).set_index(["scenario", "variable", "unit"])
     file_map_start = pd.Series(
-        [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
+        [
+            db.get_new_data_file_path(fid).rel_db
+            for fid in index_start["file_id"].unique()
+        ],
         index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
@@ -110,7 +117,7 @@ def test_make_move_plan_full_overwrite(tmpdir):
 
     exp_moved_file_ids = [0]  # 1 will be overwritten i.e. schedule to delete
     exp_moved_file_map = pd.Series(
-        [db.get_new_data_file_path(file_id) for file_id in exp_moved_file_ids],
+        [db.get_new_data_file_path(file_id).rel_db for file_id in exp_moved_file_ids],
         index=pd.Index(exp_moved_file_ids, name="file_id"),
     )
 
@@ -130,7 +137,7 @@ def test_make_move_plan_full_overwrite(tmpdir):
         moved_index=exp_moved_index,
         moved_file_map=exp_moved_file_map,
         rewrite_actions=None,
-        delete_paths=(file_map_start.loc[1],),
+        delete_paths=(db.db_dir / file_map_start.loc[1],),
     )
 
     res = make_move_plan(
@@ -138,6 +145,7 @@ def test_make_move_plan_full_overwrite(tmpdir):
         file_map_start=file_map_start,
         data_to_write=data_to_write,
         get_new_data_file_path=db.get_new_data_file_path,
+        db_dir=db.db_dir,
     )
 
     assert_move_plan_equal(res, exp)
@@ -163,7 +171,10 @@ def test_make_move_plan_partial_overwrite(tmpdir):
         columns=["scenario", "variable", "unit", "file_id"],
     ).set_index(["scenario", "variable", "unit"])
     file_map_start = pd.Series(
-        [db.get_new_data_file_path(fid) for fid in index_start["file_id"].unique()],
+        [
+            db.get_new_data_file_path(fid).rel_db
+            for fid in index_start["file_id"].unique()
+        ],
         index=pd.Index(index_start["file_id"].unique(), name="file_id"),
     )
 
@@ -192,7 +203,7 @@ def test_make_move_plan_partial_overwrite(tmpdir):
 
     exp_moved_file_ids = [0, 3]  # 1 deleted, 2 re-written then deleted
     exp_moved_file_map = pd.Series(
-        [db.get_new_data_file_path(file_id) for file_id in exp_moved_file_ids],
+        [db.get_new_data_file_path(file_id).rel_db for file_id in exp_moved_file_ids],
         index=pd.Index(exp_moved_file_ids, name="file_id"),
     )
 
@@ -217,7 +228,7 @@ def test_make_move_plan_partial_overwrite(tmpdir):
         moved_file_map=exp_moved_file_map,
         rewrite_actions=(
             ReWriteAction(
-                from_file=file_map_start.loc[2],
+                from_file=db.db_dir / file_map_start.loc[2],
                 locator=pd.MultiIndex.from_frame(
                     pd.DataFrame(
                         [
@@ -226,10 +237,12 @@ def test_make_move_plan_partial_overwrite(tmpdir):
                         columns=["scenario", "variable", "unit"],
                     )
                 ),
-                to_file=exp_moved_file_map.loc[3],
+                to_file=db.db_dir / exp_moved_file_map.loc[3],
             ),
         ),
-        delete_paths=(file_map_start.loc[1], file_map_start.loc[2]),
+        delete_paths=(
+            db.db_dir / v for v in (file_map_start.loc[1], file_map_start.loc[2])
+        ),
     )
 
     res = make_move_plan(
@@ -237,6 +250,7 @@ def test_make_move_plan_partial_overwrite(tmpdir):
         file_map_start=file_map_start,
         data_to_write=data_to_write,
         get_new_data_file_path=db.get_new_data_file_path,
+        db_dir=db.db_dir,
     )
 
     assert_move_plan_equal(res, exp)

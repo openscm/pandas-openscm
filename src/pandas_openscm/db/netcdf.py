@@ -96,7 +96,13 @@ class netCDFDataBackend:
         # Resetting the index will also give each timeseries a unique ID
         data_rs = data.reset_index()
         timeseries_coord_info = {self.timeseries_dim: data_rs.index.values}
-        time_coord_info = {"time": data.columns}
+        if data.columns.name is None:
+            time_dim = "time"
+        else:
+            time_dim = data.columns.name
+
+        time_coord_info = {time_dim: data.columns.values}
+
         data_index_xr = metadata_df_to_xr(
             data_rs[data.index.names],
             timeseries_id_coord=xr.Coordinates(timeseries_coord_info),
@@ -104,7 +110,7 @@ class netCDFDataBackend:
         )
         data_values_xr = xr.DataArray(
             data,
-            dims=[self.timeseries_dim, "time"],
+            dims=[self.timeseries_dim, time_dim],
             coords=xr.Coordinates(timeseries_coord_info | time_coord_info),
         )
         data_xr = xr.merge([data_index_xr, data_values_xr.to_dataset(name="values")])

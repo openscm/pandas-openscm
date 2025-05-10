@@ -41,7 +41,7 @@ Issues = "https://github.com/openscm/pandas-openscm/issues"
 
 [project.optional-dependencies]
 db = [
-    "filelock>=3.0.0",
+    "filelock>=3.12.3",
 ]
 db-full = [
     "netcdf4>=1.7.2",

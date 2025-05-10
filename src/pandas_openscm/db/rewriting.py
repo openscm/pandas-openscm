@@ -17,6 +17,7 @@ import pandas as pd
 from attrs import define
 
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend
+from pandas_openscm.db.path_handling import DBPath
 from pandas_openscm.index_manipulation import (
     unify_index_levels_check_index_types,
     update_index_from_candidates,
@@ -180,7 +181,8 @@ def make_move_plan(
     index_start: pd.DataFrame,
     file_map_start: pd.Series[Path],  # type: ignore # pandas confused about ability to support Path
     data_to_write: pd.DataFrame,
-    get_new_data_file_path: Callable[[int], Path],
+    get_new_data_file_path: Callable[[int], DBPath],
+    db_dir: Path,
 ) -> MovePlan:
     """
     Make a plan for moving data around to make room for new data
@@ -195,6 +197,12 @@ def make_move_plan(
 
     data_to_write
         Data that is going to be written in the database
+
+    get_new_data_file_path
+        Callable which, given an integer, returns the path info for the new data file
+
+    db_dir
+        Database directory
 
     Returns
     -------
@@ -229,7 +237,7 @@ def make_move_plan(
         # (would be even more efficient to just update the file IDs,
         # but that would create a coupling I can't get my head around right now).
         delete_file_ids = full_overwrite.index[full_overwrite]
-        delete_paths = file_map_start.loc[delete_file_ids]
+        delete_paths = (db_dir / v for v in file_map_start.loc[delete_file_ids])
         moved_index = index_start[~index_start["file_id"].isin(delete_file_ids)]
         file_map_out = file_map_start.loc[moved_index["file_id"].unique()]
 
@@ -246,7 +254,7 @@ def make_move_plan(
     full_overwrite_file_ids = full_overwrite.index[full_overwrite]
     partial_overwrite_file_ids = partial_overwrite.index[partial_overwrite]
     file_ids_to_delete = np.union1d(full_overwrite_file_ids, partial_overwrite_file_ids)
-    delete_paths = file_map_start.loc[file_ids_to_delete]
+    delete_paths = (db_dir / v for v in file_map_start.loc[file_ids_to_delete])
 
     file_id_map = {}
     max_file_id_start = file_map_start.index.max()
@@ -259,12 +267,13 @@ def make_move_plan(
     ):
         new_file_id = max_file_id_start + 1 + increment
 
-        file_map_out.loc[new_file_id] = get_new_data_file_path(new_file_id)
+        new_db_path = get_new_data_file_path(new_file_id)
+        file_map_out.loc[new_file_id] = new_db_path.rel_db
 
         rewrite_actions_l.append(
             ReWriteAction(
-                from_file=file_map_start.loc[file_id_old],
-                to_file=file_map_out.loc[new_file_id],
+                from_file=db_dir / file_map_start.loc[file_id_old],
+                to_file=new_db_path.abs,
                 locator=fiddf.index.droplevel("file_id"),
             )
         )
