@@ -148,7 +148,7 @@ class IndexBackendOptions:
         )
         raise KeyError(msg)
 
-    def guess_backend(self, index_file_name: str) -> OpenSCMDBDataBackend:
+    def guess_backend(self, index_file_name: str) -> OpenSCMDBIndexBackend:
         """
         Guess backend from a file name
 

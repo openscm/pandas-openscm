@@ -338,6 +338,14 @@ class OpenSCMDB:
                 ):
                     backend_data = DATA_BACKENDS.guess_backend(member.name)
 
+        if backend_data is None:  # pragma: noqa
+            # Should be impossible to get here
+            raise TypeError(backend_data)
+
+        if backend_index is None:  # pragma: noqa
+            # Should be impossible to get here
+            raise TypeError(backend_index)
+
         res = cls(backend_data=backend_data, backend_index=backend_index, db_dir=db_dir)
 
         return res
@@ -700,6 +708,7 @@ class OpenSCMDB:
                     file_map_start=file_map_db,
                     data_to_write=data,
                     get_new_data_file_path=self.get_new_data_file_path,
+                    db_dir=self.db_dir,
                 )
 
                 # As needed, re-write files without deleting the old files
@@ -782,7 +791,7 @@ class OpenSCMDB:
 
             This is the same as `out_file`, but is returned for convenience.
         """
-        with tarfile.open(out_file, mode) as tar:
+        with tarfile.open(out_file, mode=mode) as tar:
             tar.add(self.db_dir, arcname="db")
 
         return out_file
