@@ -32,12 +32,18 @@ class OpenSCMDBReader:
     Reader for reading data out of a database created with `OpenSCMDB`
 
     Holds the database file map and index in memory,
-    so this can be faster for repeated reads.
+    which can make repeated read operations faster
+    than using an `OpenSCMDB` instance.
     """
 
     backend_data: OpenSCMDBDataBackend = field(kw_only=True)
     """
     The backend for reading data from disk
+    """
+
+    db_dir: Path = field(kw_only=True)
+    """
+    The directory in which the database lives
     """
 
     db_file_map: pd.Series[Path] = field(kw_only=True)  # type: ignore # pandas type hints confused about what they support
@@ -142,6 +148,7 @@ class OpenSCMDBReader:
             backend_data=self.backend_data,
             db_index=self.db_index,
             db_file_map=self.db_file_map,
+            db_dir=self.db_dir,
             selector=selector,
             out_columns_type=out_columns_type,
             parallel_op_config=parallel_op_config,

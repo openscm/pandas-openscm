@@ -228,6 +228,7 @@ class OpenSCMDB:
 
         res = OpenSCMDBReader(
             backend_data=self.backend_data,
+            db_dir=self.db_dir,
             db_index=db_index,
             db_file_map=db_file_map,
             lock=lock,

@@ -88,7 +88,7 @@ def test_get_existing_data_file_path(tmpdir):
     fp = db.get_new_data_file_path(file_id=10)
 
     # Assume the file gets written somewhere
-    fp.touch()
+    fp.abs.touch()
 
     with pytest.raises(FileExistsError):
         db.get_new_data_file_path(file_id=10)
