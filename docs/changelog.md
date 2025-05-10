@@ -21,6 +21,36 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.5.0 (2025-05-10)
+
+### ⚠️ Breaking Changes
+
+- - Required `db_dir` to be passed when initialising [pandas_openscm.db.reader.OpenSCMDBReader][]. This is required to support portable databases
+  - Renamed `out_column_type` to `out_columns_type` in [pandas_openscm.io.load_timeseries_csv][] for consistency with the rest of the API
+  - Bumped the minimum supported version of [filelock](https://py-filelock.readthedocs.io/) to 3.12.3, as only this version handles automatic creation of directories for the lock
+
+  ([#19](https://github.com/openscm/pandas-openscm/pull/19))
+
+### 🆕 Features
+
+- - Made the database portable by only storing relative paths in the file map. This allows the database to be converted to an archive with [pandas_openscm.db.OpenSCMDB.to_gzipped_tar_archive][] and then unpacked elsewhere with [pandas_openscm.db.OpenSCMDB.from_gzipped_tar_archive][]
+  - Added [pandas_openscm.db.path_handling][] to clarify how we handle paths internally to support portability
+  - Added support for specifying the name of the output columns via [pandas_openscm.db.OpenSCMDB.load][], [pandas_openscm.db.reader.OpenSCMDBReader.load][] and [pandas_openscm.io.load_timeseries_csv][]
+
+  ([#19](https://github.com/openscm/pandas-openscm/pull/19))
+
+### 🎉 Improvements
+
+- - Added the explicit [pandas_openscm.db.backends][] module to handle the backends we support more clearly
+  - Added [pandas_openscm.db.backends.DataBackendOptions.guess_backend][] and [pandas_openscm.db.backends.IndexBackendOptions.guess_backend][] to allow for move convenient inference of the backend to use with different files
+
+  ([#19](https://github.com/openscm/pandas-openscm/pull/19))
+
+### 🔧 Trivial/Internal Changes
+
+- [#19](https://github.com/openscm/pandas-openscm/pull/19)
+
+
 ## Pandas-OpenSCM v0.4.2 (2025-05-05)
 
 ### 🆕 Features
