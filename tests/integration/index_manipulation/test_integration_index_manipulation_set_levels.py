@@ -190,12 +190,15 @@ def test_set_levels_with_a_dataframe():
 
 
 def test_set_levels_raises_type_error():
-    start = pd.Index(range(10), name="index")
+    start = pd.DataFrame(
+        np.arange(2 * 4).reshape((4, 2)),
+        columns=[2010, 2020],
+    )
 
     levels_to_set = {"new_variable": "test"}
 
     with pytest.raises(TypeError):
-        set_levels(start, levels_to_set=levels_to_set)
+        set_index_levels_func(start, levels_to_set=levels_to_set)
 
 
 def test_set_levels_raises_value_error():

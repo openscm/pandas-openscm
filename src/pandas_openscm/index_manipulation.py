@@ -721,7 +721,7 @@ def update_levels_from_other(
 
 def create_level_from_collection(
     level: str, value: Collection[Any]
-) -> tuple[pd.Index[Any], list[int]]:
+) -> tuple[Collection[Any], list[int]]:
     """
     Create new level and corresponding codes.
 
