@@ -795,7 +795,7 @@ def set_levels(
                 ('sa', 'mb', 'v2',  'm')],
                names=['scenario', 'model', 'variable', 'unit'])
     >>>
-    >>> # Set a new level with a single value
+    >>> # Set a new level with a single string
     >>> set_levels(
     ...     start,
     ...     {"new_variable": "xyz"},
