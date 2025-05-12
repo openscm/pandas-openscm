@@ -788,7 +788,8 @@ def set_levels(
 
         if level in ini.names:
             level_idx = ini.names.index(level)
-            levels[level_idx], codes[level_idx] = new_level, new_codes
+            levels[level_idx] = new_level
+            codes[level_idx] = new_codes
         else:
             levels.append(new_level)
             codes.append(new_codes)
@@ -799,7 +800,7 @@ def set_levels(
     return res
 
 
-def set_index_levels(
+def set_index_levels_func(
     df: pd.DataFrame,
     levels_to_set: dict[str, Any | Collection[Any]],
     copy: bool = True,

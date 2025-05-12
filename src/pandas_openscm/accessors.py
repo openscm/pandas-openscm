@@ -19,6 +19,7 @@ almost always goes wrong so I would stay away from this as long as we can.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
@@ -29,6 +30,7 @@ from pandas_openscm.grouping import (
 )
 from pandas_openscm.index_manipulation import (
     convert_index_to_category_index,
+    set_index_levels_func,
     update_index_levels_from_other_func,
     update_index_levels_func,
 )
@@ -713,6 +715,34 @@ class DataFramePandasOpenSCMAccessor:
             update_sources=update_sources,
             copy=copy,
             remove_unused_levels=remove_unused_levels,
+        )
+
+    def set_index_levels(
+        self,
+        levels_to_set: dict[str, Any | Collection[Any]],
+        copy: bool = True,
+    ) -> pd.DataFrame:
+        """
+        Set the index levels
+
+        Parameters
+        ----------
+        levels_to_set
+            Mapping of level names to values to set
+
+        copy
+            Should [pd.DataFrame][pandas.DataFrame] be copied before returning?
+
+
+        Returns
+        -------
+        :
+            [pd.DataFrame][pandas.DataFrame] with updates applied to its index
+        """
+        return set_index_levels_func(
+            self._df,
+            levels_to_set=levels_to_set,
+            copy=copy,
         )
 
 
