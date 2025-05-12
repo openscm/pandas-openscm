@@ -342,12 +342,15 @@ def create_new_level_and_codes_by_mapping(
     """
     level_to_map_from_idx = ini.names.index(level_to_create_from)
     new_level = ini.levels[level_to_map_from_idx].map(mapper)
+    # TODO copy paste this section without the mapping
+    # fast path is an array from zero to length of index
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
         return new_level, ini.codes[level_to_map_from_idx]
 
     # Slow route: have to update the codes
     dup_level = ini.get_level_values(level_to_create_from).map(mapper)
+    # TODO these two steps for slow route
     new_level = new_level.unique()
     new_codes = new_level.get_indexer(dup_level)  # type: ignore
 
@@ -700,7 +703,7 @@ def update_levels_from_other(
             level_to_create_from=source,
             mapper=updater,
         )
-
+        # TODO  copy paste code
         if level in ini.names:
             level_idx = ini.names.index(level)
             levels[level_idx] = new_level
@@ -714,6 +717,28 @@ def update_levels_from_other(
     res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 
     return res
+
+
+def create_level_from_collection(
+    level: str, value: Collection[Any]
+) -> tuple[pd.Index[Any], list[int]]:
+    """
+    Create new level and corresponding codes.
+
+    From a level name and a
+    collection of values.
+
+    TODO
+    """
+    new_level = pd.Index(value, name=level)
+    if not new_level.has_duplicates:
+        # Fast route, can just return new level and codes from level we mapped from
+        return value, list(range(len(value)))
+    # Slow route, have to update the codes
+    new_level = new_level.unique()
+    new_codes = new_level.get_indexer(value)  # type: ignore
+
+    return new_level, new_codes
 
 
 def set_levels(
@@ -744,15 +769,15 @@ def set_levels(
         ValueError
             If the length of the values is not equal to the length of the index
     """
-    # TODO mypy says this is unreachable
-    if not isinstance(ini, pd.MultiIndex):
-        msg = f"Expected MultiIndex, got {type(ini)}"
-        raise TypeError(msg)
+    levels: list[pd.Index[Any]] = list(ini.levels)
+    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    names: list[str] = list(ini.names)
 
-    df = ini.to_frame(index=False)
+    # TODO don't define a variable here, we need it only once
+    new_names = levels_to_set.keys()  # the names for the new levels
+    new_values = levels_to_set.values()  # the values for the new levels
 
     for level, value in levels_to_set.items():
-        # TODO do we need the isinstance check for strings here?
         if isinstance(value, Collection) and not isinstance(value, str):
             if len(value) != len(ini):
                 msg = (
@@ -760,11 +785,33 @@ def set_levels(
                     f"match index length: {len(value)} != {len(ini)}"
                 )
                 raise ValueError(msg)
-            df[level] = value
-        else:
-            df[level] = [value] * len(ini)
 
-    return pd.MultiIndex.from_frame(df)
+            new_level, new_codes = create_level_from_collection(
+                level=level,
+                value=value,
+            )
+
+            # Are we replacing?
+            if level in ini.names:
+                level_idx = ini.names.index(level)
+                levels[level_idx] = new_level
+                codes[level_idx] = new_codes
+            else:
+                levels.append(new_level)
+                codes.append(new_codes)
+                names.append(level)
+
+        else:
+            codes = [
+                *ini.codes,  # type: ignore #  not sure why check above isn't working
+                *([[0] * ini.shape[0]] * len(new_values)),  # type: ignore # fix when moving to pandas-openscm
+            ]
+            levels = [*ini.levels, *[pd.Index([value]) for value in new_values]]  # type: ignore # fix when moving to pandas-openscm
+            names = [*ini.names, *new_names]  # type: ignore # fix when moving to pandas-openscm
+
+    res = pd.MultiIndex(levels=levels, codes=codes, names=names)
+
+    return res
 
 
 def set_index_levels(
@@ -792,6 +839,10 @@ def set_index_levels(
     :
         `df` with updates applied to its index
     """
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = f"Expected MultiIndex, got {type(df.index)}"
+        raise TypeError(msg)
+
     if copy:
         df = df.copy()
 
