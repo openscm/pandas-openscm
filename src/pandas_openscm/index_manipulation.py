@@ -721,7 +721,7 @@ def update_levels_from_other(
 
 def create_level_from_collection(
     level: str, value: Collection[Any]
-) -> tuple[Collection[Any], list[int]]:
+) -> tuple[pandas.Index[Any], list[int]]:
     """
     Create new level and corresponding codes.
 
@@ -743,7 +743,7 @@ def create_level_from_collection(
         # Fast route, can just return new level and codes from level we mapped from
         return value, list(range(len(value)))
     # Slow route, have to update the codes
-    new_level = new_level.unique()
+    new_level = new_level.unique()  # type: ignore
     new_codes = new_level.get_indexer(value)  # type: ignore
 
     return new_level, new_codes
@@ -811,14 +811,22 @@ def set_levels(
     ...     start,
     ...     {"new_variable": [1, 2, 3, 4]},
     ... )
-    todo
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 1),
+                ('sb', 'ma', 'v2',  'm', 2),
+                ('sa', 'mb', 'v1', 'kg', 3),
+                ('sa', 'mb', 'v2',  'm', 4)],
+               names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
     >>>
     >>> # Replace a level with a single value and add a new level
     >>> set_levels(
     ...     start,
     ...     {"model": "new_model", "new_variable": ["xyz", "xyz", "x", "y"]},
     ... )
-    todo
+    MultiIndex([('sa', 'new_model', 'v1', 'kg', "xyz"),
+                ('sb', 'new_model', 'v2',  'm', "xyz"),
+                ('sa', 'new_model', 'v1', 'kg', "x"),
+                ('sa', 'new_model', 'v2',  'm', "y")],
+               names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
     """
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
