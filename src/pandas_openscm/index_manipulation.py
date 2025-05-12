@@ -773,10 +773,6 @@ def set_levels(
     codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
     names: list[str] = list(ini.names)
 
-    # TODO don't define a variable here, we need it only once
-    new_names = levels_to_set.keys()  # the names for the new levels
-    new_values = levels_to_set.values()  # the values for the new levels
-
     for level, value in levels_to_set.items():
         if isinstance(value, Collection) and not isinstance(value, str):
             if len(value) != len(ini):
@@ -802,12 +798,18 @@ def set_levels(
                 names.append(level)
 
         else:
-            codes = [
-                *ini.codes,  # type: ignore #  not sure why check above isn't working
-                *([[0] * ini.shape[0]] * len(new_values)),  # type: ignore # fix when moving to pandas-openscm
-            ]
-            levels = [*ini.levels, *[pd.Index([value]) for value in new_values]]  # type: ignore # fix when moving to pandas-openscm
-            names = [*ini.names, *new_names]  # type: ignore # fix when moving to pandas-openscm
+            new_level = pd.Index([value], name=level)
+            new_codes = [0] * ini.shape[0]
+
+            # Are we replacing?
+            if level in ini.names:
+                level_idx = ini.names.index(level)
+                levels[level_idx] = new_level
+                codes[level_idx] = new_codes
+            else:
+                levels.append(new_level)
+                codes.append(new_codes)
+                names.append(level)
 
     res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 

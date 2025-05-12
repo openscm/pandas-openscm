@@ -110,16 +110,47 @@ from pandas_openscm.index_manipulation import set_index_levels, set_levels
                 ],
                 names=["scenario", "variable", "unit", "run_id"],
             ),
-            {"scenario": ["a", "b", "c"], "extra_variable": [1, 1, 1]},
+            {
+                "scenario": ["a", "b", "c"],
+                "extra_variable": [1, 1, 1],
+                "single_value_varible": "single_value",
+            },
             pd.MultiIndex.from_tuples(
                 [
-                    ("a", "va", "kg", 5, 1),
-                    ("b", "vb", "m", 1, 1),
-                    ("c", "va", "kg", 2, 1),
+                    ("a", "va", "kg", 5, 1, "single_value"),
+                    ("b", "vb", "m", 1, 1, "single_value"),
+                    ("c", "va", "kg", 2, 1, "single_value"),
                 ],
-                names=["scenario", "variable", "unit", "run_id", "extra_variable"],
+                names=[
+                    "scenario",
+                    "variable",
+                    "unit",
+                    "run_id",
+                    "extra_variable",
+                    "single_value_varible",
+                ],
             ),
-            id="replace-existing-level-and-add-one",
+            id="replace-existing-level-and-add-new-levels",
+        ),
+        pytest.param(
+            pd.MultiIndex.from_tuples(
+                [
+                    ("sa", "va", "kg", 5),
+                    ("sb", "vb", "m", 1),
+                    ("sa", "va", "kg", 2),
+                ],
+                names=["scenario", "variable", "unit", "run_id"],
+            ),
+            {"scenarioABC": ["aa", "bb", "cc"], "variable": "v"},
+            pd.MultiIndex.from_tuples(
+                [
+                    ("sa", "v", "kg", 5, "aa"),
+                    ("sb", "v", "m", 1, "bb"),
+                    ("sa", "v", "kg", 2, "cc"),
+                ],
+                names=["scenario", "variable", "unit", "run_id", "scenarioABC"],
+            ),
+            id="add-new-level-replace-level-with-single-value",
         ),
     ),
 )
