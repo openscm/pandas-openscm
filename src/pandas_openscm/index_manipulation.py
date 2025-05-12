@@ -781,35 +781,18 @@ def set_levels(
                     f"match index length: {len(value)} != {len(ini)}"
                 )
                 raise ValueError(msg)
-
-            new_level, new_codes = create_level_from_collection(
-                level=level,
-                value=value,
-            )
-
-            # Are we replacing?
-            if level in ini.names:
-                level_idx = ini.names.index(level)
-                levels[level_idx] = new_level
-                codes[level_idx] = new_codes
-            else:
-                levels.append(new_level)
-                codes.append(new_codes)
-                names.append(level)
-
+            new_level, new_codes = create_level_from_collection(level, value)
         else:
             new_level = pd.Index([value], name=level)
             new_codes = [0] * ini.shape[0]
 
-            # Are we replacing?
-            if level in ini.names:
-                level_idx = ini.names.index(level)
-                levels[level_idx] = new_level
-                codes[level_idx] = new_codes
-            else:
-                levels.append(new_level)
-                codes.append(new_codes)
-                names.append(level)
+        if level in ini.names:
+            level_idx = ini.names.index(level)
+            levels[level_idx], codes[level_idx] = new_level, new_codes
+        else:
+            levels.append(new_level)
+            codes.append(new_codes)
+            names.append(level)
 
     res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 
