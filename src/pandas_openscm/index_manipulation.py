@@ -738,12 +738,12 @@ def create_level_from_collection(
     :
         New level and corresponding codes
     """
-    new_level = pd.Index(value, name=level)
+    new_level: pandas.Index[Any] = pd.Index(value, name=level)
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
         return value, list(range(len(value)))
     # Slow route, have to update the codes
-    new_level = new_level.unique()  # type: ignore
+    new_level = new_level.unique()
     new_codes = new_level.get_indexer(value)  # type: ignore
 
     return new_level, new_codes
@@ -822,10 +822,10 @@ def set_levels(
     ...     start,
     ...     {"model": "new_model", "new_variable": ["xyz", "xyz", "x", "y"]},
     ... )
-    MultiIndex([('sa', 'new_model', 'v1', 'kg', "xyz"),
-                ('sb', 'new_model', 'v2',  'm', "xyz"),
-                ('sa', 'new_model', 'v1', 'kg', "x"),
-                ('sa', 'new_model', 'v2',  'm', "y")],
+    MultiIndex([('sa', 'new_model', 'v1', 'kg', 'xyz'),
+                ('sb', 'new_model', 'v2',  'm', 'xyz'),
+                ('sa', 'new_model', 'v1', 'kg',   'x'),
+                ('sa', 'new_model', 'v2',  'm',   'y')],
                names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
     """
     levels: list[pd.Index[Any]] = list(ini.levels)
