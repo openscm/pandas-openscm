@@ -703,7 +703,7 @@ def update_levels_from_other(
             level_to_create_from=source,
             mapper=updater,
         )
-        # TODO  copy paste code
+
         if level in ini.names:
             level_idx = ini.names.index(level)
             levels[level_idx] = new_level
@@ -725,10 +725,18 @@ def create_level_from_collection(
     """
     Create new level and corresponding codes.
 
-    From a level name and a
-    collection of values.
+    Parameters
+    ----------
+    level
+        Name of the level to create
 
-    TODO
+    value
+        Values to use to create the level
+
+    Returns
+    -------
+    :
+        New level and corresponding codes
     """
     new_level = pd.Index(value, name=level)
     if not new_level.has_duplicates:
@@ -768,6 +776,49 @@ def set_levels(
             If `ini` is not a MultiIndex
         ValueError
             If the length of the values is not equal to the length of the index
+
+    Examples
+    --------
+    >>> start = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         ("sa", "ma", "v1", "kg"),
+    ...         ("sb", "ma", "v2", "m"),
+    ...         ("sa", "mb", "v1", "kg"),
+    ...         ("sa", "mb", "v2", "m"),
+    ...     ],
+    ...     names=["scenario", "model", "variable", "unit"],
+    ... )
+    >>> start
+    MultiIndex([('sa', 'ma', 'v1', 'kg'),
+                ('sb', 'ma', 'v2',  'm'),
+                ('sa', 'mb', 'v1', 'kg'),
+                ('sa', 'mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>>
+    >>> # Set a new level with a single value
+    >>> set_levels(
+    ...     start,
+    ...     {"new_variable": "xyz"},
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 'xyz'),
+            ('sb', 'ma', 'v2',  'm', 'xyz'),
+            ('sa', 'mb', 'v1', 'kg', 'xyz'),
+            ('sa', 'mb', 'v2',  'm', 'xyz')],
+           names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
+    >>>
+    >>> # Replace a level with a collection
+    >>> set_levels(
+    ...     start,
+    ...     {"new_variable": [1, 2, 3, 4]},
+    ... )
+    todo
+    >>>
+    >>> # Replace a level with a single value and add a new level
+    >>> set_levels(
+    ...     start,
+    ...     {"model": "new_model", "new_variable": ["xyz", "xyz", "x", "y"]},
+    ... )
+    todo
     """
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
