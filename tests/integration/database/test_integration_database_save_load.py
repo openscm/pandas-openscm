@@ -43,7 +43,7 @@ def test_save_and_load_basic(tmpdir, db_data_backend, db_index_backend):
 
     df_timeseries_like = pd.DataFrame(
         np.arange(12).reshape(4, 3),
-        columns=[2010, 2015, 2025],
+        columns=pd.Index([2010, 2015, 2025], name="year"),
         index=pd.MultiIndex.from_tuples(
             [
                 ("scenario_a", "climate_model_a", "Temperature", "K"),
@@ -70,7 +70,10 @@ def test_save_and_load_basic(tmpdir, db_data_backend, db_index_backend):
         df_timeseries_like.index, metadata_compare, exact="equiv", check_order=False
     )
 
-    loaded = db.load(out_columns_type=df_timeseries_like.columns.dtype)
+    loaded = db.load(
+        out_columns_type=df_timeseries_like.columns.dtype,
+        out_columns_name=df_timeseries_like.columns.name,
+    )
 
     assert_frame_alike(df_timeseries_like, loaded)
 

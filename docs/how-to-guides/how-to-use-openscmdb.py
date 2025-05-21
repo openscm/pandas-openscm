@@ -26,6 +26,7 @@
 import concurrent.futures
 import contextlib
 import itertools
+import tarfile
 import tempfile
 import traceback
 from functools import partial
@@ -199,6 +200,82 @@ db.is_empty
 
 # %% [markdown]
 # ## Advanced topics
+
+# %% [markdown]
+# ### Sharing the database
+#
+# If you need to share a database,
+# you can zip it and pass it to someone else.
+
+# %% [markdown]
+# We start by putting some data in a database.
+
+# %%
+top_level_dir = Path(tempfile.mkdtemp())
+
+# %%
+db_start = OpenSCMDB(
+    db_dir=top_level_dir / "start",
+    backend_data=DATA_BACKENDS.get_instance("csv"),
+    backend_index=INDEX_BACKENDS.get_instance("csv"),
+)
+db_start.save(df_timeseries_like)
+
+# %% [markdown]
+# Then we create a gzipped tar archive of our database.
+
+# %%
+gzipped = top_level_dir / "db_archive.tar.gz"
+db_start.to_gzipped_tar_archive(gzipped)
+
+# %% [markdown]
+# To demonstrate that this does not rely on the original data,
+# we delete the original database.
+
+# %%
+db_start.delete()
+
+# %% [markdown]
+# We can inspect the tar file's contents.
+
+# %%
+with tarfile.open(gzipped) as tar:
+    print(f"{tar.getmembers()=}")
+
+# %% [markdown]
+# A new database can be initialised from the gzipped tar archive.
+
+# %%
+db_moved = OpenSCMDB.from_gzipped_tar_archive(
+    gzipped,
+    db_dir=top_level_dir / "moved",
+)
+db_moved
+
+# %% [markdown]
+# As above, we remove the archive
+# to demonstrate that there is no reliance on it
+# for the following operations.
+
+# %%
+gzipped.unlink()
+
+# %% [markdown]
+# You can then use this database like normal,
+# but now from the new location
+# (whether on your machine or someone else's).
+
+# %%
+db_moved.load()
+
+# %%
+db_moved.load(pix.isin(unit="J"))
+
+# %% [markdown]
+# We clean up the files before moving onto the next demonstration.
+
+# %%
+db_moved.delete()
 
 # %% [markdown]
 # ### Grouping data

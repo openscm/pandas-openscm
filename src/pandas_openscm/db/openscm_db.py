@@ -4,6 +4,7 @@ Definition of our key [OpenSCMDB][(m).] class
 
 from __future__ import annotations
 
+import tarfile
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 from attrs import define, field
 
+from pandas_openscm.db.backends import DATA_BACKENDS, INDEX_BACKENDS
 from pandas_openscm.db.deleting import delete_files
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend, OpenSCMDBIndexBackend
 from pandas_openscm.db.loading import (
@@ -19,6 +21,7 @@ from pandas_openscm.db.loading import (
     load_db_index,
     load_db_metadata,
 )
+from pandas_openscm.db.path_handling import DBPath
 from pandas_openscm.db.reader import OpenSCMDBReader
 from pandas_openscm.db.rewriting import make_move_plan, rewrite_files
 from pandas_openscm.db.saving import save_data
@@ -225,6 +228,7 @@ class OpenSCMDB:
 
         res = OpenSCMDBReader(
             backend_data=self.backend_data,
+            db_dir=self.db_dir,
             db_index=db_index,
             db_file_map=db_file_map,
             lock=lock,
@@ -287,7 +291,67 @@ class OpenSCMDB:
                 max_workers=max_workers,
             )
 
-    def get_new_data_file_path(self, file_id: int) -> Path:
+    @classmethod
+    def from_gzipped_tar_archive(
+        cls,
+        tar_archive: Path,
+        db_dir: Path,
+        backend_data: OpenSCMDBDataBackend | None = None,
+        backend_index: OpenSCMDBIndexBackend | None = None,
+    ) -> OpenSCMDB:
+        """
+        Initialise from a gzipped tar archive
+
+        This also unpacks the files to disk
+
+        Parameters
+        ----------
+        tar_archive
+            Tar archive from which to initialise
+
+        db_dir
+            Directory in which to unpack the database
+
+        backend_data
+            Backend to use for handling the data
+
+        backend_index
+            Backend to use for handling the index
+
+        Returns
+        -------
+        :
+            Initialised database
+        """
+        with tarfile.open(tar_archive, "r") as tar:
+            for member in tar.getmembers():
+                if not member.isreg():
+                    # Only extract files
+                    continue
+                # Extract to the db_dir
+                member.name = Path(member.name).name
+                tar.extract(member, db_dir)
+                if backend_index is None and member.name.startswith("index"):
+                    backend_index = INDEX_BACKENDS.guess_backend(member.name)
+
+                if backend_data is None and not any(
+                    member.name.startswith(v) for v in ["index", "filemap"]
+                ):
+                    backend_data = DATA_BACKENDS.guess_backend(member.name)
+
+        if backend_data is None:  # pragma: no cover
+            # Should be impossible to get here
+            raise TypeError(backend_data)
+
+        if backend_index is None:  # pragma: no cover
+            # Should be impossible to get here
+            raise TypeError(backend_index)
+
+        res = cls(backend_data=backend_data, backend_index=backend_index, db_dir=db_dir)
+
+        return res
+
+    def get_new_data_file_path(self, file_id: int) -> DBPath:
         """
         Get the path in which to write a new data file
 
@@ -299,7 +363,7 @@ class OpenSCMDB:
         Returns
         -------
         :
-            File in which to write the new data
+            Information about the path in which to write the new data
 
         Raises
         ------
@@ -311,7 +375,7 @@ class OpenSCMDB:
         if file_path.exists():
             raise FileExistsError(file_path)
 
-        return file_path
+        return DBPath.from_abs_path_and_db_dir(abs=file_path, db_dir=self.db_dir)
 
     def load(  # noqa: PLR0913
         self,
@@ -319,6 +383,7 @@ class OpenSCMDB:
         *,
         index_file_lock: filelock.BaseFileLock | None = None,
         out_columns_type: type | None = None,
+        out_columns_name: str | None = None,
         parallel_op_config: ParallelOpConfig | None = None,
         progress: bool = False,
         max_workers: int | None = None,
@@ -340,6 +405,16 @@ class OpenSCMDB:
             Type to set the output columns to.
 
             If not supplied, we don't set the output columns' type.
+
+        out_columns_name
+            The name for the columns in the output.
+
+            If not supplied, we don't set the output columns' name.
+
+            This can also be set with
+            [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+            but we provide it here for convenience
+            (and in case you couldn't find this trick for ages, like us).
 
         parallel_op_config
             Configuration for executing the operation in parallel with progress bars
@@ -391,8 +466,10 @@ class OpenSCMDB:
                 backend_data=self.backend_data,
                 db_index=index,
                 db_file_map=file_map,
+                db_dir=self.db_dir,
                 selector=selector,
                 out_columns_type=out_columns_type,
+                out_columns_name=out_columns_name,
                 parallel_op_config=parallel_op_config,
                 progress=progress,
                 max_workers=max_workers,
@@ -644,6 +721,7 @@ class OpenSCMDB:
                     file_map_start=file_map_db,
                     data_to_write=data,
                     get_new_data_file_path=self.get_new_data_file_path,
+                    db_dir=self.db_dir,
                 )
 
                 # As needed, re-write files without deleting the old files
@@ -706,3 +784,27 @@ class OpenSCMDB:
                     progress=progress,
                     max_workers=max_workers,
                 )
+
+    def to_gzipped_tar_archive(self, out_file: Path, mode: str = "w:gz") -> Path:
+        """
+        Convert to a gzipped tar archive
+
+        Parameters
+        ----------
+        out_file
+            File in which to write the output
+
+        mode
+            Mode to use to open `out_file`
+
+        Returns
+        -------
+        :
+            Path to the gzipped tar archive
+
+            This is the same as `out_file`, but is returned for convenience.
+        """
+        with tarfile.open(out_file, mode=mode) as tar:
+            tar.add(self.db_dir, arcname="db")
+
+        return out_file

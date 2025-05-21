@@ -33,8 +33,10 @@ def load_data(  # noqa: PLR0913
     backend_data: OpenSCMDBDataBackend,
     db_index: pd.DataFrame,
     db_file_map: pd.Series[Path],  # type: ignore # pandas type hints confused about what they support
+    db_dir: Path,
     selector: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector | None = None,
     out_columns_type: type | None = None,
+    out_columns_name: str | None = None,
     parallel_op_config: ParallelOpConfig | None = None,
     progress: bool = False,
     max_workers: int | None = None,
@@ -53,6 +55,9 @@ def load_data(  # noqa: PLR0913
     db_file_map
         File map of the database from which to load
 
+    db_dir
+        The directory in which the database lives
+
     selector
         Selector to use to choose the data to load
 
@@ -60,6 +65,16 @@ def load_data(  # noqa: PLR0913
         Type to set the output columns to.
 
         If not supplied, we don't set the output columns' type.
+
+    out_columns_name
+        The name for the columns in the output.
+
+        If not supplied, we don't set the output columns' name.
+
+        This can also be set with
+        [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+        but we provide it here for convenience
+        (and in case you couldn't find this trick for ages, like us).
 
     parallel_op_config
         Configuration for executing the operation in parallel with progress bars
@@ -97,7 +112,7 @@ def load_data(  # noqa: PLR0913
     else:
         index_to_load = mi_loc(db_index, selector)
 
-    files_to_load = (Path(v) for v in db_file_map[index_to_load["file_id"].unique()])
+    files_to_load = (db_dir / v for v in db_file_map[index_to_load["file_id"].unique()])
     loaded_l = load_data_files(
         files_to_load=files_to_load,
         backend_data=backend_data,
@@ -131,6 +146,9 @@ def load_data(  # noqa: PLR0913
 
     if out_columns_type is not None:
         res.columns = res.columns.astype(out_columns_type)
+
+    if out_columns_name is not None:
+        res = res.rename_axis(out_columns_name, axis="columns")
 
     return res
 

@@ -13,7 +13,8 @@ def load_timeseries_csv(
     fp: Path,
     lower_column_names: bool = True,
     index_columns: list[str] | None = None,
-    out_column_type: type | None = None,
+    out_columns_type: type | None = None,
+    out_columns_name: str | None = None,
 ) -> pd.DataFrame:
     """
     Load a CSV holding timeseries
@@ -42,10 +43,20 @@ def load_timeseries_csv(
         In future, if not provided, we will try and infer the columns
         based on whether they look like time columns or not.
 
-    out_column_type
+    out_columns_type
         The type to apply to the output columns that are not part of the index.
 
         If not supplied, the raw type returned by pandas is returned.
+
+    out_columns_name
+        The name for the columns in the output.
+
+        If not supplied, the raw name returned by pandas is returned.
+
+        This can also be set with
+        [pd.DataFrame.rename_axis][pandas.DataFrame.rename_axis]
+        but we provide it here for convenience
+        (and in case you couldn't find this trick for ages, like us).
 
     Returns
     -------
@@ -62,7 +73,10 @@ def load_timeseries_csv(
 
     out = out.set_index(index_columns)
 
-    if out_column_type is not None:
-        out.columns = out.columns.astype(out_column_type)
+    if out_columns_type is not None:
+        out.columns = out.columns.astype(out_columns_type)
+
+    if out_columns_name is not None:
+        out = out.rename_axis(out_columns_name, axis="columns")
 
     return out
