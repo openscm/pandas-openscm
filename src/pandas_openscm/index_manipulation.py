@@ -738,7 +738,7 @@ def create_level_from_collection(
     new_level: pandas.Index[Any] = pd.Index(value, name=level)
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
-        return new_level, np.arange(len(value))
+        return new_level, list(np.arange(len(value)))
     # Slow route, have to update the codes
     new_level = new_level.unique()
     new_codes = new_level.get_indexer(value)  # type: ignore
@@ -772,7 +772,8 @@ def set_levels(
     TypeError
         If `ini` is not a MultiIndex
     ValueError
-        If the length of the values is a collection that is not equal to the length of the index
+        If the length of the values is a collection that is not equal to the
+        length of the index
 
     Examples
     --------
@@ -840,7 +841,7 @@ def set_levels(
             new_level, new_codes = create_level_from_collection(level, value)
         else:
             new_level = pd.Index([value], name=level)
-            new_codes = np.zeros(ini.shape[0])
+            new_codes = list(np.zeros(ini.shape[0]))
 
         if level in ini.names:
             level_idx = ini.names.index(level)
@@ -892,6 +893,6 @@ def set_index_levels_func(
     if copy:
         df = df.copy()
 
-    df.index = set_levels(df.index, levels_to_set=levels_to_set)
+    df.index = set_levels(df.index, levels_to_set=levels_to_set)  # type: ignore
 
     return df
