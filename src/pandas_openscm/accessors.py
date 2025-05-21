@@ -731,8 +731,7 @@ class DataFramePandasOpenSCMAccessor:
             Mapping of level names to values to set
 
         copy
-            Should [pd.DataFrame][pandas.DataFrame] be copied before returning?
-
+            Should the [pd.DataFrame][pandas.DataFrame] be copied before returning?
 
         Returns
         -------

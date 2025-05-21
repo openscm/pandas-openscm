@@ -342,15 +342,12 @@ def create_new_level_and_codes_by_mapping(
     """
     level_to_map_from_idx = ini.names.index(level_to_create_from)
     new_level = ini.levels[level_to_map_from_idx].map(mapper)
-    # TODO copy paste this section without the mapping
-    # fast path is an array from zero to length of index
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
         return new_level, ini.codes[level_to_map_from_idx]
 
     # Slow route: have to update the codes
     dup_level = ini.get_level_values(level_to_create_from).map(mapper)
-    # TODO these two steps for slow route
     new_level = new_level.unique()
     new_codes = new_level.get_indexer(dup_level)  # type: ignore
 
@@ -741,7 +738,7 @@ def create_level_from_collection(
     new_level: pandas.Index[Any] = pd.Index(value, name=level)
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
-        return value, list(range(len(value)))
+        return new_level, np.arange(len(value))
     # Slow route, have to update the codes
     new_level = new_level.unique()
     new_codes = new_level.get_indexer(value)  # type: ignore
@@ -772,10 +769,10 @@ def set_levels(
 
     Raises
     ------
-        TypeError
-            If `ini` is not a MultiIndex
-        ValueError
-            If the length of the values is not equal to the length of the index
+    TypeError
+        If `ini` is not a MultiIndex
+    ValueError
+        If the length of the values is a collection that is not equal to the length of the index
 
     Examples
     --------
@@ -843,7 +840,7 @@ def set_levels(
             new_level, new_codes = create_level_from_collection(level, value)
         else:
             new_level = pd.Index([value], name=level)
-            new_codes = [0] * ini.shape[0]
+            new_codes = np.zeros(ini.shape[0])
 
         if level in ini.names:
             level_idx = ini.names.index(level)
@@ -885,19 +882,15 @@ def set_index_levels_func(
         `df` with updates applied to its index
     """
     if not isinstance(df.index, pd.MultiIndex):
-        msg = f"Expected MultiIndex, got {type(df.index)}"
-        raise TypeError(msg)
-
-    if copy:
-        df = df.copy()
-
-    if not isinstance(df.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
             "when `df`'s index is an instance of `MultiIndex`. "
             f"Received {type(df.index)=}"
         )
         raise TypeError(msg)
+
+    if copy:
+        df = df.copy()
 
     df.index = set_levels(df.index, levels_to_set=levels_to_set)
 
