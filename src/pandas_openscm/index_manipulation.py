@@ -482,7 +482,7 @@ def update_levels(
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
 
     for level, updater in updates.items():
         if level not in ini.names:
@@ -685,7 +685,7 @@ def update_levels_from_other(
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
     names: list[str] = list(ini.names)
 
     for level, (source, updater) in update_sources.items():
@@ -718,7 +718,7 @@ def update_levels_from_other(
 
 def create_level_from_collection(
     level: str, value: Collection[Any]
-) -> tuple[pandas.Index[Any], list[int]]:
+) -> tuple[pandas.Index[Any], npt.NDArray[np.integer[Any]]]:
     """
     Create new level and corresponding codes.
 
@@ -738,7 +738,8 @@ def create_level_from_collection(
     new_level: pandas.Index[Any] = pd.Index(value, name=level)
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
-        return new_level, list(np.arange(len(value)))
+        return new_level, np.arange(len(value))
+
     # Slow route, have to update the codes
     new_level = new_level.unique()
     new_codes = new_level.get_indexer(value)  # type: ignore
@@ -827,7 +828,7 @@ def set_levels(
                names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
     """
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
     names: list[str] = list(ini.names)
 
     for level, value in levels_to_set.items():
@@ -841,7 +842,7 @@ def set_levels(
             new_level, new_codes = create_level_from_collection(level, value)
         else:
             new_level = pd.Index([value], name=level)
-            new_codes = list(np.zeros(ini.shape[0]))
+            new_codes = np.zeros(ini.shape[0], dtype=int)
 
         if level in ini.names:
             level_idx = ini.names.index(level)
