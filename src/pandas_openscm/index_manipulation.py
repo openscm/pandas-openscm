@@ -4,7 +4,7 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import numpy as np
@@ -482,7 +482,7 @@ def update_levels(
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
 
     for level, updater in updates.items():
         if level not in ini.names:
@@ -685,7 +685,7 @@ def update_levels_from_other(
         ini = ini.remove_unused_levels()  # type: ignore
 
     levels: list[pd.Index[Any]] = list(ini.levels)
-    codes: list[list[int] | npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
     names: list[str] = list(ini.names)
 
     for level, (source, updater) in update_sources.items():
@@ -714,3 +714,186 @@ def update_levels_from_other(
     res = pd.MultiIndex(levels=levels, codes=codes, names=names)
 
     return res
+
+
+def create_level_from_collection(
+    level: str, value: Collection[Any]
+) -> tuple[pandas.Index[Any], npt.NDArray[np.integer[Any]]]:
+    """
+    Create new level and corresponding codes.
+
+    Parameters
+    ----------
+    level
+        Name of the level to create
+
+    value
+        Values to use to create the level
+
+    Returns
+    -------
+    :
+        New level and corresponding codes
+    """
+    new_level: pandas.Index[Any] = pd.Index(value, name=level)
+    if not new_level.has_duplicates:
+        # Fast route, can just return new level and codes from level we mapped from
+        return new_level, np.arange(len(value))
+
+    # Slow route, have to update the codes
+    new_level = new_level.unique()
+    new_codes = new_level.get_indexer(value)  # type: ignore
+
+    return new_level, new_codes
+
+
+def set_levels(
+    ini: pd.MultiIndex, levels_to_set: dict[str, Any | Collection[Any]]
+) -> pd.MultiIndex:
+    """
+    Set the levels of a MultiIndex to the provided values
+
+    Parameters
+    ----------
+    ini
+        Input MultiIndex
+
+    levels_to_set
+        Mapping of level names to values to set. If values is of type `Collection`,
+        it must be of the same length as the MultiIndex. If it is not a `Collection`,
+        it will be set to the same value for all levels.
+
+    Returns
+    -------
+    :
+        New MultiIndex with the levels set to the provided values
+
+    Raises
+    ------
+    TypeError
+        If `ini` is not a MultiIndex
+    ValueError
+        If the length of the values is a collection that is not equal to the
+        length of the index
+
+    Examples
+    --------
+    >>> start = pd.MultiIndex.from_tuples(
+    ...     [
+    ...         ("sa", "ma", "v1", "kg"),
+    ...         ("sb", "ma", "v2", "m"),
+    ...         ("sa", "mb", "v1", "kg"),
+    ...         ("sa", "mb", "v2", "m"),
+    ...     ],
+    ...     names=["scenario", "model", "variable", "unit"],
+    ... )
+    >>> start
+    MultiIndex([('sa', 'ma', 'v1', 'kg'),
+                ('sb', 'ma', 'v2',  'm'),
+                ('sa', 'mb', 'v1', 'kg'),
+                ('sa', 'mb', 'v2',  'm')],
+               names=['scenario', 'model', 'variable', 'unit'])
+    >>>
+    >>> # Set a new level with a single string
+    >>> set_levels(
+    ...     start,
+    ...     {"new_variable": "xyz"},
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 'xyz'),
+            ('sb', 'ma', 'v2',  'm', 'xyz'),
+            ('sa', 'mb', 'v1', 'kg', 'xyz'),
+            ('sa', 'mb', 'v2',  'm', 'xyz')],
+           names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
+    >>>
+    >>> # Replace a level with a collection
+    >>> set_levels(
+    ...     start,
+    ...     {"new_variable": [1, 2, 3, 4]},
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 1),
+                ('sb', 'ma', 'v2',  'm', 2),
+                ('sa', 'mb', 'v1', 'kg', 3),
+                ('sa', 'mb', 'v2',  'm', 4)],
+               names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
+    >>>
+    >>> # Replace a level with a single value and add a new level
+    >>> set_levels(
+    ...     start,
+    ...     {"model": "new_model", "new_variable": ["xyz", "xyz", "x", "y"]},
+    ... )
+    MultiIndex([('sa', 'new_model', 'v1', 'kg', 'xyz'),
+                ('sb', 'new_model', 'v2',  'm', 'xyz'),
+                ('sa', 'new_model', 'v1', 'kg',   'x'),
+                ('sa', 'new_model', 'v2',  'm',   'y')],
+               names=['scenario', 'model', 'variable', 'unit', 'new_variable'])
+    """
+    levels: list[pd.Index[Any]] = list(ini.levels)
+    codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
+    names: list[str] = list(ini.names)
+
+    for level, value in levels_to_set.items():
+        if isinstance(value, Collection) and not isinstance(value, str):
+            if len(value) != len(ini):
+                msg = (
+                    f"Length of values for level '{level}' does not "
+                    f"match index length: {len(value)} != {len(ini)}"
+                )
+                raise ValueError(msg)
+            new_level, new_codes = create_level_from_collection(level, value)
+        else:
+            new_level = pd.Index([value], name=level)
+            new_codes = np.zeros(ini.shape[0], dtype=int)
+
+        if level in ini.names:
+            level_idx = ini.names.index(level)
+            levels[level_idx] = new_level
+            codes[level_idx] = new_codes
+        else:
+            levels.append(new_level)
+            codes.append(new_codes)
+            names.append(level)
+
+    res = pd.MultiIndex(levels=levels, codes=codes, names=names)
+
+    return res
+
+
+def set_index_levels_func(
+    df: pd.DataFrame,
+    levels_to_set: dict[str, Any | Collection[Any]],
+    copy: bool = True,
+) -> pd.DataFrame:
+    """
+    Set the index levels of a [pd.DataFrame][pandas.DataFrame]
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to update
+
+    levels_to_set
+        Mapping of level names to values to set
+
+    copy
+        Should `df` be copied before returning?
+
+
+    Returns
+    -------
+    :
+        `df` with updates applied to its index
+    """
+    if not isinstance(df.index, pd.MultiIndex):
+        msg = (
+            "This function is only intended to be used "
+            "when `df`'s index is an instance of `MultiIndex`. "
+            f"Received {type(df.index)=}"
+        )
+        raise TypeError(msg)
+
+    if copy:
+        df = df.copy()
+
+    df.index = set_levels(df.index, levels_to_set=levels_to_set)  # type: ignore
+
+    return df
