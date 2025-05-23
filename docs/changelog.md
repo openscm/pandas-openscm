@@ -21,6 +21,13 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.5.1 (2025-05-23)
+
+### 🆕 Features
+
+- Added [pandas_openscm.index_manipulation.set_levels][] and the corresponding accessor [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.set_index_levels][] ([#18](https://github.com/openscm/pandas-openscm/pull/18))
+
+
 ## Pandas-OpenSCM v0.5.0 (2025-05-10)
 
 ### ⚠️ Breaking Changes
