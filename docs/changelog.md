@@ -21,6 +21,17 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.6.0 (2025-07-16)
+
+### ⚠️ Breaking Changes
+
+- Updated minimum numpy version to 1.26.0, the earliest that is not in end-of-life. Fixed the numpy pin for Python 3.13 to >=2.1.0, the first numpy version which supported Python 3.13. ([#21](https://github.com/openscm/pandas-openscm/pull/21))
+
+### 🔧 Trivial/Internal Changes
+
+- [#21](https://github.com/openscm/pandas-openscm/pull/21), [#22](https://github.com/openscm/pandas-openscm/pull/22)
+
+
 ## Pandas-OpenSCM v0.5.1 (2025-05-23)
 
 ### 🆕 Features
