@@ -104,14 +104,6 @@ jobs:
           # we should add a CI step that runs the tests without optional dependencies too.
           # We don't have that right now, because we're not sure this pain point exists.
           uv-dependency-install-flags: "--all-extras --group tests"
-      - name: Get version windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          chcp 65001  # use utf-8
-          uv run python -c 'import pandas_openscm; f = open("version.txt", "w"); f.write(f"INSTALLED_VERSION=v{pandas_openscm.__version__}"); f.close()'
-          echo "Showing version.txt"
-          type version.txt
-          type version.txt >> $env:GITHUB_ENV
       - name: Run tests
         run: |
           uv run pytest -r a -v src tests --doctest-modules --cov=src --cov-report=term-missing --cov-report=xml
