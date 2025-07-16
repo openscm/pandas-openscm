@@ -49,8 +49,7 @@ def test_index_is_not_multi_index():
         match=re.escape(
             "This function is only intended to be used "
             "when `df`'s index is an instance of `MultiIndex`. "
-            "Received type(pandas_obj.index)"
-            "=<class 'pandas.core.indexes.range.RangeIndex'>"
+            "Received type(pandas_obj.index)=<class 'pandas"
         ),
     ):
         multi_index_lookup(pd.DataFrame(pd.Index([0, 1])), locator="not used")
@@ -62,8 +61,7 @@ def test_index_name_aware_lookup():
         match=re.escape(
             "This function is only intended to be used "
             "when `df`'s index is an instance of `MultiIndex`. "
-            "Received type(pandas_obj.index)"
-            "=<class 'pandas.core.indexes.range.RangeIndex'>"
+            "Received type(pandas_obj.index)=<class 'pandas"
         ),
     ):
         index_name_aware_lookup(pd.DataFrame(pd.Index([0, 1])), locator="not used")

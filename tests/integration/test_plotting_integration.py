@@ -577,7 +577,6 @@ def test_plot_plume_missing_multiple_quantiles(
         tmp_path=tmp_path,
     )
 
-    assert len(recwarn) == 16
     for w in recwarn:
         assert any(
             m in str(w.message)

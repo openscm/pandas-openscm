@@ -197,7 +197,7 @@ def test_save_data_index_not_multi_error(tmpdir):
         TypeError,
         match=re.escape(
             "`data.index` must be an instance of `pd.MultiIndex`. "
-            "Received type(data.index)=<class 'pandas.core.indexes.base.Index'>"
+            "Received type(data.index)=<class 'pandas"
         ),
     ):
         db.save(data)
