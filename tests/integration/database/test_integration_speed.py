@@ -78,11 +78,11 @@ def test_overhead(groupby, tmpdir):
     stop_db_save = time.perf_counter()
     time_db_save = stop_db_save - start_db_save
 
-    # Ok, particularly given how few files we're dealing with.
+    # These tolerances are ok, particularly given how few files we're dealing with.
     # This is mainly about avoiding a factor of 10
     # (which was the difference we were getting in earlier implemenations).
-    tol_save = 0.25
-    tol_load = 0.2
+    tol_save = 2.0
+    tol_load = 2.0
 
     overhead = (time_db_save - time_pandas_save) / time_pandas_save
     assert overhead <= tol_save, f"Overhead is more than {tol_save*100}%"

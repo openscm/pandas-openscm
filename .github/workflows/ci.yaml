@@ -74,6 +74,15 @@ jobs:
         os: [ "ubuntu-latest" ]
         # Test against all security and bugfix versions: https://devguide.python.org/versions/
         python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        include:
+          # Include other OS for latest Python
+          # because these seem to be the flakiest from experience
+          # so are worth the extra testing
+          - os: "windows-latest"
+            python-version: "3.13"
+          - os: "macos-latest"
+            python-version: "3.13"
+
     runs-on: "${{ matrix.os }}"
     defaults:
       run:
@@ -97,6 +106,8 @@ jobs:
           uv-dependency-install-flags: "--all-extras --group tests"
       - name: Run tests
         run: |
+          # Warm up the speed tests, allowing failure
+          uv run pytest tests/integration/database/test_integration_speed.py || true
           uv run pytest -r a -v src tests --doctest-modules --cov=src --cov-report=term-missing --cov-report=xml
           uv run coverage report
       - name: Upload coverage reports to Codecov with GitHub Action
@@ -266,7 +277,8 @@ jobs:
         # Required for building the locked version of the package
         # with pdm-build-locked (see pyproject.toml)
         run: |
-          pdm lock --group :all --strategy inherit_metadata
+          pdm lock --group :all --strategy inherit_metadata --python="<3.13"
+          pdm lock --group :all  --python=">=3.13" --append
       - name: Build package
         run: |
           uv build
