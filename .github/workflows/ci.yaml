@@ -84,13 +84,13 @@ jobs:
             python-version: "3.13"
 
     runs-on: "${{ matrix.os }}"
-    # defaults:
-      # run:
-      #   # This might be needed for Windows
-      #   # and doesn't seem to affect unix-based systems so we include it.
-      #   # If you have better proof of whether this is needed or not,
-      #   # feel free to update.
-      #   shell: bash
+    defaults:
+      run:
+        # This might be needed for Windows
+        # and doesn't seem to affect unix-based systems so we include it.
+        # If you have better proof of whether this is needed or not,
+        # feel free to update.
+        shell: bash
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
