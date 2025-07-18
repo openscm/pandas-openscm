@@ -74,32 +74,39 @@ def test_convert_unit_ur_injection():
 
 def test_convert_unit_mapping():
     start = create_test_df(
-        variables=[(f"variable_{i}", "Mt") for i in range(5)],
-        n_scenarios=3,
-        n_runs=6,
-        timepoints=np.array([1.0, 2.0, 3.0]),
+        variables=[
+            ("co2_emissions", "Mt CO2/yr"),
+            ("erf", "W / m^2"),
+            ("ohc", "ZJ"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
 
     # Don't convert W / m^2
-    res = start.convert_unit({"Mt CO2/yr": "Gt C/yr", "ZJ": "J"})
+    res = convert_unit(start, {"Mt CO2/yr": "Gt C/yr", "ZJ": "J"})
 
     np.testing.assert_equal(
-        res.iloc[0, :].values,
-        start.iloc[0, :].values * 12.0 / 44000.0,
+        res.loc[res.index.get_level_values("variable") == "co2_emissions", :].values,
+        12.0
+        / 44_000.0
+        * start.loc[
+            start.index.get_level_values("variable") == "co2_emissions", :
+        ].values,
     )
 
     np.testing.assert_equal(
-        res.iloc[1, :].values,
-        start.iloc[1, :].values,
+        res.loc[res.index.get_level_values("variable") == "erf", :].values,
+        start.loc[start.index.get_level_values("variable") == "erf", :].values,
     )
 
     np.testing.assert_equal(
-        res.iloc[2, :].values,
-        start.iloc[2, :].values * 1e21,
+        res.loc[res.index.get_level_values("variable") == "ohc", :].values,
+        1e21 * start.loc[start.index.get_level_values("variable") == "ohc", :].values,
     )
 
 
-# - test error paths
 def test_convert_unit_like():
     start = create_test_df(
         variables=[(f"variable_{i}", "Mt") for i in range(5)],
@@ -223,3 +230,8 @@ def test_convert_unit_like_different_unit_level_explicit_target_level():
         res.iloc[2, :].values,
         start.iloc[2, :].values + 273.0,
     )
+
+
+# To write:
+# - no op i.e. what happens when df is already in the right units
+# - tests of various error paths

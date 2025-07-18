@@ -42,7 +42,17 @@ def convert_unit(
         unit_map["target_unit"] = desired_unit
 
     elif isinstance(desired_unit, Mapping):
-        pass
+        # TODO: add check for any keys in desired_unit which are not units in df.
+        # Optionally raise if there are extra keys to avoid silent failure.
+        target_units_s = df_units_s.map(desired_unit).dropna().rename("target_unit")
+        unit_map = pd.DataFrame(
+            [df_units_s.loc[target_units_s.index], target_units_s]
+        ).T
+
+    elif isinstance(desired_unit, pd.Series):
+        raise NotImplementedError
+        # Assume that desired_unit is already the target units
+        unit_map = pd.DataFrame([*desired_unit.align(df_units_s)]).T
 
     else:
         raise NotImplementedError(type(desired_unit))
