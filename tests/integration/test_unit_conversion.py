@@ -135,9 +135,86 @@ def test_convert_series():
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
 
+    target_units = (
+        start.loc[start.index.get_level_values("variable") != "temperature"]
+        .reset_index("unit")["unit"]
+        .replace({"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"})
+    )
+
+    res = convert_unit(start, target_units)
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "temperature", :].values,
+        start.loc[start.index.get_level_values("variable") == "temperature", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "erf", :].values,
+        (60.0 * 60.0 * 24.0 * 365.25)
+        * 1e-21
+        * start.loc[start.index.get_level_values("variable") == "erf", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "ohc", :].values,
+        1e6 * start.loc[start.index.get_level_values("variable") == "ohc", :].values,
+    )
+
+
+def test_convert_series_all_rows():
+    # Check that conversion works if user supplies a Series of target units
+    start = create_test_df(
+        variables=[
+            ("temperature", "K"),
+            ("erf", "W / m^2"),
+            ("ohc", "ZJ"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
+    )
+
     target_units = start.reset_index("unit")["unit"].replace(
         {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
     )
+
+    res = convert_unit(start, target_units)
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "temperature", :].values,
+        start.loc[start.index.get_level_values("variable") == "temperature", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "erf", :].values,
+        (60.0 * 60.0 * 24.0 * 365.25)
+        * 1e-21
+        * start.loc[start.index.get_level_values("variable") == "erf", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "ohc", :].values,
+        1e6 * start.loc[start.index.get_level_values("variable") == "ohc", :].values,
+    )
+
+
+def test_convert_series_extra_rows():
+    # Check that conversion works if user supplies a Series of target units
+    start = create_test_df(
+        variables=[
+            ("temperature", "K"),
+            ("erf", "W / m^2"),
+            ("ohc", "ZJ"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
+    )
+
+    target_units = start.reset_index("unit")["unit"].replace(
+        {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
+    )
+    target_units.loc[("scenario_2", "temperature", 0)] = "kK"
 
     res = convert_unit(start, target_units)
 

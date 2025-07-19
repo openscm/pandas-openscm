@@ -185,8 +185,9 @@ def convert_unit(
         then the unit conversion will not happen.
 
         If this is a [pd.Series][pandas.Series],
-        then it will be passed directly to [convert_unit_from_target_series][]
-        and the requirements for that function apply.
+        then it will be passed to [convert_unit_from_target_series][]
+        after filling any rows in `df` that are not in `desired_unit`
+        with the unit from `df` (i.e. unspecified rows are not converted).
 
         For further details, see examples
 
@@ -204,7 +205,6 @@ def convert_unit(
     -------
     :
         `df` with converted units
-
 
     Examples
     --------
@@ -253,22 +253,22 @@ def convert_unit(
     >>> convert_unit(
     ...     start,
     ...     pd.Series(
-    ...         ["K", "mK", "degF"],
+    ...         ["K", "degF"],
     ...         index=pd.MultiIndex.from_tuples(
     ...             (
     ...                 ("sa", "temperature"),
-    ...                 ("sb", "temperature"),
+    ...                 # ("sb", "temperature") not included therefore not converted
     ...                 ("sb", "body temperature"),
     ...             ),
     ...             names=["scenario", "variable"],
     ...         ),
     ...     ),
     ... )
-                                        2020      2030      2050
+                                      2020     2030     2050
     scenario variable         unit
-    sa       temperature      K        0.001     0.002     0.003
-    sb       temperature      mK    1100.000  1200.000  1300.000
-             body temperature degF    98.600   100.580   100.220
+    sa       temperature      K      0.001    0.002    0.003
+    sb       temperature      K      1.100    1.200    1.300
+             body temperature degF  98.600  100.580  100.220
     """
     df_units_s = df.index.get_level_values(unit_level).to_series(
         index=df.index.droplevel(unit_level), name="df_unit"
@@ -288,7 +288,13 @@ def convert_unit(
         desired_unit_s = df_units_s.replace(desired_unit)
 
     elif isinstance(desired_unit, pd.Series):
-        desired_unit_s = desired_unit
+        missing = df_units_s.index.difference(desired_unit.index)
+        if missing.empty:
+            desired_unit_s = desired_unit
+        else:
+            desired_unit_s = pd.concat(
+                [desired_unit, multi_index_lookup(df_units_s, missing)]
+            )
 
     else:
         raise NotImplementedError(type(desired_unit))
