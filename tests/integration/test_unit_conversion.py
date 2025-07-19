@@ -7,7 +7,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pandas_openscm.testing import create_test_df
+from pandas_openscm.testing import assert_frame_alike, create_test_df
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 
@@ -237,36 +237,34 @@ def test_convert_series_extra_rows():
 
 
 def test_convert_unit_like():
-    start = create_test_df(
-        variables=[(f"variable_{i}", "Mt") for i in range(5)],
-        n_scenarios=3,
-        n_runs=6,
+    create_kwargs = dict(
+        n_scenarios=2,
+        n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
+    )
+    start = create_test_df(
+        variables=[
+            ("Cold", "mK"),
+            ("Warm", "kK"),
+            ("Body temperature", "degC"),
+        ],
+        **create_kwargs,
     )
 
     target = create_test_df(
-        variables=[(f"variable_{i}", "Mt") for i in range(5)],
-        n_scenarios=3,
-        n_runs=6,
-        timepoints=np.array([1.0, 2.0, 3.0]),
+        variables=[
+            ("Cold", "microK"),
+            ("Warm", "MK"),
+            ("Body temperature", "degF"),
+        ],
+        **create_kwargs,
     )
 
     res = convert_unit_like(start, target)
 
-    np.testing.assert_equal(
-        res.iloc[0, :].values,
-        start.iloc[0, :].values * 1e3,
-    )
+    exp = convert_unit(start, {"mK": "microK", "kK": "MK", "degC": "degF"})
 
-    np.testing.assert_equal(
-        res.iloc[1, :].values,
-        start.iloc[1, :].values / 1e3,
-    )
-
-    np.testing.assert_equal(
-        res.iloc[2, :].values,
-        start.iloc[2, :].values + 273.0,
-    )
+    assert_frame_alike(res, exp)
 
 
 def test_convert_unit_like_ur_injection():

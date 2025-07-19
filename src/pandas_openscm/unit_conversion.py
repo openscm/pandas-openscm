@@ -306,5 +306,39 @@ def convert_unit(
     return res
 
 
-def convert_unit_like():
-    raise NotImplementedError
+def convert_unit_like(
+    df: pd.DataFrame,
+    target: pd.DataFrame,
+    df_unit_level: str = "unit",
+    target_unit_level: str | None = None,
+    ur: pint.UnitRegistry | None = None,
+) -> pd.DataFrame:
+    if target_unit_level is None:
+        target_unit_level_use = df_unit_level
+    else:
+        target_unit_level_use = target_unit_level
+
+    extra_index_levels_target = target.index.names.difference(df.index.names)  # type: ignore # pandas-stubs confused
+    if extra_index_levels_target:
+        # if extra index levels in target, drop out the extra
+        # and see if the target is clear, if not, raise)
+        raise NotImplementedError
+
+    df_units_s = df.index.get_level_values(df_unit_level).to_series(
+        index=df.index.droplevel(df_unit_level)
+    )
+    target_units_s = target.index.get_level_values(target_unit_level_use).to_series(
+        index=target.index.droplevel(target_unit_level_use)
+    )
+
+    target_units_s, _ = target_units_s.align(df_units_s)
+    # # Line below should handle missing specs
+    # target_units_s = multi_index_lookup(target_units_s, df_units_s.index).fillna(
+    #     df_units_s
+    # )
+
+    res = convert_unit_from_target_series(
+        df=df, desired_unit=target_units_s, unit_level=df_unit_level, ur=ur
+    )
+
+    return res
