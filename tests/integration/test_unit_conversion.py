@@ -11,7 +11,14 @@ from pandas_openscm.testing import create_test_df
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 
-def test_convert_unit_single_unit():
+@pytest.mark.parametrize(
+    "unit, exp_unit",
+    (
+        pytest.param(None, "unit", id="default"),
+        ("units", "units"),
+    ),
+)
+def test_convert_unit_single_unit(unit, exp_unit):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -23,9 +30,18 @@ def test_convert_unit_single_unit():
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
 
-    res = convert_unit(start, "K")
+    call_kwargs = {}
+    if unit is not None:
+        start = (
+            start.reset_index("unit")
+            .rename({"unit": unit}, axis="columns")
+            .set_index(unit, append=True)
+        )
+        call_kwargs["unit_level"] = unit
 
-    assert (res.index.get_level_values("unit") == "K").all()
+    res = convert_unit(start, "K", **call_kwargs)
+
+    assert (res.index.get_level_values(exp_unit) == "K").all()
 
     np.testing.assert_equal(
         res.loc[res.index.get_level_values("variable") == "Cold", :].values,
@@ -75,7 +91,7 @@ def test_convert_unit_ur_injection():
 def test_convert_unit_mapping():
     start = create_test_df(
         variables=[
-            ("co2_emissions", "Mt CO2/yr"),
+            ("temperature", "K"),
             ("erf", "W / m^2"),
             ("ohc", "ZJ"),
         ],
@@ -85,14 +101,13 @@ def test_convert_unit_mapping():
     )
 
     # Don't convert W / m^2
-    res = convert_unit(start, {"Mt CO2/yr": "Gt C/yr", "ZJ": "J"})
+    res = convert_unit(start, {"K": "degC", "ZJ": "J"})
 
     np.testing.assert_allclose(
-        res.loc[res.index.get_level_values("variable") == "co2_emissions", :].values,
-        12.0
-        / 44_000.0
-        * start.loc[
-            start.index.get_level_values("variable") == "co2_emissions", :
+        res.loc[res.index.get_level_values("variable") == "temperature", :].values,
+        -273.15
+        + start.loc[
+            start.index.get_level_values("variable") == "temperature", :
         ].values,
     )
 
@@ -109,7 +124,39 @@ def test_convert_unit_mapping():
 
 def test_convert_series():
     # Check that conversion works if user supplies a Series of target units
-    raise NotImplementedError
+    start = create_test_df(
+        variables=[
+            ("temperature", "K"),
+            ("erf", "W / m^2"),
+            ("ohc", "ZJ"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
+    )
+
+    target_units = start.reset_index("unit")["unit"].replace(
+        {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
+    )
+
+    res = convert_unit(start, target_units)
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "temperature", :].values,
+        start.loc[start.index.get_level_values("variable") == "temperature", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "erf", :].values,
+        (60.0 * 60.0 * 24.0 * 365.25)
+        * 1e-21
+        * start.loc[start.index.get_level_values("variable") == "erf", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "ohc", :].values,
+        1e6 * start.loc[start.index.get_level_values("variable") == "ohc", :].values,
+    )
 
 
 def test_convert_unit_like():
