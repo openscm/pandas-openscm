@@ -11,7 +11,7 @@ import pandas as pd
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.index_manipulation import set_index_levels_func
-from pandas_openscm.indexing import multi_index_match
+from pandas_openscm.indexing import multi_index_lookup, multi_index_match
 
 if TYPE_CHECKING:
     import pint
@@ -50,6 +50,9 @@ def convert_unit(
         ).T
 
     elif isinstance(desired_unit, pd.Series):
+        # Don't do this,
+        # just split out a function which takes in a Series of target_units
+        # (and do direct passthrough if the user supplies a Series)
         raise NotImplementedError
         # Assume that desired_unit is already the target units
         unit_map = pd.DataFrame([*desired_unit.align(df_units_s)]).T
@@ -57,28 +60,41 @@ def convert_unit(
     else:
         raise NotImplementedError(type(desired_unit))
 
-    if (unit_map["df_unit"] == unit_map["target_unit"]).all():
-        # Already in matching units
+    unit_map_no_change = unit_map["df_unit"] == unit_map["target_unit"]
+    if unit_map_no_change.all():
+        # Already all in desired unit
         return df
 
-    df_converted = df.reset_index(unit_level, drop=True)
-    for (df_unit, target_unit), conversion_df in unit_map.groupby(
+    df_no_unit = df.reset_index(unit_level, drop=True)
+
+    for (df_unit, target_unit), conversion_df in unit_map[~unit_map_no_change].groupby(
         ["df_unit", "target_unit"]
     ):
-        to_alter_loc = multi_index_match(df_converted.index, conversion_df.index)  # type: ignore
-        df_converted.loc[to_alter_loc, :] = (
-            ur.Quantity(df_converted.loc[to_alter_loc, :].values, df_unit)
+        to_alter_loc = multi_index_match(df_no_unit.index, conversion_df.index)  # type: ignore
+        df_no_unit.loc[to_alter_loc, :] = (
+            ur.Quantity(df_no_unit.loc[to_alter_loc, :].values, df_unit)
             .to(target_unit)
             .m
         )
 
-    # All conversions done so can simply assign the unit column.
-    unit_map_reordered = unit_map.reorder_levels(df_converted.index.names)
-    res = set_index_levels_func(
-        df_converted,
-        # use `.loc` to ensure that the values line up with the converted result
-        {unit_level: unit_map_reordered["target_unit"].loc[df_converted.index]},
-    ).reorder_levels(df.index.names)
+    missing_from_unit_map = df_no_unit.index.difference(unit_map.index)
+    if not missing_from_unit_map.empty:
+        missing_from_unit_map_df = (
+            multi_index_lookup(df, missing_from_unit_map)
+            .index.to_frame()[[unit_level]]
+            .rename({unit_level: "df_unit"}, axis="columns")
+        )
+        missing_from_unit_map_df["target_unit"] = missing_from_unit_map_df["df_unit"]
+
+        unit_map = pd.concat([unit_map, missing_from_unit_map_df])
+
+    new_units = (unit_map.reorder_levels(df_no_unit.index.names).loc[df_no_unit.index])[
+        "target_unit"
+    ]
+
+    res = set_index_levels_func(df_no_unit, {unit_level: new_units}).reorder_levels(
+        df.index.names
+    )
 
     return res
 

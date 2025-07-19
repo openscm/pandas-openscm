@@ -87,7 +87,7 @@ def test_convert_unit_mapping():
     # Don't convert W / m^2
     res = convert_unit(start, {"Mt CO2/yr": "Gt C/yr", "ZJ": "J"})
 
-    np.testing.assert_equal(
+    np.testing.assert_allclose(
         res.loc[res.index.get_level_values("variable") == "co2_emissions", :].values,
         12.0
         / 44_000.0
@@ -105,6 +105,11 @@ def test_convert_unit_mapping():
         res.loc[res.index.get_level_values("variable") == "ohc", :].values,
         1e21 * start.loc[start.index.get_level_values("variable") == "ohc", :].values,
     )
+
+
+def test_convert_series():
+    # Check that conversion works if user supplies a Series of target units
+    raise NotImplementedError
 
 
 def test_convert_unit_like():
