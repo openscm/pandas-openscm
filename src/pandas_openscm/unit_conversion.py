@@ -14,18 +14,94 @@ from pandas_openscm.index_manipulation import set_index_levels_func
 from pandas_openscm.indexing import multi_index_match
 
 if TYPE_CHECKING:
-    import pint
+    import pint.facets
 
 
 def convert_unit_from_target_series(
     df: pd.DataFrame,
     desired_unit: pd.Series[str],
     unit_level: str = "unit",
-    ur: pint.UnitRegistry | None = None,
+    ur: pint.facets.PlainRegistry | None = None,
 ) -> pd.DataFrame:
+    """
+    Convert `df`'s units based on a [pd.Series][pandas.Series]
+
+    `desired_uni` defines the units to convert to.
+    This is a relatively low-level function,
+    you may find [convert_unit][] and [convert_unit_like][] easier to use.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] whose units should be converted
+
+    desired_unit
+        Desired unit(s) for `df`
+
+        This must be a [pd.Series][pandas.Series]
+        with an index that contains all the rows in `df`.
+
+    unit_level
+        Level in `df` which holds unit information
+
+    ur
+        Unit registry to use for the conversion.
+
+        If not supplied, we use [pint.get_application_registry][].
+
+    Returns
+    -------
+    :
+        `df` with converted units
+
+    Raises
+    ------
+    AssertionError
+        `desired_unit`'s index does not contain all the rows in `df`
+
+    MissingOptionalDependencyError
+        `ur` is `None` and [pint](https://pint.readthedocs.io/) is not available.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>>
+    >>> start = pd.DataFrame(
+    ...     [[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [37.0, 38.1, 37.9]],
+    ...     columns=[2020, 2030, 2050],
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         (
+    ...             ("sa", "temperature", "mK"),
+    ...             ("sb", "temperature", "K"),
+    ...             ("sb", "body temperature", "degC"),
+    ...         ),
+    ...         names=["scenario", "variable", "unit"],
+    ...     ),
+    ... )
+    >>>
+    >>> convert_unit_from_target_series(
+    ...     start,
+    ...     desired_unit=pd.Series(
+    ...         ["K", "mK", "degF"],
+    ...         index=pd.MultiIndex.from_tuples(
+    ...             (
+    ...                 ("sa", "temperature"),
+    ...                 ("sb", "temperature"),
+    ...                 ("sb", "body temperature"),
+    ...             ),
+    ...             names=["scenario", "variable"],
+    ...         ),
+    ...     ),
+    ... )
+                                        2020      2030      2050
+    scenario variable         unit
+    sa       temperature      K        0.001     0.002     0.003
+    sb       temperature      mK    1100.000  1200.000  1300.000
+             body temperature degF    98.600   100.580   100.220
+    """
     missing_rows = df.index.difference(desired_unit.index)
     if not missing_rows.empty:
-        msg = "Missing desired unit for {missing_rows}"
+        msg = f"Missing desired unit for {missing_rows}"
         raise AssertionError(msg)
 
     df_reset_unit = df.reset_index(unit_level)
@@ -55,9 +131,6 @@ def convert_unit_from_target_series(
     for (df_unit, target_unit), conversion_df in unit_map[~unit_map_no_change].groupby(
         ["df_unit", "target_unit"]
     ):
-        if df_unit == target_unit:
-            continue
-
         to_alter_loc = multi_index_match(df_no_unit.index, conversion_df.index)  # type: ignore
         df_no_unit.loc[to_alter_loc, :] = (
             ur.Quantity(df_no_unit.loc[to_alter_loc, :].values, df_unit)
@@ -80,7 +153,7 @@ def convert_unit(
     df: pd.DataFrame,
     desired_unit: str | Mapping[str, str] | pd.Series[str],
     unit_level: str = "unit",
-    ur: pint.UnitRegistry | None = None,
+    ur: pint.facets.PlainRegistry | None = None,
 ) -> pd.DataFrame:
     """
     Convert a [pd.DataFrame][pandas.DataFrame]'s units
