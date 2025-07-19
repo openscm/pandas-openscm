@@ -11,7 +11,7 @@ import pandas as pd
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.index_manipulation import set_index_levels_func
-from pandas_openscm.indexing import multi_index_match
+from pandas_openscm.indexing import multi_index_lookup, multi_index_match
 
 if TYPE_CHECKING:
     import pint.facets
@@ -107,10 +107,14 @@ def convert_unit_from_target_series(
     df_reset_unit = df.reset_index(unit_level)
     df_units = df_reset_unit[unit_level].rename("df_unit")
 
+    desired_unit_in_df = multi_index_lookup(desired_unit, df_units.index).rename(
+        "target_unit"
+    )
+
     # Don't need to align, pandas does that for us.
     # If you want to check, compare the below with
     # unit_map = pd.DataFrame([df_units_s, target_units_s.sample(frac=1)]).T
-    unit_map = pd.DataFrame([df_units, desired_unit.rename("target_unit")]).T
+    unit_map = pd.DataFrame([df_units, desired_unit_in_df]).T
 
     unit_map_no_change = unit_map["df_unit"] == unit_map["target_unit"]
     if unit_map_no_change.all():
