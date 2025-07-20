@@ -42,7 +42,7 @@ def convert_unit_from_target_series(
         with an index that contains all the rows in `df`.
 
     unit_level
-        Level in `df` which holds unit information
+        Level in `df`'s index which holds unit information
 
     ur
         Unit registry to use for the conversion.
@@ -192,7 +192,7 @@ def convert_unit(
         For further details, see examples
 
     unit_level
-        Level in `df` which holds unit information
+        Level in `df`'s index which holds unit information
 
         Passed to [convert_unit_from_target_series][].
 
@@ -306,6 +306,23 @@ def convert_unit(
     return res
 
 
+class AmbiguousTargetUnitError(ValueError):
+    """
+    Raised when `target` provided to `convert_unit_like` gives ambiguous desired units
+    """
+
+    def __init__(self, msg: str) -> None:
+        """
+        Initialise the error
+
+        Parameters
+        ----------
+        msg
+            Message to provide to the user
+        """
+        super().__init__(msg)
+
+
 def convert_unit_like(
     df: pd.DataFrame,
     target: pd.DataFrame,
@@ -313,29 +330,143 @@ def convert_unit_like(
     target_unit_level: str | None = None,
     ur: pint.UnitRegistry | None = None,
 ) -> pd.DataFrame:
+    """
+    Convert units to match another [pd.DataFrame][pandas.DataFrame]
+
+    This is essentially a helper function for [convert_unit_from_target_series][].
+    It implements one set of logic for extracting desired units and tries to be clever,
+    handling differences in index levels
+    between `df` and `target` sensibly wherever possible.
+
+    If you want behaviour other than what is implemented here,
+    use [convert_unit_from_target_series][] directly.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] whose units should be converted
+
+    target
+        [pd.DataFrame][pandas.DataFrame] whose units should be matched
+
+    df_unit_level
+        Level in `df`'s index which holds unit information
+
+    target_unit_level
+        Level in `target`'s index which holds unit information
+
+        If not supplied, we use `df_unit_level`.
+
+    ur
+        Unit registry to use for the conversion.
+
+        Passed to [convert_unit_from_target_series][].
+
+    Returns
+    -------
+    :
+        `df` with converted units
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>>
+    >>> start = pd.DataFrame(
+    ...     [
+    ...         [1010.0, 2010.0, 1150.0],
+    ...         [100.1, 100.3, 99.8],
+    ...         [0.0011, 0.0012, 0.0013],
+    ...         [310_000, 311_000, 310_298],
+    ...     ],
+    ...     columns=[2020, 2030, 2050],
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         (
+    ...             ("sa", "temperature", "mK"),
+    ...             ("sa", "body temperature", "degF"),
+    ...             ("sb", "temperature", "kK"),
+    ...             ("sb", "body temperature", "mK"),
+    ...         ),
+    ...         names=["scenario", "variable", "unit"],
+    ...     ),
+    ... )
+    >>>
+    >>> target = pd.DataFrame(
+    ...     [[1.0, 2.0], [1.1, 1.2]],
+    ...     columns=[1990.0, 2010.0],
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         (
+    ...             ("temperature", "K"),
+    ...             ("body temperature", "degC"),
+    ...         ),
+    ...         names=["variable", "unit"],
+    ...     ),
+    ... )
+    >>>
+    >>> convert_unit_like(start, target)
+                                         2020       2030       2050
+    scenario variable         unit
+    sa       temperature      K      1.010000   2.010000   1.150000
+             body temperature degC  37.833333  37.944444  37.666667
+    sb       temperature      K      1.100000   1.200000   1.300000
+             body temperature degC  36.850000  37.850000  37.148000
+    """
     if target_unit_level is None:
         target_unit_level_use = df_unit_level
     else:
         target_unit_level_use = target_unit_level
 
-    extra_index_levels_target = target.index.names.difference(df.index.names)  # type: ignore # pandas-stubs confused
-    if extra_index_levels_target:
-        # if extra index levels in target, drop out the extra
-        # and see if the target is clear, if not, raise)
-        raise NotImplementedError
-
     df_units_s = df.index.get_level_values(df_unit_level).to_series(
         index=df.index.droplevel(df_unit_level)
     )
-    target_units_s = target.index.get_level_values(target_unit_level_use).to_series(
-        index=target.index.droplevel(target_unit_level_use)
-    )
+
+    extra_index_levels_target = target.index.names.difference(
+        [*df.index.names, target_unit_level_use]
+    )  # type: ignore # pandas-stubs confused
+    if extra_index_levels_target:
+        # Drop out the extra levels and see if the intended unit is unambiguous
+        tmp = target.index.droplevel(extra_index_levels_target).drop_duplicates()
+        target_units_s = tmp.get_level_values(target_unit_level_use).to_series(
+            index=tmp.droplevel(target_unit_level_use)
+        )
+        ambiguous = target_units_s.index.duplicated(keep=False)
+        if ambiguous.any():
+            ambiguous_idx = target_units_s[ambiguous].index
+            if not isinstance(ambiguous_idx, pd.MultiIndex):
+                ambiguous_idx = pd.MultiIndex.from_arrays(
+                    [ambiguous_idx.values], names=[ambiguous_idx.name]
+                )
+
+            ambiguous_idx = ambiguous_idx.remove_unused_levels()
+            ambiguous_drivers = target.index[
+                multi_index_match(target.index, ambiguous_idx)
+            ]
+
+            msg = (
+                f"`df` has {df.index.names=}. "
+                f"`target` has {target.index.names=}. "
+                "The index levels in `target` that are also in `df` are "
+                f"{target_units_s.index.names}. "
+                "When we only look at these levels, the desired unit looks like:\n"
+                f"{target_units_s}\n"
+                "The unit to use isn't unambiguous for the following metadata:\n"
+                f"{target_units_s[ambiguous]}\n"
+                "The drivers of this ambiguity "
+                "are the following metadata levels in `target`\n"
+                f"{ambiguous_drivers}"
+            )
+            raise AmbiguousTargetUnitError(msg)
+
+    else:
+        target_units_s = target.index.get_level_values(target_unit_level_use).to_series(
+            index=target.index.droplevel(target_unit_level_use)
+        )
 
     target_units_s, _ = target_units_s.align(df_units_s)
-    # # Line below should handle missing specs
-    # target_units_s = multi_index_lookup(target_units_s, df_units_s.index).fillna(
-    #     df_units_s
-    # )
+    if target_units_s.isnull().any():
+        # Fill rows that don't get a spec with their existing units
+        target_units_s = multi_index_lookup(target_units_s, df_units_s.index).fillna(
+            df_units_s
+        )
 
     res = convert_unit_from_target_series(
         df=df, desired_unit=target_units_s, unit_level=df_unit_level, ur=ur
