@@ -46,7 +46,7 @@ def convert_unit_from_target_series(
 
     `desired_uni` defines the units to convert to.
     This is a relatively low-level function,
-    you may find [convert_unit][] and [convert_unit_like][] easier to use.
+    you may find [convert_unit][(m).] and [convert_unit_like][(m).] easier to use.
 
     Parameters
     ----------
@@ -179,7 +179,7 @@ def convert_unit(
     """
     Convert a [pd.DataFrame][pandas.DataFrame]'s units
 
-    This uses [convert_unit_from_target_series][].
+    This uses [convert_unit_from_target_series][(m).].
     If you want to understand the details of how the conversion works,
     see that function's docstring.
 
@@ -202,7 +202,7 @@ def convert_unit(
         then the unit conversion will not happen.
 
         If this is a [pd.Series][pandas.Series],
-        then it will be passed to [convert_unit_from_target_series][]
+        then it will be passed to [convert_unit_from_target_series][(m).]
         after filling any rows in `df` that are not in `desired_unit`
         with the unit from `df` (i.e. unspecified rows are not converted).
 
@@ -211,12 +211,12 @@ def convert_unit(
     unit_level
         Level in `df`'s index which holds unit information
 
-        Passed to [convert_unit_from_target_series][].
+        Passed to [convert_unit_from_target_series][(m).].
 
     ur
         Unit registry to use for the conversion.
 
-        Passed to [convert_unit_from_target_series][].
+        Passed to [convert_unit_from_target_series][(m).].
 
     Returns
     -------
@@ -350,13 +350,13 @@ def convert_unit_like(
     """
     Convert units to match another [pd.DataFrame][pandas.DataFrame]
 
-    This is essentially a helper function for [convert_unit_from_target_series][].
+    This is essentially a helper function for [convert_unit_from_target_series][(m).].
     It implements one set of logic for extracting desired units and tries to be clever,
     handling differences in index levels
     between `df` and `target` sensibly wherever possible.
 
     If you want behaviour other than what is implemented here,
-    use [convert_unit_from_target_series][] directly.
+    use [convert_unit_from_target_series][(m).] directly.
 
     Parameters
     ----------
@@ -377,7 +377,7 @@ def convert_unit_like(
     ur
         Unit registry to use for the conversion.
 
-        Passed to [convert_unit_from_target_series][].
+        Passed to [convert_unit_from_target_series][(m).].
 
     Returns
     -------

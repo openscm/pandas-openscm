@@ -9,6 +9,7 @@ See https://oprypin.github.io/mkdocs-literate-nav/
     - [How to make a plume plot](how-to-guides/how-to-make-a-plume-plot.py)
     - [How to use our database, OpenSCMDB](how-to-guides/how-to-use-openscmdb.py)
 - [Tutorials](tutorials/index.md)
+    - [Unit conversion](tutorials/unit-conversion.py)
 - [Further background](further-background/index.md)
     - [Dependency pinning and testing](further-background/dependency-pinning-and-testing.md)
     - [OpenSCMDB back-end speed](further-background/openscmdb-backend-speed.md)
