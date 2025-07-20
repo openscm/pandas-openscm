@@ -4,17 +4,24 @@ Integration tests of `pandas_openscm.unit_conversion`
 
 from __future__ import annotations
 
+import re
+import sys
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
 
+from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.index_manipulation import (
     set_index_levels_func,
 )
 from pandas_openscm.testing import assert_frame_alike, create_test_df
 from pandas_openscm.unit_conversion import (
     AmbiguousTargetUnitError,
+    MissingDesiredUnitError,
     convert_unit,
+    convert_unit_from_target_series,
     convert_unit_like,
 )
 
@@ -36,6 +43,26 @@ def test_convert_unit_no_op():
     )
 
     pd.testing.assert_frame_equal(res, start)
+
+
+def test_convert_unit_unknown_mapping_type():
+    start = create_test_df(
+        variables=[
+            ("Cold", "mK"),
+            ("Warm", "kK"),
+            ("Body temperature", "degC"),
+        ],
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.array([1.0, 2.0, 3.0]),
+    )
+
+    with pytest.raises(NotImplementedError, match="DataFrame"):
+        convert_unit(
+            start,
+            # DataFrame not supported, has to be Series
+            start.index.to_frame()[["unit"]].reset_index("unit", drop=True),
+        )
 
 
 @pytest.mark.parametrize(
@@ -424,6 +451,44 @@ def test_convert_unit_like_extra_levels_ambiguous_error():
         columns=np.array([1.0, 10.0, 100.0]),
         index=pd.MultiIndex.from_tuples(
             [
+                ("ma", "scenario_0", "Cold", "microK"),
+                ("mb", "scenario_0", "Cold", "K"),
+                ("ma", "scenario_0", "Warm", "K"),
+                ("mb", "scenario_0", "Warm", "K"),
+                ("ma", "scenario_0", "Body temperature", "K"),
+                ("mb", "scenario_0", "Body temperature", "degF"),
+            ],
+            names=["model", "scenario", "variable", "unit"],
+        ),
+    )
+
+    with pytest.raises(AmbiguousTargetUnitError):
+        convert_unit_like(start, target)
+
+
+def test_convert_unit_like_extra_levels_ambiguous_error_single_extra():
+    """
+    Test sure that we convert to a MultiIndex when creating the error message
+
+    Handles awkward edge case where the ambiguous index
+    is automatically cast to a plain index by pandas.
+    """
+    start = create_test_df(
+        variables=[
+            ("Cold", "mK"),
+            ("Warm", "kK"),
+            ("Body temperature", "degC"),
+        ],
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.array([2020.0, 2030.0, 2040.0]),
+    )
+
+    target = pd.DataFrame(
+        np.arange(3 * 6).reshape((6, 3)),
+        columns=np.array([1.0, 10.0, 100.0]),
+        index=pd.MultiIndex.from_tuples(
+            [
                 ("ma", "Cold", "microK"),
                 ("mb", "Cold", "K"),
                 ("ma", "Warm", "K"),
@@ -580,5 +645,67 @@ def test_convert_unit_like_unit_level_handling(
     assert_frame_alike(res, exp)
 
 
-# To write:
-# - tests of various error paths
+def test_convert_unit_from_target_series_missing_desired_unit_error():
+    start = pd.DataFrame(
+        np.arange(2 * 3).reshape((2, 3)),
+        columns=np.array([1.0, 10.0, 100.0]),
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("ma", "Cold", "microK"),
+                ("mb", "Cold", "K"),
+            ],
+            names=["model", "variable", "unit"],
+        ),
+    )
+
+    desired_unit = pd.Series(
+        [
+            "K",
+            # "K",
+        ],
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("ma", "Cold"),
+                # ("mb", "Cold"),
+            ],
+            names=["model", "variable"],
+        ),
+    )
+
+    with pytest.raises(MissingDesiredUnitError):
+        convert_unit_from_target_series(start, desired_unit)
+
+
+def test_convert_unit_from_target_series_no_pint_error():
+    start = pd.DataFrame(
+        np.arange(2 * 3).reshape((2, 3)),
+        columns=np.array([1.0, 10.0, 100.0]),
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("ma", "Cold", "microK"),
+                ("mb", "Cold", "K"),
+            ],
+            names=["model", "variable", "unit"],
+        ),
+    )
+
+    desired_unit = pd.Series(
+        ["K", "K"],
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("ma", "Cold"),
+                ("mb", "Cold"),
+            ],
+            names=["model", "variable"],
+        ),
+    )
+
+    with patch.dict(sys.modules, {"pint": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`convert_unit_from_target_series(..., ur=None, ...)` "
+                "requires pint to be installed"
+            ),
+        ):
+            convert_unit_from_target_series(start, desired_unit)

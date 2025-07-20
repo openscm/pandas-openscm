@@ -17,6 +17,24 @@ if TYPE_CHECKING:
     import pint.facets
 
 
+class MissingDesiredUnitError(ValueError):
+    """
+    Raised when the desired unit is not specified for all timeseries
+    """
+
+    def __init__(self, missing_ts: pd.MultiIndex) -> None:
+        """
+        Initialise the error
+
+        Parameters
+        ----------
+        missing_ts
+            Timeseries for which no desired unit is specified
+        """
+        msg = f"Missing desired unit for the following timeseries {missing_ts}"
+        super().__init__(msg)
+
+
 def convert_unit_from_target_series(
     df: pd.DataFrame,
     desired_unit: pd.Series[str],
@@ -101,8 +119,7 @@ def convert_unit_from_target_series(
     """
     missing_rows = df.index.difference(desired_unit.index)
     if not missing_rows.empty:
-        msg = f"Missing desired unit for {missing_rows}"
-        raise AssertionError(msg)
+        raise MissingDesiredUnitError(missing_rows)
 
     df_reset_unit = df.reset_index(unit_level)
     df_units = df_reset_unit[unit_level].rename("df_unit")
