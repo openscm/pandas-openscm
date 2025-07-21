@@ -54,6 +54,55 @@ def convert_index_to_category_index(pandas_obj: P) -> P:
     )
 
 
+def ensure_is_multiindex(index: pd.Index[Any] | pd.MultiIndex) -> pd.MultiIndex:
+    """
+    Ensure that an index is a [pd.MultiIndex][pandas.MultiIndex]
+
+    Parameters
+    ----------
+    index
+        Index to check
+
+    Returns
+    -------
+    :
+        Index, cast to [pd.MultiIndex][pandas.MultiIndex] if needed
+    """
+    if isinstance(index, pd.MultiIndex):
+        return index
+
+    return pd.MultiIndex.from_arrays([index.values], names=[index.name])
+
+
+def ensure_index_is_multiindex(pandas_obj: P, copy: bool = True) -> P:
+    """
+    Ensure that the index of a pandas object is a [pd.MultiIndex][pandas.MultiIndex]
+
+    Parameters
+    ----------
+    pandas_obj
+        Object whose index we want to ensure is a [pd.MultiIndex][pandas.MultiIndex]
+
+    copy
+        Should we copy `pandas_obj` before modifying the index?
+
+    Returns
+    -------
+    :
+        `pandas_obj` with a [pd.MultiIndex][pandas.MultiIndex]
+    """
+    # TODOO: accessor and tests
+    if isinstance(pandas_obj.index, pd.MultiIndex):
+        return pandas_obj
+
+    if copy:
+        pandas_obj = pandas_obj.copy()
+
+    pandas_obj.index = ensure_is_multiindex(pandas_obj.index)
+
+    return pandas_obj
+
+
 def unify_index_levels(
     left: pd.MultiIndex, right: pd.MultiIndex
 ) -> tuple[pd.MultiIndex, pd.MultiIndex]:
@@ -897,24 +946,3 @@ def set_index_levels_func(
     df.index = set_levels(df.index, levels_to_set=levels_to_set)  # type: ignore
 
     return df
-
-
-def ensure_is_multiindex(index: pd.Index | pd.MultiIndex) -> pd.MultiIndex:
-    """
-    Ensure that an index is a [pd.MultiIndex][pandas.MultiIndex]
-
-    Parameters
-    ----------
-    index
-        Index to check
-
-
-    Returns
-    -------
-    :
-        Index, cast to [pd.MultiIndex][pandas.MultiIndex] if needed
-    """
-    if isinstance(index, pd.MultiIndex):
-        return index
-
-    return pd.MultiIndex.from_arrays([index.values], names=[index.name])

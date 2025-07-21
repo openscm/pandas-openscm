@@ -11,6 +11,7 @@ import pandas as pd
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.index_manipulation import (
+    ensure_index_is_multiindex,
     ensure_is_multiindex,
     set_index_levels_func,
 )
@@ -120,38 +121,29 @@ def convert_unit_from_target_series(
     sb       temperature      mK    1100.000  1200.000  1300.000
              body temperature degF    98.600   100.580   100.220
     """
-    if not isinstance(desired_units.index, pd.MultiIndex):
-        desired_units.index = pd.MultiIndex.from_arrays(
-            [desired_units.index.values], names=[desired_units.index.name]
-        )
+    desired_units = ensure_index_is_multiindex(desired_units)
 
-    checker = df.index.droplevel(unit_level)
-    if not isinstance(checker, pd.MultiIndex):
-        checker = pd.MultiIndex.from_arrays([checker.values], names=[checker.name])
-
-    missing_rows = checker.difference(desired_units.index)
+    df_rows_checker = ensure_is_multiindex(df.index.droplevel(unit_level))
+    missing_rows = df_rows_checker.difference(  # type: ignore # pandas-stubs missing API
+        desired_units.index.reorder_levels(df_rows_checker.names)  # type: ignore # pandas-stubs missing API
+    )
     if not missing_rows.empty:
         raise MissingDesiredUnitError(missing_rows)
 
-    df_reset_unit = df.reset_index(unit_level)
-    if not isinstance(df_reset_unit.index, pd.MultiIndex):
-        df_reset_unit.index = pd.MultiIndex.from_arrays(
-            [df_reset_unit.index.values], names=[df_reset_unit.index.name]
-        )
+    df_reset_unit = ensure_index_is_multiindex(df.reset_index(unit_level), copy=False)
 
-    df_units = df_reset_unit[unit_level].rename("df_unit")
+    df_units = df_reset_unit[unit_level]
 
-    desired_units_in_df = multi_index_lookup(desired_units, df_units.index).rename(
-        "target_unit"
-    )
+    desired_units_in_df = multi_index_lookup(desired_units, df_units.index)  # type: ignore # already checked that df_units.index is MultiIndex
 
     # Don't need to align, pandas does that for us.
     # If you want to check, compare the below with
-    # unit_map = pd.DataFrame([df_units_s, target_units_s.sample(frac=1)]).T
-    unit_map = pd.DataFrame([df_units, desired_units_in_df]).T
-
-    unit_map_no_change = unit_map["df_unit"] == unit_map["target_unit"]
-    if unit_map_no_change.all():
+    # unit_map = pd.DataFrame([df_units, desired_units_in_df.sample(frac=1)]).T
+    unit_map = pd.DataFrame(
+        [df_units.rename("df_unit"), desired_units_in_df.rename("target_unit")]
+    ).T
+    unit_changes = unit_map["df_unit"] != unit_map["target_unit"]
+    if not unit_changes.any():
         # Already all in desired unit
         return df
 
@@ -159,14 +151,14 @@ def convert_unit_from_target_series(
         try:
             import pint
 
-            ur = pint.get_application_registry()
+            ur = pint.get_application_registry()  # type: ignore # pint typing limited
         except ImportError:
             raise MissingOptionalDependencyError(  # noqa: TRY003
                 "convert_unit_from_target_series(..., ur=None, ...)", "pint"
             )
 
     df_no_unit = df_reset_unit.drop(unit_level, axis="columns")
-    for (df_unit, target_unit), conversion_df in unit_map[~unit_map_no_change].groupby(
+    for (df_unit, target_unit), conversion_df in unit_map[unit_changes].groupby(
         ["df_unit", "target_unit"]
     ):
         to_alter_loc = multi_index_match(df_no_unit.index, conversion_df.index)  # type: ignore
@@ -179,7 +171,6 @@ def convert_unit_from_target_series(
     new_units = (unit_map.reorder_levels(df_no_unit.index.names).loc[df_no_unit.index])[
         "target_unit"
     ]
-
     res = set_index_levels_func(df_no_unit, {unit_level: new_units}).reorder_levels(
         df.index.names
     )
@@ -304,10 +295,11 @@ def convert_unit(
     sb       temperature      K      1.100    1.200    1.300
              body temperature degF  98.600  100.580  100.220
     """
-    df_units_s = df.index.get_level_values(unit_level).to_series(
-        index=df.index.droplevel(unit_level), name="df_unit"
+    df_units_s = ensure_index_is_multiindex(
+        df.index.get_level_values(unit_level).to_series(
+            index=df.index.droplevel(unit_level), name="df_unit"
+        )
     )
-    df_units_s.index = ensure_is_multiindex(df_units_s.index)
 
     # I don't love creating target_units_s in this function,
     # but it's basically a convenience function
@@ -320,10 +312,10 @@ def convert_unit(
         )
 
     elif isinstance(desired_units, Mapping):
-        desired_units_s = df_units_s.replace(desired_units)
+        desired_units_s = df_units_s.replace(desired_units)  # type: ignore # pandas-stubs missing Mapping option
 
-    elif isinstance(desired_units, pd.Series):
-        desired_units.index = ensure_is_multiindex(desired_units.index)
+    elif isinstance(desired_units, pd.Series):  # type: ignore # isinstance confused by pd.Series without generic type annotation
+        desired_units = ensure_index_is_multiindex(desired_units)  # type: ignore # as above
 
         missing = df_units_s.index.difference(desired_units.index)
         if missing.empty:
@@ -365,7 +357,7 @@ def convert_unit_like(
     target: pd.DataFrame,
     df_unit_level: str = "unit",
     target_unit_level: str | None = None,
-    ur: pint.UnitRegistry | None = None,
+    ur: pint.facets.PlainRegistry | None = None,
 ) -> pd.DataFrame:
     """
     Convert units to match another [pd.DataFrame][pandas.DataFrame]
@@ -452,18 +444,28 @@ def convert_unit_like(
     else:
         target_unit_level_use = target_unit_level
 
-    df_units_s = df.index.get_level_values(df_unit_level).to_series(
-        index=df.index.droplevel(df_unit_level)
+    df_units_s = ensure_index_is_multiindex(
+        df.index.get_level_values(df_unit_level).to_series(
+            index=df.index.droplevel(df_unit_level)
+        )
     )
 
-    extra_index_levels_target = target.index.names.difference(
+    extra_index_levels_target = target.index.names.difference(  # type: ignore # pandas-stubs API out of date
         [*df.index.names, target_unit_level_use]
-    )  # type: ignore # pandas-stubs confused
+    )
     if extra_index_levels_target:
-        # Drop out the extra levels and see if the intended unit is unambiguous
-        tmp = target.index.droplevel(extra_index_levels_target).drop_duplicates()
-        target_units_s = tmp.get_level_values(target_unit_level_use).to_series(
-            index=tmp.droplevel(target_unit_level_use)
+        # Drop out the extra levels and duplicates,
+        # then create the target units Series
+        # (ambiguity in the result is handled later)
+        target_index_without_extra_levels_and_dups = target.index.droplevel(
+            extra_index_levels_target
+        ).drop_duplicates()
+        target_units_s = target_index_without_extra_levels_and_dups.get_level_values(
+            target_unit_level_use
+        ).to_series(
+            index=target_index_without_extra_levels_and_dups.droplevel(
+                target_unit_level_use
+            )
         )
 
     else:
@@ -471,15 +473,15 @@ def convert_unit_like(
             index=target.index.droplevel(target_unit_level_use)
         )
 
+    target_units_s = ensure_index_is_multiindex(target_units_s)
+
     ambiguous = target_units_s.index.duplicated(keep=False)
     if ambiguous.any():
-        ambiguous_idx = target_units_s[ambiguous].index
-        if not isinstance(ambiguous_idx, pd.MultiIndex):
-            ambiguous_idx = pd.MultiIndex.from_arrays(
-                [ambiguous_idx.values], names=[ambiguous_idx.name]
-            )
+        ambiguous_idx = target_units_s[ambiguous].index.remove_unused_levels()
+        if not isinstance(target.index, pd.MultiIndex):  # pragma: no cover
+            # Should be unreachable, but just in case
+            raise TypeError(type(target.index))
 
-        ambiguous_idx = ambiguous_idx.remove_unused_levels()
         ambiguous_drivers = target.index[multi_index_match(target.index, ambiguous_idx)]
 
         msg = (
@@ -498,13 +500,13 @@ def convert_unit_like(
         raise AmbiguousTargetUnitError(msg)
 
     target_units_s, _ = target_units_s.align(df_units_s)
-    target_units_s.index = ensure_is_multiindex(target_units_s.index)
-    df_units_s.index = ensure_is_multiindex(df_units_s.index)
+    target_units_s = target_units_s.reorder_levels(df_units_s.index.names)
     if target_units_s.isnull().any():
         # Fill rows that don't get a spec with their existing units
-        target_units_s = multi_index_lookup(target_units_s, df_units_s.index).fillna(
-            df_units_s
-        )
+        target_units_s = multi_index_lookup(
+            target_units_s,
+            df_units_s.index,  # type: ignore # checked that index is MultiIndex above
+        ).fillna(df_units_s)
 
     res = convert_unit_from_target_series(
         df=df, desired_units=target_units_s, unit_level=df_unit_level, ur=ur
