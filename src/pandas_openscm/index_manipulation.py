@@ -897,3 +897,24 @@ def set_index_levels_func(
     df.index = set_levels(df.index, levels_to_set=levels_to_set)  # type: ignore
 
     return df
+
+
+def ensure_is_multiindex(index: pd.Index | pd.MultiIndex) -> pd.MultiIndex:
+    """
+    Ensure that an index is a [pd.MultiIndex][pandas.MultiIndex]
+
+    Parameters
+    ----------
+    index
+        Index to check
+
+
+    Returns
+    -------
+    :
+        Index, cast to [pd.MultiIndex][pandas.MultiIndex] if needed
+    """
+    if isinstance(index, pd.MultiIndex):
+        return index
+
+    return pd.MultiIndex.from_arrays([index.values], names=[index.name])

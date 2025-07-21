@@ -25,8 +25,23 @@ from pandas_openscm.unit_conversion import (
     convert_unit_like,
 )
 
+check_auto_index_casting_df = pytest.mark.parametrize(
+    "only_two_index_levels_df",
+    (
+        pytest.param(True, id="only_two_index_levels"),
+        pytest.param(False, id="more_than_two_index_levels"),
+    ),
+)
+"""
+Parameterisation to use to check handling of auto casting to `pd.Index`
 
-def test_convert_unit_no_op():
+This casting causes all sorts of indexing and other issues.
+This parameterisation ensures that we check this edge case.
+"""
+
+
+@check_auto_index_casting_df
+def test_convert_unit_no_op(only_two_index_levels_df):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -37,6 +52,11 @@ def test_convert_unit_no_op():
         n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     res = convert_unit(
         start, start.index.to_frame()["unit"].reset_index("unit", drop=True)
@@ -65,6 +85,7 @@ def test_convert_unit_unknown_mapping_type():
         )
 
 
+@check_auto_index_casting_df
 @pytest.mark.parametrize(
     "unit, exp_unit",
     (
@@ -72,7 +93,7 @@ def test_convert_unit_unknown_mapping_type():
         ("units", "units"),
     ),
 )
-def test_convert_unit_single_unit(unit, exp_unit):
+def test_convert_unit_single_unit(unit, exp_unit, only_two_index_levels_df):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -83,6 +104,11 @@ def test_convert_unit_single_unit(unit, exp_unit):
         n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     call_kwargs = {}
     if unit is not None:
@@ -142,7 +168,8 @@ def test_convert_unit_ur_injection():
     )
 
 
-def test_convert_unit_mapping():
+@check_auto_index_casting_df
+def test_convert_unit_mapping(only_two_index_levels_df):
     start = create_test_df(
         variables=[
             ("temperature", "K"),
@@ -153,6 +180,11 @@ def test_convert_unit_mapping():
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     # Don't convert W / m^2
     res = convert_unit(start, {"K": "degC", "ZJ": "J"})
@@ -176,7 +208,8 @@ def test_convert_unit_mapping():
     )
 
 
-def test_convert_series():
+@check_auto_index_casting_df
+def test_convert_series(only_two_index_levels_df):
     # Check that conversion works if user supplies a Series of target units
     start = create_test_df(
         variables=[
@@ -188,14 +221,19 @@ def test_convert_series():
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
-    target_units = (
+    desired_units = (
         start.loc[start.index.get_level_values("variable") != "temperature"]
         .reset_index("unit")["unit"]
         .replace({"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"})
     )
 
-    res = convert_unit(start, target_units)
+    res = convert_unit(start, desired_units)
 
     np.testing.assert_allclose(
         res.loc[res.index.get_level_values("variable") == "temperature", :].values,
@@ -215,8 +253,8 @@ def test_convert_series():
     )
 
 
-def test_convert_series_all_rows():
-    # Check that conversion works if user supplies a Series of target units
+@check_auto_index_casting_df
+def test_convert_series_all_rows(only_two_index_levels_df):
     start = create_test_df(
         variables=[
             ("temperature", "K"),
@@ -227,12 +265,17 @@ def test_convert_series_all_rows():
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
-    target_units = start.reset_index("unit")["unit"].replace(
+    desired_units = start.reset_index("unit")["unit"].replace(
         {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
     )
 
-    res = convert_unit(start, target_units)
+    res = convert_unit(start, desired_units)
 
     np.testing.assert_allclose(
         res.loc[res.index.get_level_values("variable") == "temperature", :].values,
@@ -252,8 +295,8 @@ def test_convert_series_all_rows():
     )
 
 
-def test_convert_series_extra_rows():
-    # Check that conversion works if user supplies a Series of target units
+@check_auto_index_casting_df
+def test_convert_series_extra_rows(only_two_index_levels_df):
     start = create_test_df(
         variables=[
             ("temperature", "K"),
@@ -264,13 +307,23 @@ def test_convert_series_extra_rows():
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
-    target_units = start.reset_index("unit")["unit"].replace(
+    desired_units = start.reset_index("unit")["unit"].replace(
         {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
     )
-    target_units.loc[("scenario_2", "temperature", 0)] = "kK"
+    # Extra rows that aren't in start, should be ignored and not cause failures
+    if only_two_index_levels_df:
+        desired_units.loc[("carbon")] = "GtC"
 
-    res = convert_unit(start, target_units)
+    else:
+        desired_units.loc[("scenario_2", "temperature", 0)] = "kK"
+
+    res = convert_unit(start, desired_units)
 
     np.testing.assert_allclose(
         res.loc[res.index.get_level_values("variable") == "temperature", :].values,
@@ -290,7 +343,8 @@ def test_convert_series_extra_rows():
     )
 
 
-def test_convert_unit_like_no_op():
+@check_auto_index_casting_df
+def test_convert_unit_like_no_op(only_two_index_levels_df):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -301,13 +355,38 @@ def test_convert_unit_like_no_op():
         n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     res = convert_unit_like(start, start)
 
     pd.testing.assert_frame_equal(res, start)
 
 
-def test_convert_unit_like():
+check_auto_index_casting_target = pytest.mark.parametrize(
+    "only_two_index_levels_target",
+    (
+        pytest.param(True, id="only_two_index_levels"),
+        pytest.param(False, id="more_than_two_index_levels"),
+    ),
+)
+"""
+Parameterisation to use to check handling of auto casting to `pd.Index`
+
+This casting causes all sorts of indexing and other issues.
+This parameterisation ensures that we check this edge case.
+"""
+
+
+@check_auto_index_casting_df
+@check_auto_index_casting_target
+def test_convert_unit_like(
+    only_two_index_levels_df,
+    only_two_index_levels_target,
+):
     create_kwargs = dict(
         n_scenarios=2,
         n_runs=3,
@@ -321,6 +400,11 @@ def test_convert_unit_like():
         ],
         **create_kwargs,
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     target = create_test_df(
         variables=[
@@ -330,6 +414,11 @@ def test_convert_unit_like():
         ],
         **create_kwargs,
     )
+    if only_two_index_levels_target:
+        target = target.loc[
+            (target.index.get_level_values("scenario") == "scenario_0")
+            & (target.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     res = convert_unit_like(start, target)
 
@@ -338,17 +427,27 @@ def test_convert_unit_like():
     assert_frame_alike(res, exp)
 
 
-def test_convert_unit_like_missing_levels():
+@check_auto_index_casting_df
+@check_auto_index_casting_target
+def test_convert_unit_like_missing_levels(
+    only_two_index_levels_df,
+    only_two_index_levels_target,
+):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
             ("Warm", "kK"),
             ("Body temperature", "degC"),
         ],
-        n_scenarios=2,
-        n_runs=3,
+        n_scenarios=1,
+        n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     target = create_test_df(
         variables=[
@@ -359,7 +458,9 @@ def test_convert_unit_like_missing_levels():
         n_scenarios=1,
         n_runs=1,
         timepoints=np.array([1.0, 2.0, 3.0]),
-    ).reset_index(["scenario", "run"], drop=True)
+    ).reset_index("run", drop=True)
+    if only_two_index_levels_target:
+        target = target.reset_index("scenario", drop=True)
 
     res = convert_unit_like(start, target)
 
@@ -368,7 +469,12 @@ def test_convert_unit_like_missing_levels():
     assert_frame_alike(res, exp)
 
 
-def test_convert_unit_like_missing_specs():
+@check_auto_index_casting_df
+@check_auto_index_casting_target
+def test_convert_unit_like_missing_specs(
+    only_two_index_levels_df,
+    only_two_index_levels_target,
+):
     """
     Test conversion when the target doesn't specify a unit for all rows in start
     """
@@ -378,10 +484,15 @@ def test_convert_unit_like_missing_specs():
             ("Warm", "kK"),
             ("Body temperature", "degC"),
         ],
-        n_scenarios=2,
-        n_runs=3,
+        n_scenarios=1,
+        n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     target = create_test_df(
         variables=[
@@ -392,7 +503,9 @@ def test_convert_unit_like_missing_specs():
         n_scenarios=1,
         n_runs=1,
         timepoints=np.array([1.0, 2.0, 3.0]),
-    ).reset_index(["scenario", "run"], drop=True)
+    ).reset_index("run", drop=True)
+    if only_two_index_levels_target:
+        target = target.reset_index("scenario", drop=True)
 
     res = convert_unit_like(start, target)
 
@@ -401,17 +514,27 @@ def test_convert_unit_like_missing_specs():
     assert_frame_alike(res, exp)
 
 
-def test_convert_unit_like_extra_levels_ok():
+@check_auto_index_casting_df
+@check_auto_index_casting_target
+def test_convert_unit_like_extra_levels_ok(
+    only_two_index_levels_df,
+    only_two_index_levels_target,
+):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
             ("Warm", "kK"),
             ("Body temperature", "degC"),
         ],
-        n_scenarios=2,
-        n_runs=3,
+        n_scenarios=1,
+        n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     target = set_index_levels_func(
         create_test_df(
@@ -423,9 +546,11 @@ def test_convert_unit_like_extra_levels_ok():
             n_scenarios=1,
             n_runs=1,
             timepoints=np.array([1.0, 2.0, 3.0]),
-        ).reset_index(["scenario", "run"], drop=True),
+        ).reset_index("run", drop=True),
         {"model": "ma"},
     )
+    if only_two_index_levels_target:
+        target = target.reset_index("scenario", drop=True)
 
     res = convert_unit_like(start, target)
 
@@ -434,17 +559,27 @@ def test_convert_unit_like_extra_levels_ok():
     assert_frame_alike(res, exp)
 
 
-def test_convert_unit_like_extra_levels_ambiguous_error():
+@check_auto_index_casting_df
+@check_auto_index_casting_target
+def test_convert_unit_like_extra_levels_ambiguous_error(
+    only_two_index_levels_df,
+    only_two_index_levels_target,
+):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
             ("Warm", "kK"),
             ("Body temperature", "degC"),
         ],
-        n_scenarios=2,
-        n_runs=3,
+        n_scenarios=1,
+        n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     target = pd.DataFrame(
         np.arange(3 * 6).reshape((6, 3)),
@@ -461,50 +596,25 @@ def test_convert_unit_like_extra_levels_ambiguous_error():
             names=["model", "scenario", "variable", "unit"],
         ),
     )
+    if only_two_index_levels_target:
+        target = target.loc[
+            ~(
+                (target.index.get_level_values("model") == "ma")
+                & (target.index.get_level_values("variable") == "Warm")
+            ),
+            :,
+        ].reset_index(["model", "scenario"], drop=True)
 
     with pytest.raises(AmbiguousTargetUnitError):
         convert_unit_like(start, target)
 
 
-def test_convert_unit_like_extra_levels_ambiguous_error_single_extra():
-    """
-    Test sure that we convert to a MultiIndex when creating the error message
-
-    Handles awkward edge case where the ambiguous index
-    is automatically cast to a plain index by pandas.
-    """
-    start = create_test_df(
-        variables=[
-            ("Cold", "mK"),
-            ("Warm", "kK"),
-            ("Body temperature", "degC"),
-        ],
-        n_scenarios=2,
-        n_runs=3,
-        timepoints=np.array([2020.0, 2030.0, 2040.0]),
-    )
-
-    target = pd.DataFrame(
-        np.arange(3 * 6).reshape((6, 3)),
-        columns=np.array([1.0, 10.0, 100.0]),
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("ma", "Cold", "microK"),
-                ("mb", "Cold", "K"),
-                ("ma", "Warm", "K"),
-                ("mb", "Warm", "K"),
-                ("ma", "Body temperature", "K"),
-                ("mb", "Body temperature", "degF"),
-            ],
-            names=["model", "variable", "unit"],
-        ),
-    )
-
-    with pytest.raises(AmbiguousTargetUnitError):
-        convert_unit_like(start, target)
-
-
-def test_convert_unit_like_extra_specs():
+@check_auto_index_casting_df
+@check_auto_index_casting_target
+def test_convert_unit_like_extra_specs(
+    only_two_index_levels_df,
+    only_two_index_levels_target,
+):
     """
     Test conversion when the target has a unit for rows that aren't in start
     """
@@ -514,10 +624,15 @@ def test_convert_unit_like_extra_specs():
             ("Warm", "kK"),
             ("Body temperature", "degC"),
         ],
-        n_scenarios=2,
-        n_runs=3,
+        n_scenarios=1,
+        n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
+    if only_two_index_levels_df:
+        start = start.loc[
+            (start.index.get_level_values("scenario") == "scenario_0")
+            & (start.index.get_level_values("run") == 0)
+        ].reset_index(["scenario", "run"], drop=True)
 
     target = create_test_df(
         variables=[
@@ -529,7 +644,9 @@ def test_convert_unit_like_extra_specs():
         n_scenarios=1,
         n_runs=1,
         timepoints=np.array([1.0, 2.0, 3.0]),
-    ).reset_index(["scenario", "run"], drop=True)
+    ).reset_index("run", drop=True)
+    if only_two_index_levels_target:
+        target = target.reset_index("scenario", drop=True)
 
     res = convert_unit_like(start, target)
 

@@ -445,12 +445,10 @@ desired_units = (
 desired_units
 
 # %%
-# TODO: fix this
 # TODO: use accessor
 convert_unit(df_history, desired_units)
 
 # %%
-# TODO: fix this
 # TODO: use accessor
 convert_unit_from_target_series(df_history, desired_units)
 
