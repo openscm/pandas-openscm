@@ -90,13 +90,15 @@ def ensure_index_is_multiindex(pandas_obj: P, copy: bool = True) -> P:
     -------
     :
         `pandas_obj` with a [pd.MultiIndex][pandas.MultiIndex]
-    """
-    # TODOO: accessor and tests
-    if isinstance(pandas_obj.index, pd.MultiIndex):
-        return pandas_obj
 
+        If the index was already a [pd.MultiIndex][pandas.MultiIndex],
+        this is a no-op (although the value of copy is respected).
+    """
     if copy:
         pandas_obj = pandas_obj.copy()
+
+    if isinstance(pandas_obj.index, pd.MultiIndex):
+        return pandas_obj
 
     pandas_obj.index = ensure_is_multiindex(pandas_obj.index)
 

@@ -30,6 +30,7 @@ from pandas_openscm.grouping import (
 )
 from pandas_openscm.index_manipulation import (
     convert_index_to_category_index,
+    ensure_index_is_multiindex,
     set_index_levels_func,
     update_index_levels_from_other_func,
     update_index_levels_func,
@@ -73,6 +74,46 @@ class DataFramePandasOpenSCMAccessor:
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
+
+    def ensure_index_is_multiindex(self, copy: bool = True) -> pd.DataFrame:
+        """
+        Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
+
+        Parameters
+        ----------
+        copy
+            Whether to copy `df` before manipulating the index name
+
+        Returns
+        -------
+        :
+            `df` with a [pd.MultiIndex][pandas.MultiIndex]
+
+            If the index was already a [pd.MultiIndex][pandas.MultiIndex],
+            this is a no-op (although the value of copy is respected).
+        """
+        return ensure_index_is_multiindex(self._df, copy=copy)
+
+    def eiim(self, copy: bool = True) -> pd.DataFrame:
+        """
+        Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
+
+        Alias for [ensure_index_is_multiindex][(c).]
+
+        Parameters
+        ----------
+        copy
+            Whether to copy `df` before manipulating the index name
+
+        Returns
+        -------
+        :
+            `df` with a [pd.MultiIndex][pandas.MultiIndex]
+
+            If the index was already a [pd.MultiIndex][pandas.MultiIndex],
+            this is a no-op (although the value of copy is respected).
+        """
+        return self.ensure_index_is_multiindex(copy=copy)
 
     def fix_index_name_after_groupby_quantile(
         self, new_name: str = "quantile", copy: bool = False
@@ -496,6 +537,33 @@ class DataFramePandasOpenSCMAccessor:
             observed=observed,
         )
 
+    def set_index_levels(
+        self,
+        levels_to_set: dict[str, Any | Collection[Any]],
+        copy: bool = True,
+    ) -> pd.DataFrame:
+        """
+        Set the index levels
+
+        Parameters
+        ----------
+        levels_to_set
+            Mapping of level names to values to set
+
+        copy
+            Should the [pd.DataFrame][pandas.DataFrame] be copied before returning?
+
+        Returns
+        -------
+        :
+            [pd.DataFrame][pandas.DataFrame] with updates applied to its index
+        """
+        return set_index_levels_func(
+            self._df,
+            levels_to_set=levels_to_set,
+            copy=copy,
+        )
+
     def to_category_index(self) -> pd.DataFrame:
         """
         Convert the index's values to categories
@@ -715,33 +783,6 @@ class DataFramePandasOpenSCMAccessor:
             update_sources=update_sources,
             copy=copy,
             remove_unused_levels=remove_unused_levels,
-        )
-
-    def set_index_levels(
-        self,
-        levels_to_set: dict[str, Any | Collection[Any]],
-        copy: bool = True,
-    ) -> pd.DataFrame:
-        """
-        Set the index levels
-
-        Parameters
-        ----------
-        levels_to_set
-            Mapping of level names to values to set
-
-        copy
-            Should the [pd.DataFrame][pandas.DataFrame] be copied before returning?
-
-        Returns
-        -------
-        :
-            [pd.DataFrame][pandas.DataFrame] with updates applied to its index
-        """
-        return set_index_levels_func(
-            self._df,
-            levels_to_set=levels_to_set,
-            copy=copy,
         )
 
 
