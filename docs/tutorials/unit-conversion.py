@@ -33,9 +33,7 @@ from pandas_openscm import register_pandas_accessor
 from pandas_openscm.testing import create_test_df
 from pandas_openscm.unit_conversion import (
     AmbiguousTargetUnitError,
-    convert_unit,
     convert_unit_from_target_series,
-    convert_unit_like,
 )
 
 # %% [markdown]
@@ -70,8 +68,7 @@ df_basic
 # we can simply call `convert_unit` with the desired unit.
 
 # %%
-# TODO: use accessor
-convert_unit(df_basic, "degC")
+df_basic.openscm.convert_unit("degC")
 
 # %% [markdown]
 # By default, this assumes that the unit information
@@ -90,8 +87,7 @@ df_other_unit_col = create_test_df(
 df_other_unit_col
 
 # %%
-# TODO: use accessor
-convert_unit(df_other_unit_col, "kK", unit_level="units")
+df_other_unit_col.openscm.convert_unit("kK", unit_level="units")
 
 # %% [markdown]
 # ### More specific conversions
@@ -123,9 +119,8 @@ df_multi_unit
 # we will get a dimensionality error for whatever units aren't compatible.
 
 # %%
-# TODO: use accessor
 try:
-    convert_unit(df_multi_unit, "cm")
+    df_multi_unit.openscm.convert_unit("cm")
 except pint.DimensionalityError:
     traceback.print_exc(limit=0)
 
@@ -154,8 +149,7 @@ except pint.DimensionalityError:
 # %%
 # Note also that no conversion is done for temperature (units of K)
 # as "K" does not appear in the mapping
-# TODO: use accessor
-convert_unit(df_multi_unit, {"mm": "cm", "ZJ": "PJ"})
+df_multi_unit.openscm.convert_unit({"mm": "cm", "ZJ": "PJ"})
 
 # %% [markdown]
 # The main thing to be careful of here is
@@ -169,8 +163,7 @@ convert_unit(df_multi_unit, {"mm": "cm", "ZJ": "PJ"})
 # There is a typo, "zJ" is given below rather than "ZJ"
 # so the ocean heat content data is not converted.
 # This happens silently i.e. no warning or error.
-# TODO: use accessor
-convert_unit(df_multi_unit, {"mm": "cm", "zJ": "PJ"})
+df_multi_unit.openscm.convert_unit({"mm": "cm", "zJ": "PJ"})
 
 # %% [markdown]
 # #### Specifying the unit as a series
@@ -210,8 +203,7 @@ desired_unit
 # %%
 # Note that only the rows which appear in `desired_unit`
 # are converted, all others are unchanged.
-# TODO: use accessor
-convert_unit(df_multi_unit, desired_unit)
+df_multi_unit.openscm.convert_unit(desired_unit)
 
 # %% [markdown]
 # As above, the main gotcha is *silently* not doing conversions.
@@ -237,8 +229,7 @@ desired_unit_typo
 
 # %%
 # Note that scenario_0, SLR, run 0 isn't converted because of the typo
-# TODO: use accessor
-convert_unit(df_multi_unit, desired_unit_typo)
+df_multi_unit.openscm.convert_unit(desired_unit_typo)
 
 # %% [markdown]
 # If you are trying to figure out why something isn't being converted,
@@ -291,9 +282,8 @@ df_emissions
 # we receive an error.
 
 # %%
-# TODO: use accessor
 try:
-    convert_unit(df_emissions, {"Mt CO2 / yr": "GtC / yr"})
+    df_emissions.openscm.convert_unit({"Mt CO2 / yr": "GtC / yr"})
 except pint.UndefinedUnitError:
     traceback.print_exc(limit=0)
 
@@ -302,8 +292,9 @@ except pint.UndefinedUnitError:
 # registry instead, the conversion will work.
 
 # %%
-# TODO: use accessor
-convert_unit(df_emissions, {"Mt CO2 / yr": "GtC / yr"}, ur=openscm_units.unit_registry)
+df_emissions.openscm.convert_unit(
+    {"Mt CO2 / yr": "GtC / yr"}, ur=openscm_units.unit_registry
+)
 
 # %% [markdown]
 # If we set the application registry to openscm-units' registry,
@@ -315,8 +306,7 @@ pint.set_application_registry(openscm_units.unit_registry)
 
 # %%
 # Now the conversion works without specifying the registry
-# TODO: use accessor
-convert_unit(df_emissions, {"Mt CO2 / yr": "GtC / yr"})
+df_emissions.openscm.convert_unit({"Mt CO2 / yr": "GtC / yr"})
 
 # %% [markdown]
 # ### Contexts
@@ -330,8 +320,9 @@ convert_unit(df_emissions, {"Mt CO2 / yr": "GtC / yr"})
 
 # %%
 with openscm_units.unit_registry.context("AR6GWP100"):
-    # TODO: use accessor
-    df_emissions_co2_eq = convert_unit(df_emissions, "Mt CO2 / yr")
+    df_emissions_co2_eq = df_emissions.openscm.convert_unit(
+        "Mt CO2 / yr", ur=openscm_units.unit_registry
+    )
 
 df_emissions_co2_eq
 
@@ -390,8 +381,7 @@ df_history
 # with `convert_unit_like`.
 
 # %%
-# TODO: use accessor
-df_scenarios_like_history = convert_unit_like(df_scenarios, df_history)
+df_scenarios_like_history = df_scenarios.openscm.convert_unit_like(df_history)
 df_scenarios_like_history
 
 # %% [markdown]
@@ -399,8 +389,7 @@ df_scenarios_like_history
 # we can also do the reverse operation.
 
 # %%
-# TODO: use accessor
-convert_unit_like(df_history, df_scenarios)
+df_history.openscm.convert_unit_like(df_scenarios)
 
 # %% [markdown]
 # However, if the scenarios themselves had different units,
@@ -425,9 +414,8 @@ df_scenarios_differing_units = df_scenarios.openscm.set_index_levels(
 df_scenarios_differing_units
 
 # %%
-# TODO: use accessor
 try:
-    convert_unit_like(df_history, df_scenarios_differing_units)
+    df_history.openscm.convert_unit_like(df_scenarios_differing_units)
 except AmbiguousTargetUnitError:
     traceback.print_exc(limit=0)
 
@@ -445,11 +433,10 @@ desired_units = (
 desired_units
 
 # %%
-# TODO: use accessor
-convert_unit(df_history, desired_units)
+df_history.openscm.convert_unit(desired_units)
 
 # %%
-# TODO: use accessor
+# The functional equivalent
 convert_unit_from_target_series(df_history, desired_units)
 
 # %% [markdown]
@@ -464,5 +451,3 @@ df_full_timeseries = pd.concat(
     axis="columns",
 )
 df_full_timeseries
-
-# %%

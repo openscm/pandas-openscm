@@ -19,7 +19,7 @@ almost always goes wrong so I would stay away from this as long as we can.
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
@@ -42,6 +42,7 @@ from pandas_openscm.plotting import (
     plot_plume_func,
 )
 from pandas_openscm.reshaping import ts_to_long_data
+from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 if TYPE_CHECKING:
     import matplotlib
@@ -74,6 +75,116 @@ class DataFramePandasOpenSCMAccessor:
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
         self._df = pandas_obj
+
+    def convert_unit(
+        self,
+        desired_units: str | Mapping[str, str] | pd.Series[str],
+        unit_level: str = "unit",
+        ur: pint.facets.PlainRegistry | None = None,
+    ) -> pd.DataFrame:
+        """
+        Convert units
+
+        This uses [convert_unit_from_target_series][(p).unit_conversion.].
+        If you want to understand the details of how the conversion works,
+        see that function's docstring.
+
+        Parameters
+        ----------
+        desired_units
+            Desired unit(s) for `df`
+
+            If this is a string,
+            we attempt to convert all timeseries to the given unit.
+
+            If this is a mapping,
+            we convert the given units to the target units.
+            Be careful using this form - you need to be certain of the units.
+            If any of your keys don't match the existing units
+            (even by a single whitespace character)
+            then the unit conversion will not happen.
+
+            If this is a [pd.Series][pandas.Series],
+            then it will be passed to
+            [convert_unit_from_target_series][(p).unit_conversion.]
+            after filling any rows in the [pd.DataFrame][pandas.DataFrame]
+            that are not in `desired_units`
+            with the existing unit (i.e. unspecified rows are not converted).
+
+            For further details, see the examples
+            in [convert_unit][(p).unit_conversion.].
+
+        unit_level
+            Level in the index which holds unit information
+
+            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+
+        ur
+            Unit registry to use for the conversion.
+
+            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+
+        Returns
+        -------
+        :
+            Data with converted units
+        """
+        return convert_unit(
+            self._df, desired_units=desired_units, unit_level=unit_level, ur=ur
+        )
+
+    def convert_unit_like(
+        self,
+        target: pd.DataFrame,
+        df_unit_level: str = "unit",
+        target_unit_level: str | None = None,
+        ur: pint.facets.PlainRegistry | None = None,
+    ) -> pd.DataFrame:
+        """
+        Convert units to match another [pd.DataFrame][pandas.DataFrame]
+
+        For further details, see the examples
+        in [convert_unit_like][(p).unit_conversion.].
+
+        This is essentially a helper for
+        [convert_unit_from_target_series][(p).unit_conversion.].
+        It implements one set of logic for extracting desired units
+        and tries to be clever, handling differences in index levels
+        between the data and `target` sensibly wherever possible.
+
+        If you want behaviour other than what is implemented here,
+        use [convert_unit_from_target_series][(p).unit_conversion.] directly.
+
+        Parameters
+        ----------
+        target
+            [pd.DataFrame][pandas.DataFrame] whose units should be matched
+
+        df_unit_level
+            Level in the data's index which holds unit information
+
+        target_unit_level
+            Level in `target`'s index which holds unit information
+
+            If not supplied, we use `df_unit_level`.
+
+        ur
+            Unit registry to use for the conversion.
+
+            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+
+        Returns
+        -------
+        :
+            Data with converted units
+        """
+        return convert_unit_like(
+            self._df,
+            target=target,
+            df_unit_level=df_unit_level,
+            target_unit_level=target_unit_level,
+            ur=ur,
+        )
 
     def ensure_index_is_multiindex(self, copy: bool = True) -> pd.DataFrame:
         """
