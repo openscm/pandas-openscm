@@ -209,7 +209,7 @@ class DataFramePandasOpenSCMAccessor:
         """
         Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
 
-        Alias for [ensure_index_is_multiindex][(c).]
+        Alias for [ensure_index_is_multiindex][(p).index_manipulation.]
 
         Parameters
         ----------
