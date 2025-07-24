@@ -94,6 +94,8 @@ def test_convert_unit_unknown_mapping_type():
     ),
 )
 def test_convert_unit_single_unit(unit, exp_unit, only_two_index_levels_df):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -170,6 +172,8 @@ def test_convert_unit_ur_injection():
 
 @check_auto_index_casting_df
 def test_convert_unit_mapping(only_two_index_levels_df):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("temperature", "K"),
@@ -210,6 +214,8 @@ def test_convert_unit_mapping(only_two_index_levels_df):
 
 @check_auto_index_casting_df
 def test_convert_series(only_two_index_levels_df):
+    pytest.importorskip("pint")
+
     # Check that conversion works if user supplies a Series of target units
     start = create_test_df(
         variables=[
@@ -255,6 +261,8 @@ def test_convert_series(only_two_index_levels_df):
 
 @check_auto_index_casting_df
 def test_convert_series_all_rows(only_two_index_levels_df):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("temperature", "K"),
@@ -297,6 +305,8 @@ def test_convert_series_all_rows(only_two_index_levels_df):
 
 @check_auto_index_casting_df
 def test_convert_series_extra_rows(only_two_index_levels_df):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("temperature", "K"),
@@ -387,6 +397,8 @@ def test_convert_unit_like(
     only_two_index_levels_df,
     only_two_index_levels_target,
 ):
+    pytest.importorskip("pint")
+
     create_kwargs = dict(
         n_scenarios=2,
         n_runs=3,
@@ -433,6 +445,8 @@ def test_convert_unit_like_missing_levels(
     only_two_index_levels_df,
     only_two_index_levels_target,
 ):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -478,6 +492,8 @@ def test_convert_unit_like_missing_specs(
     """
     Test conversion when the target doesn't specify a unit for all rows in start
     """
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -520,6 +536,8 @@ def test_convert_unit_like_extra_levels_ok(
     only_two_index_levels_df,
     only_two_index_levels_target,
 ):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -618,6 +636,8 @@ def test_convert_unit_like_extra_specs(
     """
     Test conversion when the target has a unit for rows that aren't in start
     """
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -709,6 +729,8 @@ def test_convert_unit_like_ur_injection():
 def test_convert_unit_like_unit_level_handling(
     df_unit_level, df_unit_level_exp, target_unit_level, target_unit_level_exp
 ):
+    pytest.importorskip("pint")
+
     start = create_test_df(
         variables=[(f"variable_{i}", "kg") for i in range(2)],
         n_scenarios=2,
