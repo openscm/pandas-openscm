@@ -33,7 +33,9 @@ from pandas_openscm import register_pandas_accessor
 from pandas_openscm.testing import create_test_df
 from pandas_openscm.unit_conversion import (
     AmbiguousTargetUnitError,
+    convert_unit,
     convert_unit_from_target_series,
+    convert_unit_like,
 )
 
 # %% [markdown]
@@ -71,6 +73,15 @@ df_basic
 df_basic.openscm.convert_unit("degC")
 
 # %% [markdown]
+# The functional equivalent is `convert_unit`.
+# It does the same thing.
+
+# %%
+pd.testing.assert_frame_equal(
+    df_basic.openscm.convert_unit("degC"), convert_unit(df_basic, "degC")
+)
+
+# %% [markdown]
 # By default, this assumes that the unit information
 # is in an index level called 'unit'.
 # If this isn't the case, the `unit_level` argument should be used.
@@ -99,7 +110,7 @@ df_other_unit_col.openscm.convert_unit("kK", unit_level="units")
 
 # %% [markdown]
 # Once again, start with some example data.
-# Here we have data in different units.
+# Here we have data with different dimensionality.
 
 # %%
 df_multi_unit = create_test_df(
@@ -155,13 +166,13 @@ df_multi_unit.openscm.convert_unit({"mm": "cm", "ZJ": "PJ"})
 # The main thing to be careful of here is
 # that you don't have a typo in your current unit (i.e. mapping key).
 # If you do have a typo then,
-# *silently*, no conversion will be done
+# **silently**, no conversion will be done
 # which may cause you confusion in later code
 # (if you expected the conversion to be done and it turns out it hadn't been).
 
 # %%
 # There is a typo, "zJ" is given below rather than "ZJ"
-# so the ocean heat content data is not converted.
+# so the ocean heat content data is not converted to PJ.
 # This happens silently i.e. no warning or error.
 df_multi_unit.openscm.convert_unit({"mm": "cm", "zJ": "PJ"})
 
@@ -171,10 +182,11 @@ df_multi_unit.openscm.convert_unit({"mm": "cm", "zJ": "PJ"})
 # If you want really fine-grained, i.e. timeseries-level, control
 # then you can also specify the desired units as a `pd.Series`.
 # The `pd.Series` should specify the desired unit for each timeseries
-# and have an index which matches the data's index
-# except for the unit-information level, which should be included.
+# and have an index which matches the data's index,
+# except for the unit-information level
+# (those are the `pd.Series`'s values, not part of the index).
 #
-# This is the hardest to set up,
+# This is the hardest option to set up,
 # but gives you the most control in exchange.
 # As for the mapping option,
 # any timeseries for which the desired unit is not specified
@@ -194,7 +206,7 @@ desired_unit = pd.Series(
             ("scenario_0", "SLR", 0),
             ("scenario_1", "SLR", 1),
         ],
-        # Not unit level here
+        # Note: no unit level here
         names=["scenario", "variable", "run"],
     ),
 )
@@ -206,7 +218,7 @@ desired_unit
 df_multi_unit.openscm.convert_unit(desired_unit)
 
 # %% [markdown]
-# As above, the main gotcha is *silently* not doing conversions.
+# As above, the main gotcha is **silently** not doing conversions.
 # If you make typos in the specification, this will happen.
 # Given that the specification, such typos can be much harder to spot.
 
@@ -327,7 +339,7 @@ with openscm_units.unit_registry.context("AR6GWP100"):
 df_emissions_co2_eq
 
 # %%
-# From here, calculating total CO2-equivalent emissions
+# From here, calculating e.g. total CO2-equivalent emissions
 # is then trivial, e.g.
 df_emissions_co2_eq.openscm.groupby_except("variable").sum().pix.assign(variable="ghg")
 
@@ -385,7 +397,16 @@ df_scenarios_like_history = df_scenarios.openscm.convert_unit_like(df_history)
 df_scenarios_like_history
 
 # %% [markdown]
-# For scenarios like this, where the units are clear,
+# The functional equivalent of the above is `convert_unit_like`.
+
+# %%
+pd.testing.assert_frame_equal(
+    df_scenarios.openscm.convert_unit_like(df_history),
+    convert_unit_like(df_scenarios, df_history),
+)
+
+# %% [markdown]
+# For scenarios like this, where the desired units are clear,
 # we can also do the reverse operation.
 
 # %%
@@ -393,7 +414,8 @@ df_history.openscm.convert_unit_like(df_scenarios)
 
 # %% [markdown]
 # However, if the scenarios themselves had different units,
-# then the target unit would be ambiguous and we would get an error.
+# then the target unit for a given timeseries in history would be ambiguous
+# and we would get an error.
 
 # %%
 df_scenarios_differing_units = df_scenarios.openscm.set_index_levels(
@@ -421,7 +443,7 @@ except AmbiguousTargetUnitError:
 
 # %% [markdown]
 # In such a case, we can instead create our desired units ourselves
-# and call `convert_unit` or `convert_unit_from_target_series` directly instead.
+# and directly call `convert_unit` or `convert_unit_from_target_series`.
 
 # %%
 desired_units = (
@@ -436,11 +458,14 @@ desired_units
 df_history.openscm.convert_unit(desired_units)
 
 # %%
-# The functional equivalent
+# The functional equivalent using convert_unit_from_target_series
 convert_unit_from_target_series(df_history, desired_units)
 
 # %% [markdown]
-# This then makes further operations, like concatenating the two datasets much simpler.
+# Converting units of two `pd.DataFrame`'s so they match then makes further operations,
+# like concatenating the two datasets
+# or adding/subtracting them,
+# much simpler.
 
 # %%
 df_full_timeseries = pd.concat(
@@ -451,3 +476,11 @@ df_full_timeseries = pd.concat(
     axis="columns",
 )
 df_full_timeseries
+
+# %% [markdown]
+# ## Summary
+#
+# Here you have seen pandas-openscm's unit conversion related APIs.
+# We hope these are helpful.
+# If you have any issues, please
+# [raise an issue](https://github.com/openscm/pandas-openscm/issues/new/choose).
