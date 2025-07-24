@@ -21,6 +21,16 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.7.0 (2025-07-24)
+
+### 🆕 Features
+
+- - Added unit conversion APIs: [pandas_openscm.unit_conversion.convert_unit] and [pandas_openscm.unit_conversion.convert_unit_like] and the corresponding accessors [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.convert_unit] and [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.convert_unit_like]
+  - Added the helper: [pandas_openscm.index_manipulation.ensure_is_multiindex] and the corresponding accessors [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.ensure_index_is_multiindex] and [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.eiim]
+
+  ([#23](https://github.com/openscm/pandas-openscm/pull/23))
+
+
 ## Pandas-OpenSCM v0.6.0 (2025-07-16)
 
 ### ⚠️ Breaking Changes
