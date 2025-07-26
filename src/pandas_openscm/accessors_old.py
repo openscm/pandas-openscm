@@ -1,4 +1,5 @@
 """
+TODO: delete this module
 API for [pandas][] accessors.
 
 As a general note to developers,
