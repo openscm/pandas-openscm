@@ -844,7 +844,7 @@ def test_convert_unit_like_ur_injection():
 @pobj_type
 @target_type
 @pytest.mark.parametrize(
-    "df_unit_level, df_unit_level_exp, target_unit_level, target_unit_level_exp",
+    "unit_level, unit_level_exp, target_unit_level, target_unit_level_exp",
     (
         pytest.param(None, "unit", None, "unit", id="default"),
         pytest.param("units", "units", None, "units", id="target-inferred-from-other"),
@@ -853,8 +853,8 @@ def test_convert_unit_like_ur_injection():
     ),
 )
 def test_convert_unit_like_unit_level_handling(  # noqa: PLR0913
-    df_unit_level,
-    df_unit_level_exp,
+    unit_level,
+    unit_level_exp,
     target_unit_level,
     target_unit_level_exp,
     target_type,
@@ -881,16 +881,16 @@ def test_convert_unit_like_unit_level_handling(  # noqa: PLR0913
     target = convert_to_desired_type(target, target_type)
 
     call_kwargs = {}
-    if df_unit_level is not None:
-        start = start.rename_axis(index={"unit": df_unit_level})
-        call_kwargs["df_unit_level"] = df_unit_level
+    if unit_level is not None:
+        start = start.rename_axis(index={"unit": unit_level})
+        call_kwargs["unit_level"] = unit_level
 
         if target_unit_level is not None:
             target = target.rename_axis(index={"unit": target_unit_level})
             call_kwargs["target_unit_level"] = target_unit_level
 
         else:
-            target = target.rename_axis(index={"unit": df_unit_level})
+            target = target.rename_axis(index={"unit": unit_level})
 
     elif target_unit_level is not None:
         target = target.rename_axis(index={"unit": target_unit_level})
@@ -898,7 +898,7 @@ def test_convert_unit_like_unit_level_handling(  # noqa: PLR0913
 
     res = convert_unit_like(start, target, **call_kwargs)
 
-    exp = convert_unit(start, "g", unit_level=df_unit_level_exp)
+    exp = convert_unit(start, "g", unit_level=unit_level_exp)
 
     check_result(res, exp)
 
@@ -1066,7 +1066,7 @@ def test_accessor_convert_unit_like(setup_pandas_accessors, pobj_type, target_ty
 
     res = start.openscm.convert_unit_like(
         target,
-        df_unit_level="units",
+        unit_level="units",
         target_unit_level="unit_level",
         ur=openscm_units.unit_registry,
     )

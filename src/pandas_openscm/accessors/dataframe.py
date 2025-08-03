@@ -48,18 +48,18 @@ class PandasDataFrameOpenSCMAccessor:
     [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
     """
 
-    def __init__(self, pandas_obj: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame):
         """
         Initialise
 
         Parameters
         ----------
-        pandas_obj
-            Pandas object to use via the accessor
+        df
+            [pd.DataFrame][pandas.DataFrame] to use via the accessor
         """
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
-        self._df = pandas_obj
+        self._df = df
 
     def convert_unit(
         self,
@@ -120,8 +120,8 @@ class PandasDataFrameOpenSCMAccessor:
 
     def convert_unit_like(
         self,
-        target: pd.DataFrame,
-        df_unit_level: str = "unit",
+        target: pd.DataFrame | pd.Series[Any],
+        unit_level: str = "unit",
         target_unit_level: str | None = None,
         ur: pint.facets.PlainRegistry | None = None,
     ) -> pd.DataFrame:
@@ -143,9 +143,9 @@ class PandasDataFrameOpenSCMAccessor:
         Parameters
         ----------
         target
-            [pd.DataFrame][pandas.DataFrame] whose units should be matched
+            Supported [pandas][] object whose units should be matched
 
-        df_unit_level
+        unit_level
             Level in the data's index which holds unit information
 
         target_unit_level
@@ -166,7 +166,7 @@ class PandasDataFrameOpenSCMAccessor:
         return convert_unit_like(
             self._df,
             target=target,
-            df_unit_level=df_unit_level,
+            unit_level=unit_level,
             target_unit_level=target_unit_level,
             ur=ur,
         )

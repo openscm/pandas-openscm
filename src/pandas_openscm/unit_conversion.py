@@ -5,7 +5,7 @@ Support for unit conversion
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
 
@@ -18,6 +18,8 @@ from pandas_openscm.index_manipulation import (
 from pandas_openscm.indexing import multi_index_lookup, multi_index_match
 
 if TYPE_CHECKING:
+    P = TypeVar("P", pd.Series[float], pd.Series[int], pd.DataFrame)
+
     import pint.facets
 
 
@@ -40,12 +42,13 @@ class MissingDesiredUnitError(ValueError):
 
 
 def convert_unit_from_target_series(
-    # TODO: update type hint to pd.Series[supported numerical types here]
-    pobj: pd.DataFrame,
+    # # TODO: update type hint to pd.Series[supported numerical types here]
+    # pobj: pd.DataFrame,
+    pobj: P,
     desired_units: pd.Series[str],
     unit_level: str = "unit",
     ur: pint.facets.PlainRegistry | None = None,
-) -> pd.DataFrame:
+) -> P:
     """
     Convert `pobj`'s units based on a [pd.Series][pandas.Series]
 
@@ -124,9 +127,9 @@ def convert_unit_from_target_series(
     """
     desired_units = ensure_index_is_multiindex(desired_units)
 
-    df_rows_checker = ensure_is_multiindex(pobj.index.droplevel(unit_level))
-    missing_rows = df_rows_checker.difference(  # type: ignore # pandas-stubs missing API
-        desired_units.index.reorder_levels(df_rows_checker.names)  # type: ignore # pandas-stubs missing API
+    pobj_rows_checker = ensure_is_multiindex(pobj.index.droplevel(unit_level))
+    missing_rows = pobj_rows_checker.difference(  # type: ignore # pandas-stubs missing API
+        desired_units.index.reorder_levels(pobj_rows_checker.names)  # type: ignore # pandas-stubs missing API
     )
     if not missing_rows.empty:
         raise MissingDesiredUnitError(missing_rows)
@@ -136,11 +139,11 @@ def convert_unit_from_target_series(
         index=ensure_is_multiindex(pobj.index.droplevel(unit_level)),
     )
 
-    desired_units_in_pobj = multi_index_lookup(desired_units, pobj_units.index)  # type: ignore # already checked that df_units.index is MultiIndex
+    desired_units_in_pobj = multi_index_lookup(desired_units, pobj_units.index)  # type: ignore # already checked that pobj.index is MultiIndex
 
     # Don't need to align, pandas does that for us.
     # If you want to check, compare the below with
-    # unit_map = pd.DataFrame([df_units, desired_units_in_df.sample(frac=1)]).T
+    # unit_map = pd.DataFrame([pobj_units, desired_units_in_pobj.sample(frac=1)]).T
     unit_map = pd.DataFrame(
         [pobj_units.rename("pobj_unit"), desired_units_in_pobj.rename("target_unit")]
     ).T
@@ -181,12 +184,13 @@ def convert_unit_from_target_series(
 
 
 def convert_unit(
-    # TODO: update type hint to pd.Series[supported numerical types here]
-    pobj: pd.DataFrame,
+    # # TODO: update type hint to pd.Series[supported numerical types here]
+    # pobj: pd.DataFrame,
+    pobj: P,
     desired_units: str | Mapping[str, str] | pd.Series[str],
     unit_level: str = "unit",
     ur: pint.facets.PlainRegistry | None = None,
-) -> pd.DataFrame:
+) -> P:
     """
     Convert a supported [pandas][] object's units
 
@@ -306,9 +310,9 @@ def convert_unit(
     sb       temperature      K      1.100    1.200    1.300
              body temperature degF  98.600  100.580  100.220
     """
-    df_units_s = ensure_index_is_multiindex(
+    pobj_units_s = ensure_index_is_multiindex(
         pobj.index.get_level_values(unit_level).to_series(
-            index=pobj.index.droplevel(unit_level), name="df_unit"
+            index=pobj.index.droplevel(unit_level), name="pobj_unit"
         )
     )
 
@@ -319,21 +323,21 @@ def convert_unit(
     if isinstance(desired_units, str):
         desired_units_s = pd.Series(
             [desired_units] * pobj.shape[0],
-            index=df_units_s.index,
+            index=pobj_units_s.index,
         )
 
     elif isinstance(desired_units, Mapping):
-        desired_units_s = df_units_s.replace(desired_units)  # type: ignore # pandas-stubs missing Mapping option
+        desired_units_s = pobj_units_s.replace(desired_units)  # type: ignore # pandas-stubs missing Mapping option
 
-    elif isinstance(desired_units, pd.Series):  # type: ignore # isinstance confused by pd.Series without generic type annotation
-        desired_units = ensure_index_is_multiindex(desired_units)  # type: ignore # as above
+    elif isinstance(desired_units, pd.Series):
+        desired_units = ensure_index_is_multiindex(desired_units)
 
-        missing = df_units_s.index.difference(desired_units.index)
+        missing = pobj_units_s.index.difference(desired_units.index)
         if missing.empty:
             desired_units_s = desired_units
         else:
             desired_units_s = pd.concat(
-                [desired_units, multi_index_lookup(df_units_s, missing)]
+                [desired_units, multi_index_lookup(pobj_units_s, missing)]
             )
 
     else:
@@ -364,38 +368,38 @@ class AmbiguousTargetUnitError(ValueError):
 
 
 def convert_unit_like(
-    df: pd.DataFrame,
-    target: pd.DataFrame,
-    df_unit_level: str = "unit",
+    pobj: P,
+    target: pd.DataFrame | pd.Series[Any],
+    unit_level: str = "unit",
     target_unit_level: str | None = None,
     ur: pint.facets.PlainRegistry | None = None,
-) -> pd.DataFrame:
+) -> P:
     """
     Convert units to match another [pd.DataFrame][pandas.DataFrame]
 
     This is essentially a helper function for [convert_unit_from_target_series][(m).].
     It implements one set of logic for extracting desired units and tries to be clever,
     handling differences in index levels
-    between `df` and `target` sensibly wherever possible.
+    between `pobj` and `target` sensibly wherever possible.
 
     If you want behaviour other than what is implemented here,
     use [convert_unit_from_target_series][(m).] directly.
 
     Parameters
     ----------
-    df
-        [pd.DataFrame][pandas.DataFrame] whose units should be converted
+    pobj
+        Supported [pandas][] object whose units should be converted
 
     target
-        [pd.DataFrame][pandas.DataFrame] whose units should be matched
+        Supported [pandas][] object whose units should be matched
 
-    df_unit_level
-        Level in `df`'s index which holds unit information
+    unit_level
+        Level in `pobj`'s index which holds unit information
 
     target_unit_level
         Level in `target`'s index which holds unit information
 
-        If not supplied, we use `df_unit_level`.
+        If not supplied, we use `unit_level`.
 
     ur
         Unit registry to use for the conversion.
@@ -405,7 +409,7 @@ def convert_unit_like(
     Returns
     -------
     :
-        `df` with converted units
+        `pobj` with converted units
 
     Examples
     --------
@@ -451,18 +455,18 @@ def convert_unit_like(
              body temperature degC  36.850000  37.850000  37.148000
     """
     if target_unit_level is None:
-        target_unit_level_use = df_unit_level
+        target_unit_level_use = unit_level
     else:
         target_unit_level_use = target_unit_level
 
-    df_units_s = ensure_index_is_multiindex(
-        df.index.get_level_values(df_unit_level).to_series(
-            index=df.index.droplevel(df_unit_level)
+    pobj_units_s = ensure_index_is_multiindex(
+        pobj.index.get_level_values(unit_level).to_series(
+            index=pobj.index.droplevel(unit_level)
         )
     )
 
     extra_index_levels_target = target.index.names.difference(  # type: ignore # pandas-stubs API out of date
-        [*df.index.names, target_unit_level_use]
+        [*pobj.index.names, target_unit_level_use]
     )
     if extra_index_levels_target:
         # Drop out the extra levels and duplicates,
@@ -496,9 +500,9 @@ def convert_unit_like(
         ambiguous_drivers = target.index[multi_index_match(target.index, ambiguous_idx)]
 
         msg = (
-            f"`df` has {df.index.names=}. "
+            f"`pobj` has {pobj.index.names=}. "
             f"`target` has {target.index.names=}. "
-            "The index levels in `target` that are also in `df` are "
+            "The index levels in `target` that are also in `pobj` are "
             f"{target_units_s.index.names}. "
             "When we only look at these levels, the desired unit looks like:\n"
             f"{target_units_s}\n"
@@ -510,17 +514,17 @@ def convert_unit_like(
         )
         raise AmbiguousTargetUnitError(msg)
 
-    target_units_s, _ = target_units_s.align(df_units_s)
-    target_units_s = target_units_s.reorder_levels(df_units_s.index.names)
+    target_units_s, _ = target_units_s.align(pobj_units_s)
+    target_units_s = target_units_s.reorder_levels(pobj_units_s.index.names)
     if target_units_s.isnull().any():
         # Fill rows that don't get a spec with their existing units
         target_units_s = multi_index_lookup(
             target_units_s,
-            df_units_s.index,  # type: ignore # checked that index is MultiIndex above
-        ).fillna(df_units_s)
+            pobj_units_s.index,  # type: ignore # checked that index is MultiIndex above
+        ).fillna(pobj_units_s)
 
     res = convert_unit_from_target_series(
-        pobj=df, desired_units=target_units_s, unit_level=df_unit_level, ur=ur
+        pobj=pobj, desired_units=target_units_s, unit_level=unit_level, ur=ur
     )
 
     return res

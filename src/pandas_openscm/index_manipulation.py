@@ -910,10 +910,11 @@ def set_levels(
 
 
 def set_index_levels_func(
-    df: pd.DataFrame,
+    # TODO: check support for series and add accessors
+    pobj: P,
     levels_to_set: dict[str, Any | Collection[Any]],
     copy: bool = True,
-) -> pd.DataFrame:
+) -> P:
     """
     Set the index levels of a [pd.DataFrame][pandas.DataFrame]
 
@@ -934,17 +935,17 @@ def set_index_levels_func(
     :
         `df` with updates applied to its index
     """
-    if not isinstance(df.index, pd.MultiIndex):
+    if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
             "when `df`'s index is an instance of `MultiIndex`. "
-            f"Received {type(df.index)=}"
+            f"Received {type(pobj.index)=}"
         )
         raise TypeError(msg)
 
     if copy:
-        df = df.copy()
+        pobj = pobj.copy()
 
-    df.index = set_levels(df.index, levels_to_set=levels_to_set)  # type: ignore
+    pobj.index = set_levels(pobj.index, levels_to_set=levels_to_set)  # type: ignore
 
-    return df
+    return pobj

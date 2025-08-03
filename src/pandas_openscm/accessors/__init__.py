@@ -38,6 +38,7 @@ from __future__ import annotations
 import pandas as pd
 
 from pandas_openscm.accessors.dataframe import PandasDataFrameOpenSCMAccessor
+from pandas_openscm.accessors.series import PandasSeriesOpenSCMAccessor
 
 
 # TODO: note change in name (now has trailing s) in changelog
@@ -72,5 +73,5 @@ def register_pandas_accessors(namespace: str = "openscm") -> None:
     pd.api.extensions.register_dataframe_accessor(namespace)(
         PandasDataFrameOpenSCMAccessor
     )
-    # pd.api.extensions.register_series_accessor(namespace)(PandasSeriesOpenSCMAccessor)
+    pd.api.extensions.register_series_accessor(namespace)(PandasSeriesOpenSCMAccessor)
     # pd.api.extensions.register_index_accessor(namespace)(PandasIndexOpenSCMAccessor)
