@@ -40,13 +40,14 @@ class MissingDesiredUnitError(ValueError):
 
 
 def convert_unit_from_target_series(
-    df: pd.DataFrame,
+    # TODO: update type hint to pd.Series[supported numerical types here]
+    pobj: pd.DataFrame,
     desired_units: pd.Series[str],
     unit_level: str = "unit",
     ur: pint.facets.PlainRegistry | None = None,
 ) -> pd.DataFrame:
     """
-    Convert `df`'s units based on a [pd.Series][pandas.Series]
+    Convert `pobj`'s units based on a [pd.Series][pandas.Series]
 
     `desired_uni` defines the units to convert to.
     This is a relatively low-level function,
@@ -54,17 +55,17 @@ def convert_unit_from_target_series(
 
     Parameters
     ----------
-    df
-        [pd.DataFrame][pandas.DataFrame] whose units should be converted
+    pobj
+        Supported [pandas][] object whose units should be converted
 
     desired_units
-        Desired unit(s) for `df`
+        Desired unit(s) for `pobj`
 
         This must be a [pd.Series][pandas.Series]
-        with an index that contains all the rows in `df`.
+        with an index that contains all the rows in `pobj`.
 
     unit_level
-        Level in `df`'s index which holds unit information
+        Level in `pobj`'s index which holds unit information
 
     ur
         Unit registry to use for the conversion.
@@ -74,12 +75,12 @@ def convert_unit_from_target_series(
     Returns
     -------
     :
-        `df` with converted units
+        `pobj` with converted units
 
     Raises
     ------
     AssertionError
-        `desired_units`'s index does not contain all the rows in `df`
+        `desired_units`'s index does not contain all the rows in `pobj`
 
     MissingOptionalDependencyError
         `ur` is `None` and [pint](https://pint.readthedocs.io/) is not available.
@@ -123,29 +124,30 @@ def convert_unit_from_target_series(
     """
     desired_units = ensure_index_is_multiindex(desired_units)
 
-    df_rows_checker = ensure_is_multiindex(df.index.droplevel(unit_level))
+    df_rows_checker = ensure_is_multiindex(pobj.index.droplevel(unit_level))
     missing_rows = df_rows_checker.difference(  # type: ignore # pandas-stubs missing API
         desired_units.index.reorder_levels(df_rows_checker.names)  # type: ignore # pandas-stubs missing API
     )
     if not missing_rows.empty:
         raise MissingDesiredUnitError(missing_rows)
 
-    df_reset_unit = ensure_index_is_multiindex(df.reset_index(unit_level), copy=False)
+    pobj_units = pd.Series(
+        pobj.index.get_level_values(unit_level),
+        index=ensure_is_multiindex(pobj.index.droplevel(unit_level)),
+    )
 
-    df_units = df_reset_unit[unit_level]
-
-    desired_units_in_df = multi_index_lookup(desired_units, df_units.index)  # type: ignore # already checked that df_units.index is MultiIndex
+    desired_units_in_pobj = multi_index_lookup(desired_units, pobj_units.index)  # type: ignore # already checked that df_units.index is MultiIndex
 
     # Don't need to align, pandas does that for us.
     # If you want to check, compare the below with
     # unit_map = pd.DataFrame([df_units, desired_units_in_df.sample(frac=1)]).T
     unit_map = pd.DataFrame(
-        [df_units.rename("df_unit"), desired_units_in_df.rename("target_unit")]
+        [pobj_units.rename("pobj_unit"), desired_units_in_pobj.rename("target_unit")]
     ).T
-    unit_changes = unit_map["df_unit"] != unit_map["target_unit"]
+    unit_changes = unit_map["pobj_unit"] != unit_map["target_unit"]
     if not unit_changes.any():
         # Already all in desired unit
-        return df
+        return pobj
 
     if ur is None:
         try:
@@ -157,35 +159,36 @@ def convert_unit_from_target_series(
                 "convert_unit_from_target_series(..., ur=None, ...)", "pint"
             )
 
-    df_no_unit = df_reset_unit.drop(unit_level, axis="columns")
-    for (df_unit, target_unit), conversion_df in unit_map[unit_changes].groupby(
-        ["df_unit", "target_unit"]
+    pobj_no_unit = ensure_index_is_multiindex(pobj.reset_index(unit_level, drop=True))
+    for (pobj_unit, target_unit), conversion_df in unit_map[unit_changes].groupby(
+        ["pobj_unit", "target_unit"]
     ):
-        to_alter_loc = multi_index_match(df_no_unit.index, conversion_df.index)  # type: ignore
-        df_no_unit.loc[to_alter_loc, :] = (
-            ur.Quantity(df_no_unit.loc[to_alter_loc, :].values, df_unit)
+        to_alter_loc = multi_index_match(pobj_no_unit.index, conversion_df.index)  # type: ignore
+        pobj_no_unit.loc[to_alter_loc, :] = (
+            ur.Quantity(pobj_no_unit.loc[to_alter_loc, :].values, pobj_unit)
             .to(target_unit)
             .m
         )
 
-    new_units = (unit_map.reorder_levels(df_no_unit.index.names).loc[df_no_unit.index])[
-        "target_unit"
-    ]
-    res = set_index_levels_func(df_no_unit, {unit_level: new_units}).reorder_levels(
-        df.index.names
+    new_units = (
+        unit_map.reorder_levels(pobj_no_unit.index.names).loc[pobj_no_unit.index]
+    )["target_unit"]
+    res = set_index_levels_func(pobj_no_unit, {unit_level: new_units}).reorder_levels(
+        pobj.index.names
     )
 
     return res
 
 
 def convert_unit(
-    df: pd.DataFrame,
+    # TODO: update type hint to pd.Series[supported numerical types here]
+    pobj: pd.DataFrame,
     desired_units: str | Mapping[str, str] | pd.Series[str],
     unit_level: str = "unit",
     ur: pint.facets.PlainRegistry | None = None,
 ) -> pd.DataFrame:
     """
-    Convert a [pd.DataFrame][pandas.DataFrame]'s units
+    Convert a supported [pandas][] object's units
 
     This uses [convert_unit_from_target_series][(m).].
     If you want to understand the details of how the conversion works,
@@ -193,31 +196,31 @@ def convert_unit(
 
     Parameters
     ----------
-    df
-        [pd.DataFrame][pandas.DataFrame] whose units should be converted
+    pobj
+        Supported [pandas][] object whose units should be converted
 
     desired_units
-        Desired unit(s) for `df`
+        Desired unit(s) for `pobj`
 
         If this is a string,
-        we attempt to convert all timeseries in `df` to the given unit.
+        we attempt to convert all timeseries in `pobj` to the given unit.
 
         If this is a mapping,
         we convert the given units to the target units.
-        Be careful using this form - you need to be certain of the units in `df`.
-        If any of your keys don't match the units in `df`
+        Be careful using this form - you need to be certain of the units in `pobj`.
+        If any of your keys don't match the units in `pobj`
         (even by a single whitespace character)
         then the unit conversion will not happen.
 
         If this is a [pd.Series][pandas.Series],
         then it will be passed to [convert_unit_from_target_series][(m).]
-        after filling any rows in `df` that are not in `desired_units`
-        with the unit from `df` (i.e. unspecified rows are not converted).
+        after filling any rows in `pobj` that are not in `desired_units`
+        with the unit from `pobj` (i.e. unspecified rows are not converted).
 
         For further details, see examples
 
     unit_level
-        Level in `df`'s index which holds unit information
+        Level in `pobj`'s index which holds unit information
 
         Passed to [convert_unit_from_target_series][(m).].
 
@@ -229,7 +232,7 @@ def convert_unit(
     Returns
     -------
     :
-        `df` with converted units
+        `pobj` with converted units
 
     Examples
     --------
@@ -255,6 +258,14 @@ def convert_unit(
     sa       temperature      K       0.001    0.002    0.003
     sb       temperature      K       1.100    1.200    1.300
              body temperature K     310.150  311.250  311.050
+    >>>
+    >>> # Same thing with a series as input
+    >>> convert_unit(start[2030], "K")
+                                       2030
+    scenario variable         unit
+    sa       temperature      K       0.002
+    sb       temperature      K       1.200
+             body temperature K     311.250
     >>>
     >>> # Convert using a mapping.
     >>> # Units that aren't specified in the mapping aren't converted.
@@ -296,8 +307,8 @@ def convert_unit(
              body temperature degF  98.600  100.580  100.220
     """
     df_units_s = ensure_index_is_multiindex(
-        df.index.get_level_values(unit_level).to_series(
-            index=df.index.droplevel(unit_level), name="df_unit"
+        pobj.index.get_level_values(unit_level).to_series(
+            index=pobj.index.droplevel(unit_level), name="df_unit"
         )
     )
 
@@ -307,7 +318,7 @@ def convert_unit(
     # hence I am ok with it.
     if isinstance(desired_units, str):
         desired_units_s = pd.Series(
-            [desired_units] * df.shape[0],
+            [desired_units] * pobj.shape[0],
             index=df_units_s.index,
         )
 
@@ -329,7 +340,7 @@ def convert_unit(
         raise NotImplementedError(type(desired_units))
 
     res = convert_unit_from_target_series(
-        df=df, desired_units=desired_units_s, unit_level=unit_level, ur=ur
+        pobj=pobj, desired_units=desired_units_s, unit_level=unit_level, ur=ur
     )
 
     return res
@@ -509,7 +520,7 @@ def convert_unit_like(
         ).fillna(df_units_s)
 
     res = convert_unit_from_target_series(
-        df=df, desired_units=target_units_s, unit_level=df_unit_level, ur=ur
+        pobj=df, desired_units=target_units_s, unit_level=df_unit_level, ur=ur
     )
 
     return res

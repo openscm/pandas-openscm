@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 import sys
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 from unittest.mock import patch
 
 import numpy as np
@@ -25,8 +26,11 @@ from pandas_openscm.unit_conversion import (
     convert_unit_like,
 )
 
-check_auto_index_casting_df = pytest.mark.parametrize(
-    "only_two_index_levels_df",
+if TYPE_CHECKING:
+    P = TypeVar("P", pd.DataFrame | pd.Series[Any])
+
+check_auto_index_casting_pobj = pytest.mark.parametrize(
+    "only_two_index_levels_pobj",
     (
         pytest.param(True, id="only_two_index_levels"),
         pytest.param(False, id="more_than_two_index_levels"),
@@ -39,9 +43,52 @@ This casting causes all sorts of indexing and other issues.
 This parameterisation ensures that we check this edge case.
 """
 
+pobj_type = pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series
+"""
 
-@check_auto_index_casting_df
-def test_convert_unit_no_op(only_two_index_levels_df):
+
+@overload
+def convert_to_desired_type(
+    pobj: pd.DataFrame, pobj_type: Literal["DataFrame"]
+) -> pd.DataFrame: ...
+
+
+@overload
+def convert_to_desired_type(
+    pobj: pd.DataFrame, pobj_type: Literal["Series"]
+) -> pd.Series[Any]: ...
+
+
+def convert_to_desired_type(
+    df: pd.DataFrame, pobj_type: Literal["DataFrame", "Series"]
+) -> pd.DataFrame | pd.Series[Any]:
+    if pobj_type == "DataFrame":
+        return df
+
+    if pobj_type == "Series":
+        res = df[df.columns[0]]
+        return res
+
+    raise NotImplementedError(pobj_type)
+
+
+def check_result(res: P, exp: P) -> None:
+    if isinstance(res, pd.DataFrame):
+        pd.testing.assert_frame_equal(res, exp)
+    elif isinstance(res, pd.Series):
+        pd.testing.assert_series_equal(res, exp)
+    else:
+        raise NotImplementedError(type(res))
+
+
+@pobj_type
+@check_auto_index_casting_pobj
+def test_convert_unit_no_op(only_two_index_levels_pobj, pobj_type):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -52,17 +99,19 @@ def test_convert_unit_no_op(only_two_index_levels_df):
         n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     res = convert_unit(
         start, start.index.to_frame()["unit"].reset_index("unit", drop=True)
     )
 
-    pd.testing.assert_frame_equal(res, start)
+    check_result(res, start)
 
 
 def test_convert_unit_unknown_mapping_type():
@@ -85,7 +134,8 @@ def test_convert_unit_unknown_mapping_type():
         )
 
 
-@check_auto_index_casting_df
+@pobj_type
+@check_auto_index_casting_pobj
 @pytest.mark.parametrize(
     "unit_level, exp_unit_level",
     (
@@ -93,7 +143,9 @@ def test_convert_unit_unknown_mapping_type():
         ("units", "units"),
     ),
 )
-def test_convert_unit_single_unit(unit_level, exp_unit_level, only_two_index_levels_df):
+def test_convert_unit_single_unit(
+    unit_level, exp_unit_level, only_two_index_levels_pobj, pobj_type
+):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -106,11 +158,13 @@ def test_convert_unit_single_unit(unit_level, exp_unit_level, only_two_index_lev
         n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
+
+    start = convert_to_desired_type(start, pobj_type)
 
     call_kwargs = {}
     if unit_level is not None:
@@ -166,8 +220,8 @@ def test_convert_unit_ur_injection():
     )
 
 
-@check_auto_index_casting_df
-def test_convert_unit_mapping(only_two_index_levels_df):
+@check_auto_index_casting_pobj
+def test_convert_unit_mapping(only_two_index_levels_pobj):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -180,7 +234,7 @@ def test_convert_unit_mapping(only_two_index_levels_df):
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -208,8 +262,8 @@ def test_convert_unit_mapping(only_two_index_levels_df):
     )
 
 
-@check_auto_index_casting_df
-def test_convert_series(only_two_index_levels_df):
+@check_auto_index_casting_pobj
+def test_convert_series(only_two_index_levels_pobj):
     pytest.importorskip("pint")
 
     # Check that conversion works if user supplies a Series of target units
@@ -223,7 +277,7 @@ def test_convert_series(only_two_index_levels_df):
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -255,8 +309,8 @@ def test_convert_series(only_two_index_levels_df):
     )
 
 
-@check_auto_index_casting_df
-def test_convert_series_all_rows(only_two_index_levels_df):
+@check_auto_index_casting_pobj
+def test_convert_series_all_rows(only_two_index_levels_pobj):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -269,7 +323,7 @@ def test_convert_series_all_rows(only_two_index_levels_df):
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -299,8 +353,8 @@ def test_convert_series_all_rows(only_two_index_levels_df):
     )
 
 
-@check_auto_index_casting_df
-def test_convert_series_extra_rows(only_two_index_levels_df):
+@check_auto_index_casting_pobj
+def test_convert_series_extra_rows(only_two_index_levels_pobj):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -313,7 +367,7 @@ def test_convert_series_extra_rows(only_two_index_levels_df):
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -323,7 +377,7 @@ def test_convert_series_extra_rows(only_two_index_levels_df):
         {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
     )
     # Extra rows that aren't in start, should be ignored and not cause failures
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         desired_units.loc[("carbon")] = "GtC"
 
     else:
@@ -349,8 +403,8 @@ def test_convert_series_extra_rows(only_two_index_levels_df):
     )
 
 
-@check_auto_index_casting_df
-def test_convert_unit_like_no_op(only_two_index_levels_df):
+@check_auto_index_casting_pobj
+def test_convert_unit_like_no_op(only_two_index_levels_pobj):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -361,7 +415,7 @@ def test_convert_unit_like_no_op(only_two_index_levels_df):
         n_runs=3,
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -387,10 +441,10 @@ This parameterisation ensures that we check this edge case.
 """
 
 
-@check_auto_index_casting_df
+@check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like(
-    only_two_index_levels_df,
+    only_two_index_levels_pobj,
     only_two_index_levels_target,
 ):
     pytest.importorskip("pint")
@@ -408,7 +462,7 @@ def test_convert_unit_like(
         ],
         **create_kwargs,
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -435,10 +489,10 @@ def test_convert_unit_like(
     assert_frame_alike(res, exp)
 
 
-@check_auto_index_casting_df
+@check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_missing_levels(
-    only_two_index_levels_df,
+    only_two_index_levels_pobj,
     only_two_index_levels_target,
 ):
     pytest.importorskip("pint")
@@ -453,7 +507,7 @@ def test_convert_unit_like_missing_levels(
         n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -479,10 +533,10 @@ def test_convert_unit_like_missing_levels(
     assert_frame_alike(res, exp)
 
 
-@check_auto_index_casting_df
+@check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_missing_specs(
-    only_two_index_levels_df,
+    only_two_index_levels_pobj,
     only_two_index_levels_target,
 ):
     """
@@ -500,7 +554,7 @@ def test_convert_unit_like_missing_specs(
         n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -526,10 +580,10 @@ def test_convert_unit_like_missing_specs(
     assert_frame_alike(res, exp)
 
 
-@check_auto_index_casting_df
+@check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_extra_levels_ok(
-    only_two_index_levels_df,
+    only_two_index_levels_pobj,
     only_two_index_levels_target,
 ):
     pytest.importorskip("pint")
@@ -544,7 +598,7 @@ def test_convert_unit_like_extra_levels_ok(
         n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -573,10 +627,10 @@ def test_convert_unit_like_extra_levels_ok(
     assert_frame_alike(res, exp)
 
 
-@check_auto_index_casting_df
+@check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_extra_levels_ambiguous_error(
-    only_two_index_levels_df,
+    only_two_index_levels_pobj,
     only_two_index_levels_target,
 ):
     start = create_test_df(
@@ -589,7 +643,7 @@ def test_convert_unit_like_extra_levels_ambiguous_error(
         n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
@@ -623,10 +677,10 @@ def test_convert_unit_like_extra_levels_ambiguous_error(
         convert_unit_like(start, target)
 
 
-@check_auto_index_casting_df
+@check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_extra_specs(
-    only_two_index_levels_df,
+    only_two_index_levels_pobj,
     only_two_index_levels_target,
 ):
     """
@@ -644,7 +698,7 @@ def test_convert_unit_like_extra_specs(
         n_runs=2,
         timepoints=np.array([2020.0, 2030.0, 2040.0]),
     )
-    if only_two_index_levels_df:
+    if only_two_index_levels_pobj:
         start = start.loc[
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
