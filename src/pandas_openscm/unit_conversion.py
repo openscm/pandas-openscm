@@ -42,8 +42,6 @@ class MissingDesiredUnitError(ValueError):
 
 
 def convert_unit_from_target_series(
-    # # TODO: update type hint to pd.Series[supported numerical types here]
-    # pobj: pd.DataFrame,
     pobj: P,
     desired_units: pd.Series[str],
     unit_level: str = "unit",
@@ -184,8 +182,6 @@ def convert_unit_from_target_series(
 
 
 def convert_unit(
-    # # TODO: update type hint to pd.Series[supported numerical types here]
-    # pobj: pd.DataFrame,
     pobj: P,
     desired_units: str | Mapping[str, str] | pd.Series[str],
     unit_level: str = "unit",
@@ -265,11 +261,11 @@ def convert_unit(
     >>>
     >>> # Same thing with a series as input
     >>> convert_unit(start[2030], "K")
-                                       2030
-    scenario variable         unit
-    sa       temperature      K       0.002
-    sb       temperature      K       1.200
-             body temperature K     311.250
+    scenario  variable          unit
+    sa        temperature       K         0.002
+    sb        temperature       K         1.200
+              body temperature  K       311.250
+    Name: 2030, dtype: float64
     >>>
     >>> # Convert using a mapping.
     >>> # Units that aren't specified in the mapping aren't converted.
