@@ -79,7 +79,7 @@ def convert_to_desired_type(
 
 def check_result(res: P, exp: P) -> None:
     if isinstance(res, pd.DataFrame):
-        pd.testing.assert_frame_equal(res, exp)
+        assert_frame_alike(res, exp)
     elif isinstance(res, pd.Series):
         pd.testing.assert_series_equal(res, exp)
     else:
@@ -455,12 +455,27 @@ This casting causes all sorts of indexing and other issues.
 This parameterisation ensures that we check this edge case.
 """
 
+target_type = pytest.mark.parametrize(
+    "target_type",
+    (
+        pytest.param("DataFrame", id="target_DataFrame"),
+        pytest.param("Series", id="target_Series"),
+    ),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series as the target
+"""
 
+
+@pobj_type
+@target_type
 @check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like(
     only_two_index_levels_pobj,
     only_two_index_levels_target,
+    target_type,
+    pobj_type,
 ):
     pytest.importorskip("pint")
 
@@ -483,6 +498,8 @@ def test_convert_unit_like(
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     target = create_test_df(
         variables=[
             ("Cold", "microK"),
@@ -497,18 +514,24 @@ def test_convert_unit_like(
             & (target.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    target = convert_to_desired_type(target, target_type)
+
     res = convert_unit_like(start, target)
 
     exp = convert_unit(start, {"mK": "microK", "kK": "MK", "degC": "degF"})
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
 
 
+@pobj_type
+@target_type
 @check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_missing_levels(
     only_two_index_levels_pobj,
     only_two_index_levels_target,
+    target_type,
+    pobj_type,
 ):
     pytest.importorskip("pint")
 
@@ -528,6 +551,8 @@ def test_convert_unit_like_missing_levels(
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     target = create_test_df(
         variables=[
             ("Cold", "K"),
@@ -541,18 +566,24 @@ def test_convert_unit_like_missing_levels(
     if only_two_index_levels_target:
         target = target.reset_index("scenario", drop=True)
 
+    target = convert_to_desired_type(target, target_type)
+
     res = convert_unit_like(start, target)
 
     exp = convert_unit(start, {"mK": "K", "kK": "K", "degC": "degF"})
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
 
 
+@pobj_type
+@target_type
 @check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_missing_specs(
     only_two_index_levels_pobj,
     only_two_index_levels_target,
+    target_type,
+    pobj_type,
 ):
     """
     Test conversion when the target doesn't specify a unit for all rows in start
@@ -575,6 +606,8 @@ def test_convert_unit_like_missing_specs(
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     target = create_test_df(
         variables=[
             ("Cold", "K"),
@@ -588,18 +621,24 @@ def test_convert_unit_like_missing_specs(
     if only_two_index_levels_target:
         target = target.reset_index("scenario", drop=True)
 
+    target = convert_to_desired_type(target, target_type)
+
     res = convert_unit_like(start, target)
 
     exp = convert_unit(start, {"mK": "K", "degC": "degF"})
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
 
 
+@pobj_type
+@target_type
 @check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_extra_levels_ok(
     only_two_index_levels_pobj,
     only_two_index_levels_target,
+    target_type,
+    pobj_type,
 ):
     pytest.importorskip("pint")
 
@@ -619,6 +658,8 @@ def test_convert_unit_like_extra_levels_ok(
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     target = set_index_levels_func(
         create_test_df(
             variables=[
@@ -635,18 +676,24 @@ def test_convert_unit_like_extra_levels_ok(
     if only_two_index_levels_target:
         target = target.reset_index("scenario", drop=True)
 
+    target = convert_to_desired_type(target, target_type)
+
     res = convert_unit_like(start, target)
 
     exp = convert_unit(start, {"mK": "K", "kK": "K", "degC": "degF"})
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
 
 
+@pobj_type
+@target_type
 @check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_extra_levels_ambiguous_error(
     only_two_index_levels_pobj,
     only_two_index_levels_target,
+    target_type,
+    pobj_type,
 ):
     start = create_test_df(
         variables=[
@@ -663,6 +710,8 @@ def test_convert_unit_like_extra_levels_ambiguous_error(
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
+
+    start = convert_to_desired_type(start, pobj_type)
 
     target = pd.DataFrame(
         np.arange(3 * 6).reshape((6, 3)),
@@ -688,15 +737,21 @@ def test_convert_unit_like_extra_levels_ambiguous_error(
             :,
         ].reset_index(["model", "scenario"], drop=True)
 
+    target = convert_to_desired_type(target, target_type)
+
     with pytest.raises(AmbiguousTargetUnitError):
         convert_unit_like(start, target)
 
 
+@pobj_type
+@target_type
 @check_auto_index_casting_pobj
 @check_auto_index_casting_target
 def test_convert_unit_like_extra_specs(
     only_two_index_levels_pobj,
     only_two_index_levels_target,
+    target_type,
+    pobj_type,
 ):
     """
     Test conversion when the target has a unit for rows that aren't in start
@@ -719,6 +774,8 @@ def test_convert_unit_like_extra_specs(
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     target = create_test_df(
         variables=[
             ("Cold", "K"),
@@ -733,11 +790,13 @@ def test_convert_unit_like_extra_specs(
     if only_two_index_levels_target:
         target = target.reset_index("scenario", drop=True)
 
+    target = convert_to_desired_type(target, target_type)
+
     res = convert_unit_like(start, target)
 
     exp = convert_unit(start, {"mK": "K", "kK": "K", "degC": "degF"})
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
 
 
 def test_convert_unit_like_ur_injection():
@@ -782,17 +841,24 @@ def test_convert_unit_like_ur_injection():
     assert_frame_alike(res, exp)
 
 
+@pobj_type
+@target_type
 @pytest.mark.parametrize(
     "df_unit_level, df_unit_level_exp, target_unit_level, target_unit_level_exp",
     (
         pytest.param(None, "unit", None, "unit", id="default"),
-        pytest.param("units", "units", None, "units", id="target-inferred-from-df"),
-        pytest.param("units", "units", "unit", "unit", id="target-df-differ"),
+        pytest.param("units", "units", None, "units", id="target-inferred-from-other"),
+        pytest.param("units", "units", "unit", "unit", id="target-other-differ"),
         pytest.param(None, "unit", "units", "units", id="target-specified-only"),
     ),
 )
-def test_convert_unit_like_unit_level_handling(
-    df_unit_level, df_unit_level_exp, target_unit_level, target_unit_level_exp
+def test_convert_unit_like_unit_level_handling(  # noqa: PLR0913
+    df_unit_level,
+    df_unit_level_exp,
+    target_unit_level,
+    target_unit_level_exp,
+    target_type,
+    pobj_type,
 ):
     pytest.importorskip("pint")
 
@@ -803,12 +869,16 @@ def test_convert_unit_like_unit_level_handling(
         timepoints=np.array([1.0, 2.0, 3.0]),
     )
 
+    start = convert_to_desired_type(start, pobj_type)
+
     target = create_test_df(
         variables=[(f"variable_{i}", "g") for i in range(2)],
         n_scenarios=2,
         n_runs=2,
         timepoints=np.array([10.0, 11.0, 12.0]),
     )
+
+    target = convert_to_desired_type(target, target_type)
 
     call_kwargs = {}
     if df_unit_level is not None:
@@ -830,10 +900,11 @@ def test_convert_unit_like_unit_level_handling(
 
     exp = convert_unit(start, "g", unit_level=df_unit_level_exp)
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
 
 
-def test_convert_unit_from_target_series_missing_desired_unit_error():
+@pobj_type
+def test_convert_unit_from_target_series_missing_desired_unit_error(pobj_type):
     start = pd.DataFrame(
         np.arange(2 * 3).reshape((2, 3)),
         columns=np.array([1.0, 10.0, 100.0]),
@@ -845,6 +916,8 @@ def test_convert_unit_from_target_series_missing_desired_unit_error():
             names=["model", "variable", "unit"],
         ),
     )
+
+    start = convert_to_desired_type(start, pobj_type)
 
     desired_unit = pd.Series(
         [
@@ -864,7 +937,8 @@ def test_convert_unit_from_target_series_missing_desired_unit_error():
         convert_unit_from_target_series(start, desired_unit)
 
 
-def test_convert_unit_from_target_series_no_pint_error():
+@pobj_type
+def test_convert_unit_from_target_series_no_pint_error(pobj_type):
     start = pd.DataFrame(
         np.arange(2 * 3).reshape((2, 3)),
         columns=np.array([1.0, 10.0, 100.0]),
@@ -876,6 +950,8 @@ def test_convert_unit_from_target_series_no_pint_error():
             names=["model", "variable", "unit"],
         ),
     )
+
+    start = convert_to_desired_type(start, pobj_type)
 
     desired_unit = pd.Series(
         ["K", "K"],
@@ -899,7 +975,8 @@ def test_convert_unit_from_target_series_no_pint_error():
             convert_unit_from_target_series(start, desired_unit)
 
 
-def test_accessor_convert_unit(setup_pandas_accessors):
+@pobj_type
+def test_accessor_convert_unit(setup_pandas_accessors, pobj_type):
     # Do most complex case: supply a series with different unit level
     # and required unit registry
     openscm_units = pytest.importorskip("openscm_units")
@@ -915,6 +992,8 @@ def test_accessor_convert_unit(setup_pandas_accessors):
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     ).rename_axis(index={"unit": "units"})
+
+    start = convert_to_desired_type(start, pobj_type)
 
     desired_units = (
         start.loc[start.index.get_level_values("variable") != "temperature"]
@@ -952,7 +1031,9 @@ def test_accessor_convert_unit(setup_pandas_accessors):
     )
 
 
-def test_accessor_convert_unit_like(setup_pandas_accessors):
+@pobj_type
+@target_type
+def test_accessor_convert_unit_like(setup_pandas_accessors, pobj_type, target_type):
     # Do most complex case: supply a series with different unit level
     # and required unit registry
     openscm_units = pytest.importorskip("openscm_units")
@@ -968,6 +1049,8 @@ def test_accessor_convert_unit_like(setup_pandas_accessors):
         n_runs=2,
         timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
     ).rename_axis(index={"unit": "units"})
+
+    start = convert_to_desired_type(start, pobj_type)
 
     target = create_test_df(
         variables=[
@@ -988,10 +1071,12 @@ def test_accessor_convert_unit_like(setup_pandas_accessors):
         ur=openscm_units.unit_registry,
     )
 
+    target = convert_to_desired_type(target, target_type)
+
     exp = start.openscm.convert_unit(
         {"K": "mK", "ZJ": "PJ", "GtC": "MtC"},
         unit_level="units",
         ur=openscm_units.unit_registry,
     )
 
-    assert_frame_alike(res, exp)
+    check_result(res, exp)
