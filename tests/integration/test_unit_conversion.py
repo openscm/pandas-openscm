@@ -220,8 +220,9 @@ def test_convert_unit_ur_injection():
     )
 
 
+@pobj_type
 @check_auto_index_casting_pobj
-def test_convert_unit_mapping(only_two_index_levels_pobj):
+def test_convert_unit_mapping(only_two_index_levels_pobj, pobj_type):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -239,6 +240,8 @@ def test_convert_unit_mapping(only_two_index_levels_pobj):
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
+
+    start = convert_to_desired_type(start, pobj_type)
 
     # Don't convert W / m^2
     res = convert_unit(start, {"K": "degC", "ZJ": "J"})
@@ -262,8 +265,9 @@ def test_convert_unit_mapping(only_two_index_levels_pobj):
     )
 
 
+@pobj_type
 @check_auto_index_casting_pobj
-def test_convert_series(only_two_index_levels_pobj):
+def test_convert_series(only_two_index_levels_pobj, pobj_type):
     pytest.importorskip("pint")
 
     # Check that conversion works if user supplies a Series of target units
@@ -282,6 +286,8 @@ def test_convert_series(only_two_index_levels_pobj):
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
+
+    start = convert_to_desired_type(start, pobj_type)
 
     desired_units = (
         start.loc[start.index.get_level_values("variable") != "temperature"]
@@ -309,8 +315,9 @@ def test_convert_series(only_two_index_levels_pobj):
     )
 
 
+@pobj_type
 @check_auto_index_casting_pobj
-def test_convert_series_all_rows(only_two_index_levels_pobj):
+def test_convert_series_all_rows(only_two_index_levels_pobj, pobj_type):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -328,6 +335,8 @@ def test_convert_series_all_rows(only_two_index_levels_pobj):
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
+
+    start = convert_to_desired_type(start, pobj_type)
 
     desired_units = start.reset_index("unit")["unit"].replace(
         {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
@@ -353,8 +362,9 @@ def test_convert_series_all_rows(only_two_index_levels_pobj):
     )
 
 
+@pobj_type
 @check_auto_index_casting_pobj
-def test_convert_series_extra_rows(only_two_index_levels_pobj):
+def test_convert_series_extra_rows(only_two_index_levels_pobj, pobj_type):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -372,6 +382,8 @@ def test_convert_series_extra_rows(only_two_index_levels_pobj):
             (start.index.get_level_values("scenario") == "scenario_0")
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
+
+    start = convert_to_desired_type(start, pobj_type)
 
     desired_units = start.reset_index("unit")["unit"].replace(
         {"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ"}
@@ -403,8 +415,9 @@ def test_convert_series_extra_rows(only_two_index_levels_pobj):
     )
 
 
+@pobj_type
 @check_auto_index_casting_pobj
-def test_convert_unit_like_no_op(only_two_index_levels_pobj):
+def test_convert_unit_like_no_op(only_two_index_levels_pobj, pobj_type):
     start = create_test_df(
         variables=[
             ("Cold", "mK"),
@@ -421,9 +434,11 @@ def test_convert_unit_like_no_op(only_two_index_levels_pobj):
             & (start.index.get_level_values("run") == 0)
         ].reset_index(["scenario", "run"], drop=True)
 
+    start = convert_to_desired_type(start, pobj_type)
+
     res = convert_unit_like(start, start)
 
-    pd.testing.assert_frame_equal(res, start)
+    check_result(res, start)
 
 
 check_auto_index_casting_target = pytest.mark.parametrize(
