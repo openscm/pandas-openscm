@@ -221,7 +221,7 @@ def test_set_levels_raises_value_error():
         set_levels(start, levels_to_set=levels_to_set)
 
 
-def test_accessor(setup_pandas_accessor):
+def test_accessor(setup_pandas_accessors):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
         columns=[2010, 2020],

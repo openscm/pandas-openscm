@@ -71,7 +71,7 @@ def test_ensure_index_is_multiindex_no_op(copy, copy_exp):
 
 
 @pytest.mark.parametrize("copy, copy_exp", ((None, True), (True, True), (False, False)))
-def test_accessor(setup_pandas_accessor, copy, copy_exp):
+def test_accessor(setup_pandas_accessors, copy, copy_exp):
     start = pd.DataFrame(
         [[1, 2], [3, 4]],
         columns=[10, 20],

@@ -36,7 +36,7 @@ COMMIT = GIT_REPO.head.object.hexsha
 if GIT_REPO.is_dirty():
     COMMIT = f"{COMMIT}-dirty"
 
-pandas_openscm.register_pandas_accessor()
+pandas_openscm.register_pandas_accessors()
 
 
 @define

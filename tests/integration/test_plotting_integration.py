@@ -112,7 +112,7 @@ def check_plots_incl_quantile_calculation(
     plt.close()
 
 
-def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
+def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessors):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "K")),
         n_scenarios=5,
@@ -131,7 +131,7 @@ def test_plot_plume_default(tmp_path, image_regression, setup_pandas_accessor):
     )
 
 
-def test_default_ax_auto_creation(tmp_path, image_regression, setup_pandas_accessor):
+def test_default_ax_auto_creation(tmp_path, image_regression, setup_pandas_accessors):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "K")),
         n_scenarios=5,
@@ -154,7 +154,7 @@ def test_default_ax_auto_creation(tmp_path, image_regression, setup_pandas_acces
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
 
-def test_plot_plume_no_labels(tmp_path, image_regression, setup_pandas_accessor):
+def test_plot_plume_no_labels(tmp_path, image_regression, setup_pandas_accessors):
     df = create_test_df(
         variables=(("variable_1", "K"),),
         n_scenarios=5,
@@ -178,7 +178,7 @@ def test_plot_plume_no_labels(tmp_path, image_regression, setup_pandas_accessor)
 
 
 def test_plot_plume_with_other_plot_calls(
-    tmp_path, image_regression, setup_pandas_accessor
+    tmp_path, image_regression, setup_pandas_accessors
 ):
     fig, ax = plt.subplots()
 
@@ -280,7 +280,7 @@ def test_plot_plume_with_other_plot_calls(
     ),
 )
 def test_plot_plume_quantiles(
-    quantiles_plumes, tmp_path, image_regression, setup_pandas_accessor
+    quantiles_plumes, tmp_path, image_regression, setup_pandas_accessors
 ):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "K")),
@@ -328,7 +328,7 @@ def test_plot_plume_quantile_over(  # noqa: PLR0913
     kwargs,
     tmp_path,
     image_regression,
-    setup_pandas_accessor,
+    setup_pandas_accessors,
 ):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "W")),
@@ -357,7 +357,7 @@ def test_plot_plume_quantile_over(  # noqa: PLR0913
 def test_plot_plume_extra_palette(
     tmp_path,
     image_regression,
-    setup_pandas_accessor,
+    setup_pandas_accessors,
 ):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "W")),
@@ -393,7 +393,7 @@ def test_plot_plume_extra_palette(
 def test_plot_plume_missing_from_palette(
     tmp_path,
     image_regression,
-    setup_pandas_accessor,
+    setup_pandas_accessors,
 ):
     df = create_test_df(
         variables=(("variable_1", "K"),),
@@ -434,7 +434,7 @@ def test_plot_plume_missing_from_palette(
 def test_plot_plume_extra_dashes(
     tmp_path,
     image_regression,
-    setup_pandas_accessor,
+    setup_pandas_accessors,
 ):
     df = create_test_df(
         variables=(("variable_1", "W"), ("variable_2", "W")),
@@ -468,7 +468,7 @@ def test_plot_plume_extra_dashes(
 def test_plot_plume_missing_from_dashes(
     tmp_path,
     image_regression,
-    setup_pandas_accessor,
+    setup_pandas_accessors,
 ):
     df = create_test_df(
         variables=(("variable_1", "W"), ("variable_2", "W")),
@@ -530,7 +530,7 @@ def test_plot_plume_missing_from_dashes(
     ),
 )
 def test_plot_plume_missing_quantiles(  # noqa: PLR0913
-    quantiles, quantiles_plumes, exp, setup_pandas_accessor, image_regression, tmp_path
+    quantiles, quantiles_plumes, exp, setup_pandas_accessors, image_regression, tmp_path
 ):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "K")),
@@ -552,7 +552,7 @@ def test_plot_plume_missing_quantiles(  # noqa: PLR0913
 
 
 def test_plot_plume_missing_multiple_quantiles(
-    setup_pandas_accessor,
+    setup_pandas_accessors,
     image_regression,
     tmp_path,
     recwarn,
@@ -587,7 +587,7 @@ def test_plot_plume_missing_multiple_quantiles(
         )
 
 
-def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_path):
+def test_plot_plume_option_passing(setup_pandas_accessors, image_regression, tmp_path):
     openscm_units = pytest.importorskip("openscm_units")
     openscm_units.unit_registry.setup_matplotlib(enable=True)
 
@@ -658,7 +658,7 @@ def test_plot_plume_option_passing(setup_pandas_accessor, image_regression, tmp_
 
 
 def test_plot_plume_after_calculating_quantiles_option_passing(
-    setup_pandas_accessor, image_regression, tmp_path
+    setup_pandas_accessors, image_regression, tmp_path
 ):
     openscm_units = pytest.importorskip("openscm_units")
     openscm_units.unit_registry.setup_matplotlib(enable=True)
@@ -742,7 +742,7 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
     ),
 )
 def test_plot_plume_unit_aware(
-    unit_aware, variables, setup_pandas_accessor, image_regression, tmp_path
+    unit_aware, variables, setup_pandas_accessors, image_regression, tmp_path
 ):
     """
     Make sure that we can do unit-aware plots
@@ -796,7 +796,7 @@ def test_plot_plume_unit_aware(
     ur.setup_matplotlib(enable=False)
 
 
-def test_plot_plume_unit_aware_incompatible_units(setup_pandas_accessor):
+def test_plot_plume_unit_aware_incompatible_units(setup_pandas_accessors):
     """
     Make sure that we can do unit-aware plots and errors are caught
 
@@ -931,7 +931,7 @@ def test_get_values_line_unit_aware_no_pint():
             get_values_line(df, unit_aware=True, unit_var="unit", time_units="yr")
 
 
-def test_get_values_plume_unit_aware_no_pint(setup_pandas_accessor):
+def test_get_values_plume_unit_aware_no_pint(setup_pandas_accessors):
     df = (
         create_test_df(
             variables=(("variable_1", "K"), ("variable_2", "K")),

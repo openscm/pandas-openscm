@@ -29,7 +29,7 @@ import matplotlib.units
 import numpy as np
 import openscm_units
 
-from pandas_openscm import register_pandas_accessor
+from pandas_openscm import register_pandas_accessors
 from pandas_openscm.plotting import PlumePlotter
 from pandas_openscm.testing import create_test_df
 
@@ -40,7 +40,7 @@ from pandas_openscm.testing import create_test_df
 # Register the openscm accessor for pandas objects
 # (we don't do this on import
 # as we have had bad experiences with implicit behaviour like that)
-register_pandas_accessor()
+register_pandas_accessors()
 
 # %% [markdown]
 # ## Basics

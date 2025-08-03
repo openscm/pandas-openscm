@@ -287,7 +287,7 @@ def test_index_name_aware_lookup():
         ),
     ),
 )
-def test_mi_loc_same_as_pandas(locator, setup_pandas_accessor):
+def test_mi_loc_same_as_pandas(locator, setup_pandas_accessors):
     """
     Test pass through in the cases where pass through should happen
 

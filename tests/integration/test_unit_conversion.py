@@ -87,13 +87,13 @@ def test_convert_unit_unknown_mapping_type():
 
 @check_auto_index_casting_df
 @pytest.mark.parametrize(
-    "unit, exp_unit",
+    "unit_level, exp_unit_level",
     (
         pytest.param(None, "unit", id="default"),
         ("units", "units"),
     ),
 )
-def test_convert_unit_single_unit(unit, exp_unit, only_two_index_levels_df):
+def test_convert_unit_single_unit(unit_level, exp_unit_level, only_two_index_levels_df):
     pytest.importorskip("pint")
 
     start = create_test_df(
@@ -113,17 +113,13 @@ def test_convert_unit_single_unit(unit, exp_unit, only_two_index_levels_df):
         ].reset_index(["scenario", "run"], drop=True)
 
     call_kwargs = {}
-    if unit is not None:
-        start = (
-            start.reset_index("unit")
-            .rename({"unit": unit}, axis="columns")
-            .set_index(unit, append=True)
-        )
-        call_kwargs["unit_level"] = unit
+    if unit_level is not None:
+        start = start.rename_axis(index={"unit": unit_level})
+        call_kwargs["unit_level"] = unit_level
 
     res = convert_unit(start, "K", **call_kwargs)
 
-    assert (res.index.get_level_values(exp_unit) == "K").all()
+    assert (res.index.get_level_values(exp_unit_level) == "K").all()
 
     np.testing.assert_equal(
         res.loc[res.index.get_level_values("variable") == "Cold", :].values,
@@ -747,34 +743,18 @@ def test_convert_unit_like_unit_level_handling(
 
     call_kwargs = {}
     if df_unit_level is not None:
-        start = (
-            start.reset_index("unit")
-            .rename({"unit": df_unit_level}, axis="columns")
-            .set_index(df_unit_level, append=True)
-        )
+        start = start.rename_axis(index={"unit": df_unit_level})
         call_kwargs["df_unit_level"] = df_unit_level
 
         if target_unit_level is not None:
-            target = (
-                target.reset_index("unit")
-                .rename({"unit": target_unit_level}, axis="columns")
-                .set_index(target_unit_level, append=True)
-            )
+            target = target.rename_axis(index={"unit": target_unit_level})
             call_kwargs["target_unit_level"] = target_unit_level
 
         else:
-            target = (
-                target.reset_index("unit")
-                .rename({"unit": df_unit_level}, axis="columns")
-                .set_index(df_unit_level, append=True)
-            )
+            target = target.rename_axis(index={"unit": df_unit_level})
 
     elif target_unit_level is not None:
-        target = (
-            target.reset_index("unit")
-            .rename({"unit": target_unit_level}, axis="columns")
-            .set_index(target_unit_level, append=True)
-        )
+        target = target.rename_axis(index={"unit": target_unit_level})
         call_kwargs["target_unit_level"] = target_unit_level
 
     res = convert_unit_like(start, target, **call_kwargs)
@@ -848,3 +828,101 @@ def test_convert_unit_from_target_series_no_pint_error():
             ),
         ):
             convert_unit_from_target_series(start, desired_unit)
+
+
+def test_accessor_convert_unit(setup_pandas_accessors):
+    # Do most complex case: supply a series with different unit level
+    # and required unit registry
+    openscm_units = pytest.importorskip("openscm_units")
+
+    start = create_test_df(
+        variables=[
+            ("temperature", "K"),
+            ("erf", "W / m^2"),
+            ("ohc", "ZJ"),
+            ("emissions", "GtC"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
+    ).rename_axis(index={"unit": "units"})
+
+    desired_units = (
+        start.loc[start.index.get_level_values("variable") != "temperature"]
+        .reset_index("units")["units"]
+        .replace({"W / m^2": "ZJ / yr / m^2", "ZJ": "PJ", "GtC": "MtCO2"})
+    )
+
+    res = start.openscm.convert_unit(
+        desired_units, unit_level="units", ur=openscm_units.unit_registry
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "temperature", :].values,
+        start.loc[start.index.get_level_values("variable") == "temperature", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "erf", :].values,
+        (60.0 * 60.0 * 24.0 * 365.25)
+        * 1e-21
+        * start.loc[start.index.get_level_values("variable") == "erf", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "ohc", :].values,
+        1e6 * start.loc[start.index.get_level_values("variable") == "ohc", :].values,
+    )
+
+    np.testing.assert_allclose(
+        res.loc[res.index.get_level_values("variable") == "emissions", :].values,
+        44.0
+        / 12.0
+        * 1000.0
+        * start.loc[start.index.get_level_values("variable") == "emissions", :].values,
+    )
+
+
+def test_accessor_convert_unit_like(setup_pandas_accessors):
+    # Do most complex case: supply a series with different unit level
+    # and required unit registry
+    openscm_units = pytest.importorskip("openscm_units")
+
+    start = create_test_df(
+        variables=[
+            ("temperature", "K"),
+            ("erf", "W / m^2"),
+            ("ohc", "ZJ"),
+            ("emissions", "GtC"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
+    ).rename_axis(index={"unit": "units"})
+
+    target = create_test_df(
+        variables=[
+            ("temperature", "mK"),
+            ("erf", "W / m^2"),
+            ("ohc", "PJ"),
+            ("emissions", "MtC"),
+        ],
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.array([1850.0, 2000.0, 2050.0, 2100.0]),
+    ).rename_axis(index={"unit": "unit_level"})
+
+    res = start.openscm.convert_unit_like(
+        target,
+        df_unit_level="units",
+        target_unit_level="unit_level",
+        ur=openscm_units.unit_registry,
+    )
+
+    exp = start.openscm.convert_unit(
+        {"K": "mK", "ZJ": "PJ", "GtC": "MtC"},
+        unit_level="units",
+        ur=openscm_units.unit_registry,
+    )
+
+    assert_frame_alike(res, exp)

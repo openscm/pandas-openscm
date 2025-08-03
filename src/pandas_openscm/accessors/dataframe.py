@@ -1,20 +1,5 @@
 """
-API for [pandas][] accessors.
-
-As a general note to developers,
-we try and keep the accessors as a super-thin layer.
-This makes it easier to re-use functionality in a more functional way,
-which is beneficial
-(particularly if we one day need to switch to
-a different kind of dataframe e.g. dask).
-
-As a result, we effectively duplicate our API.
-This is fine, because this repo is not so big.
-Pandas and pandas-indexing use pandas' `pandas.util._decorators.docs` decorator
-(see https://github.com/pandas-dev/pandas/blob/05de25381f71657bd425d2c4045d81a46b2d3740/pandas/util/_decorators.py#L342)
-to avoid duplicating the docs.
-We could use the same pattern, but I have found that this magic
-almost always goes wrong so I would stay away from this as long as we can.
+Accessor for [pd.DataFrame][pandas.DataFrame]
 """
 
 from __future__ import annotations
@@ -55,9 +40,9 @@ if TYPE_CHECKING:
     )
 
 
-class DataFramePandasOpenSCMAccessor:
+class PandasDataFrameOpenSCMAccessor:
     """
-    [pd.DataFrame][pandas.DataFrame] accessors
+    [pd.DataFrame][pandas.DataFrame] accessor
 
     For details, see
     [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
@@ -716,9 +701,9 @@ class DataFramePandasOpenSCMAccessor:
         >>> import numpy as np
         >>> import pandas as pd
         >>>
-        >>> from pandas_openscm.accessors import register_pandas_accessor
+        >>> from pandas_openscm.accessors import register_pandas_accessors
         >>>
-        >>> register_pandas_accessor()
+        >>> register_pandas_accessors()
         >>>
         >>> df = pd.DataFrame(
         ...     [
@@ -895,24 +880,3 @@ class DataFramePandasOpenSCMAccessor:
             copy=copy,
             remove_unused_levels=remove_unused_levels,
         )
-
-
-def register_pandas_accessor(namespace: str = "openscm") -> None:
-    """
-    Register the pandas accessors
-
-    For details, see
-    [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
-
-    We provide this as a separate function
-    because we have had really bad experiences with imports having side effects
-    and don't want to pass those on to our users.
-
-    Parameters
-    ----------
-    namespace
-        Namespace to use for the accessor
-    """
-    pd.api.extensions.register_dataframe_accessor(namespace)(
-        DataFramePandasOpenSCMAccessor
-    )

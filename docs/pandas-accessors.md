@@ -8,7 +8,7 @@ The accessors must be registered before they can be used
 (we do this to avoid imports of any of our modules having side effects,
 which is a pattern we have had bad experiences with in the past).
 This is done with
-[register_pandas_accessor][pandas_openscm.accessors.register_pandas_accessor],
+[register_pandas_accessors][pandas_openscm.accessors.register_pandas_accessors],
 
 By default, the accessors are provided under the "openscm" namespace
 and this is how the accessors are documented below.
@@ -20,12 +20,12 @@ For the avoidance of doubt, in order to register/activate the accessors,
 you will need to run something like:
 
 ```python
-from pandas_openscm.accessors import register_pandas_accessor
+from pandas_openscm.accessors import register_pandas_accessors
 
 # The 'pd.DataFrame.openscm' namespace will not be available at this point.
 
 # Register the accessors
-register_pandas_accessor()
+register_pandas_accessors()
 
 # The 'pd.DataFrame.openscm' namespace
 # (or whatever other custom namespace you chose to register)
