@@ -50,7 +50,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         """
         Convert units
 
-        This uses [convert_unit_from_target_series][(p).unit_conversion.].
+        This uses [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
         If you want to understand the details of how the conversion works,
         see that function's docstring.
 
@@ -71,23 +71,25 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
 
             If this is a [pd.Series][pandas.Series],
             then it will be passed to
-            [convert_unit_from_target_series][(p).unit_conversion.]
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.]
             after filling any rows in the [pd.Series][pandas.Series]
             that are not in `desired_units`
             with the existing unit (i.e. unspecified rows are not converted).
 
             For further details, see the examples
-            in [convert_unit][(p).unit_conversion.].
+            in [convert_unit][pandas_openscm.unit_conversion.].
 
         unit_level
             Level in the index which holds unit information
 
-            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+            Passed to
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
 
         ur
             Unit registry to use for the conversion.
 
-            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+            Passed to
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
 
         Returns
         -------
@@ -120,16 +122,16 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         Convert units to match another supported pandas object
 
         For further details, see the examples
-        in [convert_unit_like][(p).unit_conversion.].
+        in [convert_unit_like][pandas_openscm.unit_conversion.].
 
         This is essentially a helper for
-        [convert_unit_from_target_series][(p).unit_conversion.].
+        [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
         It implements one set of logic for extracting desired units
         and tries to be clever, handling differences in index levels
         between the data and `target` sensibly wherever possible.
 
         If you want behaviour other than what is implemented here,
-        use [convert_unit_from_target_series][(p).unit_conversion.] directly.
+        use [convert_unit_from_target_series][pandas_openscm.unit_conversion.] directly.
 
         Parameters
         ----------
@@ -147,7 +149,8 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         ur
             Unit registry to use for the conversion.
 
-            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+            Passed to
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
 
         Returns
         -------
@@ -196,7 +199,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
     #     """
     #     Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
     #
-    #     Alias for [ensure_index_is_multiindex][(p).index_manipulation.]
+    #     Alias for [ensure_index_is_multiindex][pandas_openscm.index_manipulation.]
     #
     #     Parameters
     #     ----------
@@ -278,7 +281,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
     #         Locator to apply
     #
     #         If this is a multi-index, we use
-    #         [multi_index_lookup][(p).indexing.] to ensure correct alignment.
+    #         [multi_index_lookup][pandas_openscm.indexing.] to ensure correct alignment.  # noqa: E501
     #
     #         If this is an index that has a name,
     #         we use the name to ensure correct alignment.

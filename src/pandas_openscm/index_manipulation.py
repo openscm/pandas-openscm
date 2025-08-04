@@ -920,20 +920,19 @@ def set_index_levels_func(
 
     Parameters
     ----------
-    df
+    pobj
         [pd.DataFrame][pandas.DataFrame] to update
 
     levels_to_set
         Mapping of level names to values to set
 
     copy
-        Should `df` be copied before returning?
-
+        Should `pobj` be copied before returning?
 
     Returns
     -------
     :
-        `df` with updates applied to its index
+        `pobj` with updates applied to its index
     """
     if not isinstance(pobj.index, pd.MultiIndex):
         msg = (

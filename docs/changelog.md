@@ -25,8 +25,8 @@ from the examples given in that link.
 
 ### 🆕 Features
 
-- - Added unit conversion APIs: [pandas_openscm.unit_conversion.convert_unit] and [pandas_openscm.unit_conversion.convert_unit_like] and the corresponding accessors [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.convert_unit] and [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.convert_unit_like]
-  - Added the helper: [pandas_openscm.index_manipulation.ensure_is_multiindex] and the corresponding accessors [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.ensure_index_is_multiindex] and [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.eiim]
+- - Added unit conversion APIs: [pandas_openscm.unit_conversion.convert_unit] and [pandas_openscm.unit_conversion.convert_unit_like] and the corresponding accessors [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.convert_unit] and [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.convert_unit_like]
+  - Added the helper: [pandas_openscm.index_manipulation.ensure_is_multiindex] and the corresponding accessors [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.ensure_index_is_multiindex] and [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.eiim]
 
   ([#23](https://github.com/openscm/pandas-openscm/pull/23))
 
@@ -46,7 +46,7 @@ from the examples given in that link.
 
 ### 🆕 Features
 
-- Added [pandas_openscm.index_manipulation.set_levels][] and the corresponding accessor [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.set_index_levels][] ([#18](https://github.com/openscm/pandas-openscm/pull/18))
+- Added [pandas_openscm.index_manipulation.set_levels][] and the corresponding accessor [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.set_index_levels][] ([#18](https://github.com/openscm/pandas-openscm/pull/18))
 
 
 ## Pandas-OpenSCM v0.5.0 (2025-05-10)
@@ -84,7 +84,7 @@ from the examples given in that link.
 ### 🆕 Features
 
 - Add compare_close function to compare two dataframes. ([#16](https://github.com/openscm/pandas-openscm/pull/16))
-- Added [pandas_openscm.index_manipulation.update_levels_from_other][] and the corresponding accessor [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.update_index_levels_from_other][] ([#17](https://github.com/openscm/pandas-openscm/pull/17))
+- Added [pandas_openscm.index_manipulation.update_levels_from_other][] and the corresponding accessor [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.update_index_levels_from_other][] ([#17](https://github.com/openscm/pandas-openscm/pull/17))
 
 
 ## Pandas-OpenSCM v0.4.1 (2025-04-12)
@@ -93,21 +93,21 @@ from the examples given in that link.
 
 - Fixed up [pandas_openscm.index_manipulation.update_levels][].
   It now drops unused levels by default first, to avoid applying the updates to values that aren't being used.
-  The same fixes are propagated to [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.update_index_levels][] and [pandas_openscm.index_manipulation.update_index_levels_func][]. ([#14](https://github.com/openscm/pandas-openscm/pull/14))
+  The same fixes are propagated to [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.update_index_levels][] and [pandas_openscm.index_manipulation.update_index_levels_func][]. ([#14](https://github.com/openscm/pandas-openscm/pull/14))
 
 
 ## Pandas-OpenSCM v0.4.0 (2025-04-11)
 
 ### 🆕 Features
 
-- Added [pandas_openscm.index_manipulation.update_levels][] and the corresponding accessor [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.update_index_levels][] ([#13](https://github.com/openscm/pandas-openscm/pull/13))
+- Added [pandas_openscm.index_manipulation.update_levels][] and the corresponding accessor [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.update_index_levels][] ([#13](https://github.com/openscm/pandas-openscm/pull/13))
 
 
 ## Pandas-OpenSCM v0.3.3 (2025-03-30)
 
 ### 🆕 Features
 
-- - Added a method for converting to long data, see [pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.to_long_data][pandas_openscm.accessors.DataFramePandasOpenSCMAccessor.to_long_data] ([#12](https://github.com/openscm/pandas-openscm/pull/12))
+- - Added a method for converting to long data, see [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.to_long_data][pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.to_long_data] ([#12](https://github.com/openscm/pandas-openscm/pull/12))
 
 
 ## Pandas-OpenSCM v0.3.2 (2025-03-27)
