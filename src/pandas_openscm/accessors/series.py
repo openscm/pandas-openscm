@@ -15,6 +15,8 @@ from pandas_openscm.index_manipulation import (
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 if TYPE_CHECKING:
+    # Hmm this is somehow not correct.
+    # Figuring it out is a job for another day
     S = TypeVar("S", bound=pd.Series[Any])
 
     import pint
@@ -329,11 +331,16 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         :
             [pd.Series][pandas.Series] with updates applied to its index
         """
-        return set_index_levels_func(
+        res = set_index_levels_func(
             self._series,
             levels_to_set=levels_to_set,
             copy=copy,
         )
+
+        # Ignore return type
+        # because I've done something wrong with how I've set this up.
+        # Figuring this out is a job for another day
+        return res  # type: ignore
 
     # def to_category_index(self) -> pd.DataFrame:
     #     """

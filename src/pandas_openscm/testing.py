@@ -22,7 +22,7 @@ from pandas_openscm.exceptions import MissingOptionalDependencyError
 if TYPE_CHECKING:
     import pytest
 
-    P = TypeVar("P", pd.DataFrame | pd.Series[Any])
+    P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
 
 def get_db_data_backends() -> tuple[type[object], ...]:
@@ -101,13 +101,13 @@ def assert_frame_alike(
 
 @overload
 def convert_to_desired_type(
-    pobj: pd.DataFrame, pobj_type: Literal["DataFrame"]
+    df: pd.DataFrame, pobj_type: Literal["DataFrame"]
 ) -> pd.DataFrame: ...
 
 
 @overload
 def convert_to_desired_type(
-    pobj: pd.DataFrame, pobj_type: Literal["Series"]
+    df: pd.DataFrame, pobj_type: Literal["Series"]
 ) -> pd.Series[Any]: ...
 
 
