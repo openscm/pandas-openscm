@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import re
 import sys
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar
 from unittest.mock import patch
 
 import numpy as np
@@ -17,7 +17,12 @@ from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.index_manipulation import (
     set_index_levels_func,
 )
-from pandas_openscm.testing import assert_frame_alike, create_test_df
+from pandas_openscm.testing import (
+    assert_frame_alike,
+    check_result,
+    convert_to_desired_type,
+    create_test_df,
+)
 from pandas_openscm.unit_conversion import (
     AmbiguousTargetUnitError,
     MissingDesiredUnitError,
@@ -28,6 +33,14 @@ from pandas_openscm.unit_conversion import (
 
 if TYPE_CHECKING:
     P = TypeVar("P", pd.DataFrame | pd.Series[Any])
+
+pobj_type = pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series
+"""
 
 check_auto_index_casting_pobj = pytest.mark.parametrize(
     "only_two_index_levels_pobj",
@@ -42,48 +55,6 @@ Parameterisation to use to check handling of auto casting to `pd.Index`
 This casting causes all sorts of indexing and other issues.
 This parameterisation ensures that we check this edge case.
 """
-
-pobj_type = pytest.mark.parametrize(
-    "pobj_type",
-    ("DataFrame", "Series"),
-)
-"""
-Parameterisation to use to check handling of both DataFrame and Series
-"""
-
-
-@overload
-def convert_to_desired_type(
-    pobj: pd.DataFrame, pobj_type: Literal["DataFrame"]
-) -> pd.DataFrame: ...
-
-
-@overload
-def convert_to_desired_type(
-    pobj: pd.DataFrame, pobj_type: Literal["Series"]
-) -> pd.Series[Any]: ...
-
-
-def convert_to_desired_type(
-    df: pd.DataFrame, pobj_type: Literal["DataFrame", "Series"]
-) -> pd.DataFrame | pd.Series[Any]:
-    if pobj_type == "DataFrame":
-        return df
-
-    if pobj_type == "Series":
-        res = df[df.columns[0]]
-        return res
-
-    raise NotImplementedError(pobj_type)
-
-
-def check_result(res: P, exp: P) -> None:
-    if isinstance(res, pd.DataFrame):
-        assert_frame_alike(res, exp)
-    elif isinstance(res, pd.Series):
-        pd.testing.assert_series_equal(res, exp)
-    else:
-        raise NotImplementedError(type(res))
 
 
 @pobj_type

@@ -4,11 +4,14 @@ Accessor for [pd.Series][pandas.Series]
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
 
+from pandas_openscm.index_manipulation import (
+    set_index_levels_func,
+)
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 if TYPE_CHECKING:
@@ -305,33 +308,33 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
     #     """
     #     return mi_loc(self._df, locator)
 
-    # def set_index_levels(
-    #     self,
-    #     levels_to_set: dict[str, Any | Collection[Any]],
-    #     copy: bool = True,
-    # ) -> pd.DataFrame:
-    #     """
-    #     Set the index levels
-    #
-    #     Parameters
-    #     ----------
-    #     levels_to_set
-    #         Mapping of level names to values to set
-    #
-    #     copy
-    #         Should the [pd.DataFrame][pandas.DataFrame] be copied before returning?
-    #
-    #     Returns
-    #     -------
-    #     :
-    #         [pd.DataFrame][pandas.DataFrame] with updates applied to its index
-    #     """
-    #     return set_index_levels_func(
-    #         self._df,
-    #         levels_to_set=levels_to_set,
-    #         copy=copy,
-    #     )
-    #
+    def set_index_levels(
+        self,
+        levels_to_set: dict[str, Any | Collection[Any]],
+        copy: bool = True,
+    ) -> S:
+        """
+        Set the index levels
+
+        Parameters
+        ----------
+        levels_to_set
+            Mapping of level names to values to set
+
+        copy
+            Should the [pd.Series][pandas.Series] be copied before returning?
+
+        Returns
+        -------
+        :
+            [pd.Series][pandas.Series] with updates applied to its index
+        """
+        return set_index_levels_func(
+            self._series,
+            levels_to_set=levels_to_set,
+            copy=copy,
+        )
+
     # def to_category_index(self) -> pd.DataFrame:
     #     """
     #     Convert the index's values to categories

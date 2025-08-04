@@ -910,7 +910,6 @@ def set_levels(
 
 
 def set_index_levels_func(
-    # TODO: check support for series and add accessors
     pobj: P,
     levels_to_set: dict[str, Any | Collection[Any]],
     copy: bool = True,
