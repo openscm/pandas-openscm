@@ -140,7 +140,7 @@ def convert_to_desired_type(
         res = df[df.columns[0]]
         return res
 
-    raise NotImplementedError(pobj_type)
+    raise NotImplementedError(pobj_type)  # pragma: no cover
 
 
 def check_result(res: P, exp: P) -> None:
@@ -165,7 +165,7 @@ def check_result(res: P, exp: P) -> None:
         assert_frame_alike(res, exp)
     elif isinstance(res, pd.Series):
         pd.testing.assert_series_equal(res, exp)
-    else:
+    else:  # pragma: no cover
         raise NotImplementedError(type(res))
 
 
