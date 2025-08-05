@@ -21,6 +21,30 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.8.0 (2025-08-05)
+
+### ⚠️ Breaking Changes
+
+- - Renamed pandas_openscm.register_pandas_accessor to [pandas_openscm.register_pandas_accessors][] (with a trailing 's') as accessors are now also registered for [pandas Series][pandas.Series]
+  - Renamed pandas_openscm.accessors.DataFramePandasOpenSCMAccessor to [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor][]
+  - Renamed `df_unit_level` to `unit_level` in [pandas_openscm.accessors.PandasDataFrameOpenSCMAccessor.convert_unit_like][]
+  - Renamed `df` to `pobj` in [pandas_openscm.index_manipulation.set_index_levels_func][], [pandas_openscm.unit_conversion.convert_unit_from_target_series][], [pandas_openscm.unit_conversion.convert_unit][] and [pandas_openscm.unit_conversion.convert_unit_like][]
+
+  ([#24](https://github.com/openscm/pandas-openscm/pull/24))
+
+### 🆕 Features
+
+- Added some accessors for [pandas Series][pandas.Series] via [pandas_openscm.accessors.PandasSeriesOpenSCMAccessor][]. Note that this is not feature complete yet, tracking in [#25](https://github.com/openscm/pandas-openscm/issues/25) ([#24](https://github.com/openscm/pandas-openscm/pull/24))
+
+### 🎉 Improvements
+
+- [pandas_openscm.index_manipulation.set_index_levels_func][], [pandas_openscm.unit_conversion.convert_unit_from_target_series][], [pandas_openscm.unit_conversion.convert_unit][] and [pandas_openscm.unit_conversion.convert_unit_like][] now explicitly support [pd.Series][pandas.Series] ([#24](https://github.com/openscm/pandas-openscm/pull/24))
+
+### 🔧 Trivial/Internal Changes
+
+- [#24](https://github.com/openscm/pandas-openscm/pull/24)
+
+
 ## Pandas-OpenSCM v0.7.0 (2025-07-24)
 
 ### 🆕 Features
