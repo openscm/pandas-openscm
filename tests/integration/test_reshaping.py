@@ -20,7 +20,7 @@ from pandas_openscm.testing import create_test_df
         ("year", "year"),
     ),
 )
-def test_to_long_data_basic(setup_pandas_accessor, time_col_name, time_col_name_exp):
+def test_to_long_data_basic(setup_pandas_accessors, time_col_name, time_col_name_exp):
     kwargs = {}
     if time_col_name is not None:
         kwargs["time_col_name"] = time_col_name_exp
@@ -39,7 +39,7 @@ def test_to_long_data_basic(setup_pandas_accessor, time_col_name, time_col_name_
     pd.testing.assert_frame_equal(res, exp, check_like=True)
 
 
-def test_to_long_data_nan_handling(setup_pandas_accessor):
+def test_to_long_data_nan_handling(setup_pandas_accessors):
     df = pd.DataFrame(
         [[1, np.nan, 1.2], [2.1, 10.2, np.nan]],
         columns=[2010.0, 2015.0, 2025.0],
@@ -61,7 +61,7 @@ def test_to_long_data_nan_handling(setup_pandas_accessor):
     pd.testing.assert_frame_equal(res, exp)
 
 
-def test_to_long_data_nan_handling_index(setup_pandas_accessor):
+def test_to_long_data_nan_handling_index(setup_pandas_accessors):
     df = pd.DataFrame(
         [[1.1, 0.8, 1.2], [2.1, 10.2, 8.4]],
         columns=[2010.0, 2015.0, 2025.0],

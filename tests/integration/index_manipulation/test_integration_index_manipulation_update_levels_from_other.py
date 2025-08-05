@@ -181,7 +181,7 @@ def test_update_levels_from_other_missing_level():
         update_levels_from_other(start, update_sources=update_sources)
 
 
-def test_doesnt_trip_over_droped_levels(setup_pandas_accessor):
+def test_doesnt_trip_over_droped_levels(setup_pandas_accessors):
     def update_func(in_v: int) -> int:
         if in_v < 0:
             msg = f"Value must be greater than zero, received {in_v}"
@@ -256,7 +256,7 @@ def test_doesnt_trip_over_droped_levels(setup_pandas_accessor):
         )
 
 
-def test_accessor(setup_pandas_accessor):
+def test_accessor(setup_pandas_accessors):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
         columns=[2010, 2020],
@@ -298,7 +298,7 @@ def test_accessor(setup_pandas_accessor):
     pd.testing.assert_frame_equal(res, exp)
 
 
-def test_accessor_not_multiindex(setup_pandas_accessor):
+def test_accessor_not_multiindex(setup_pandas_accessors):
     start = pd.DataFrame(np.arange(2 * 4).reshape((4, 2)))
 
     error_msg = re.escape(

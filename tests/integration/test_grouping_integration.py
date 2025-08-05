@@ -20,7 +20,7 @@ from pandas_openscm.testing import create_test_df
         (["run", "scenario"], ["variable", "unit"]),
     ),
 )
-def test_groupby_except(non_groupers, expected_groups, setup_pandas_accessor):
+def test_groupby_except(non_groupers, expected_groups, setup_pandas_accessors):
     df = create_test_df(
         variables=(("variable_1", "K"), ("variable_2", "W")),
         n_scenarios=5,
@@ -46,7 +46,7 @@ def test_groupby_except(non_groupers, expected_groups, setup_pandas_accessor):
     "new_name, quantile_exp", ((None, "quantile"), ("percentile", "percentile"))
 )
 def test_fix_index_name_after_groupby_quantile(
-    new_name, quantile_exp, setup_pandas_accessor
+    new_name, quantile_exp, setup_pandas_accessors
 ):
     fix_kwargs = {}
     if new_name is not None:

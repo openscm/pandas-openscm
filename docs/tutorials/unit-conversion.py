@@ -29,7 +29,7 @@ import pandas as pd
 import pandas_indexing as pix
 import pint
 
-from pandas_openscm import register_pandas_accessor
+from pandas_openscm import register_pandas_accessors
 from pandas_openscm.testing import create_test_df
 from pandas_openscm.unit_conversion import (
     AmbiguousTargetUnitError,
@@ -45,7 +45,7 @@ from pandas_openscm.unit_conversion import (
 # Register the openscm accessor for pandas objects
 # (we don't do this on import
 # as we have had bad experiences with implicit behaviour like that)
-register_pandas_accessor()
+register_pandas_accessors()
 
 # %% [markdown]
 # ## Basics

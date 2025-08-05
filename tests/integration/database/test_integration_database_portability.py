@@ -50,7 +50,7 @@ def test_move_db(  # noqa: PLR0913
     backend_data,
     backend_index,
     tmpdir,
-    setup_pandas_accessor,
+    setup_pandas_accessors,
 ):
     initial_db_dir = Path(tmpdir) / "initial"
     other_db_dir = Path(tmpdir) / "other"

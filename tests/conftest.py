@@ -31,9 +31,9 @@ def pandas_terminal_width():
 
 
 @pytest.fixture()
-def setup_pandas_accessor() -> None:
+def setup_pandas_accessors() -> None:
     # Not parallel safe, but good enough
-    pandas_openscm.register_pandas_accessor()
+    pandas_openscm.register_pandas_accessors()
 
     yield None
 
@@ -41,7 +41,7 @@ def setup_pandas_accessor() -> None:
     pd.DataFrame._accessors.discard("openscm")
     if hasattr(pd.DataFrame, "openscm"):
         del pd.DataFrame.openscm
-    # In future
-    # pd.Series._accessors.discard("openscm")
-    # if hasattr(pd.Series, "openscm"):
-    #     del pd.Series.openscm
+
+    pd.Series._accessors.discard("openscm")
+    if hasattr(pd.Series, "openscm"):
+        del pd.Series.openscm

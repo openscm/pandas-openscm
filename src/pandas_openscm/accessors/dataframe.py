@@ -1,20 +1,5 @@
 """
-API for [pandas][] accessors.
-
-As a general note to developers,
-we try and keep the accessors as a super-thin layer.
-This makes it easier to re-use functionality in a more functional way,
-which is beneficial
-(particularly if we one day need to switch to
-a different kind of dataframe e.g. dask).
-
-As a result, we effectively duplicate our API.
-This is fine, because this repo is not so big.
-Pandas and pandas-indexing use pandas' `pandas.util._decorators.docs` decorator
-(see https://github.com/pandas-dev/pandas/blob/05de25381f71657bd425d2c4045d81a46b2d3740/pandas/util/_decorators.py#L342)
-to avoid duplicating the docs.
-We could use the same pattern, but I have found that this magic
-almost always goes wrong so I would stay away from this as long as we can.
+Accessor for [pd.DataFrame][pandas.DataFrame]
 """
 
 from __future__ import annotations
@@ -55,26 +40,26 @@ if TYPE_CHECKING:
     )
 
 
-class DataFramePandasOpenSCMAccessor:
+class PandasDataFrameOpenSCMAccessor:
     """
-    [pd.DataFrame][pandas.DataFrame] accessors
+    [pd.DataFrame][pandas.DataFrame] accessor
 
     For details, see
     [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
     """
 
-    def __init__(self, pandas_obj: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame):
         """
         Initialise
 
         Parameters
         ----------
-        pandas_obj
-            Pandas object to use via the accessor
+        df
+            [pd.DataFrame][pandas.DataFrame] to use via the accessor
         """
         # It is possible to validate here.
         # However, it's probably better to do validation closer to the data use.
-        self._df = pandas_obj
+        self._df = df
 
     def convert_unit(
         self,
@@ -85,7 +70,7 @@ class DataFramePandasOpenSCMAccessor:
         """
         Convert units
 
-        This uses [convert_unit_from_target_series][(p).unit_conversion.].
+        This uses [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
         If you want to understand the details of how the conversion works,
         see that function's docstring.
 
@@ -106,23 +91,25 @@ class DataFramePandasOpenSCMAccessor:
 
             If this is a [pd.Series][pandas.Series],
             then it will be passed to
-            [convert_unit_from_target_series][(p).unit_conversion.]
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.]
             after filling any rows in the [pd.DataFrame][pandas.DataFrame]
             that are not in `desired_units`
             with the existing unit (i.e. unspecified rows are not converted).
 
             For further details, see the examples
-            in [convert_unit][(p).unit_conversion.].
+            in [convert_unit][pandas_openscm.unit_conversion.].
 
         unit_level
             Level in the index which holds unit information
 
-            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+            Passed to
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
 
         ur
             Unit registry to use for the conversion.
 
-            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+            Passed to
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
 
         Returns
         -------
@@ -135,8 +122,8 @@ class DataFramePandasOpenSCMAccessor:
 
     def convert_unit_like(
         self,
-        target: pd.DataFrame,
-        df_unit_level: str = "unit",
+        target: pd.DataFrame | pd.Series[Any],
+        unit_level: str = "unit",
         target_unit_level: str | None = None,
         ur: pint.facets.PlainRegistry | None = None,
     ) -> pd.DataFrame:
@@ -144,23 +131,23 @@ class DataFramePandasOpenSCMAccessor:
         Convert units to match another [pd.DataFrame][pandas.DataFrame]
 
         For further details, see the examples
-        in [convert_unit_like][(p).unit_conversion.].
+        in [convert_unit_like][pandas_openscm.unit_conversion.].
 
         This is essentially a helper for
-        [convert_unit_from_target_series][(p).unit_conversion.].
+        [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
         It implements one set of logic for extracting desired units
         and tries to be clever, handling differences in index levels
         between the data and `target` sensibly wherever possible.
 
         If you want behaviour other than what is implemented here,
-        use [convert_unit_from_target_series][(p).unit_conversion.] directly.
+        use [convert_unit_from_target_series][pandas_openscm.unit_conversion.] directly.
 
         Parameters
         ----------
         target
-            [pd.DataFrame][pandas.DataFrame] whose units should be matched
+            Supported [pandas][] object whose units should be matched
 
-        df_unit_level
+        unit_level
             Level in the data's index which holds unit information
 
         target_unit_level
@@ -171,7 +158,8 @@ class DataFramePandasOpenSCMAccessor:
         ur
             Unit registry to use for the conversion.
 
-            Passed to [convert_unit_from_target_series][(p).unit_conversion.].
+            Passed to
+            [convert_unit_from_target_series][pandas_openscm.unit_conversion.].
 
         Returns
         -------
@@ -181,7 +169,7 @@ class DataFramePandasOpenSCMAccessor:
         return convert_unit_like(
             self._df,
             target=target,
-            df_unit_level=df_unit_level,
+            unit_level=unit_level,
             target_unit_level=target_unit_level,
             ur=ur,
         )
@@ -209,7 +197,7 @@ class DataFramePandasOpenSCMAccessor:
         """
         Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
 
-        Alias for [ensure_index_is_multiindex][(p).index_manipulation.]
+        Alias for [ensure_index_is_multiindex][pandas_openscm.index_manipulation.]
 
         Parameters
         ----------
@@ -291,7 +279,7 @@ class DataFramePandasOpenSCMAccessor:
             Locator to apply
 
             If this is a multi-index, we use
-            [multi_index_lookup][(p).indexing.] to ensure correct alignment.
+            [multi_index_lookup][pandas_openscm.indexing.] to ensure correct alignment.
 
             If this is an index that has a name,
             we use the name to ensure correct alignment.
@@ -716,9 +704,9 @@ class DataFramePandasOpenSCMAccessor:
         >>> import numpy as np
         >>> import pandas as pd
         >>>
-        >>> from pandas_openscm.accessors import register_pandas_accessor
+        >>> from pandas_openscm.accessors import register_pandas_accessors
         >>>
-        >>> register_pandas_accessor()
+        >>> register_pandas_accessors()
         >>>
         >>> df = pd.DataFrame(
         ...     [
@@ -895,24 +883,3 @@ class DataFramePandasOpenSCMAccessor:
             copy=copy,
             remove_unused_levels=remove_unused_levels,
         )
-
-
-def register_pandas_accessor(namespace: str = "openscm") -> None:
-    """
-    Register the pandas accessors
-
-    For details, see
-    [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
-
-    We provide this as a separate function
-    because we have had really bad experiences with imports having side effects
-    and don't want to pass those on to our users.
-
-    Parameters
-    ----------
-    namespace
-        Namespace to use for the accessor
-    """
-    pd.api.extensions.register_dataframe_accessor(namespace)(
-        DataFramePandasOpenSCMAccessor
-    )

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Collection
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,8 @@ from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
     import pytest
+
+    P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
 
 def get_db_data_backends() -> tuple[type[object], ...]:
@@ -95,6 +97,76 @@ def assert_frame_alike(
         check_like=check_like,
         **kwargs,
     )
+
+
+@overload
+def convert_to_desired_type(
+    df: pd.DataFrame, pobj_type: Literal["DataFrame"]
+) -> pd.DataFrame: ...
+
+
+@overload
+def convert_to_desired_type(
+    df: pd.DataFrame, pobj_type: Literal["Series"]
+) -> pd.Series[Any]: ...
+
+
+def convert_to_desired_type(
+    df: pd.DataFrame, pobj_type: Literal["DataFrame", "Series"]
+) -> pd.DataFrame | pd.Series[Any]:
+    """
+    Convert a `df` to the desired type for testing
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to convert
+
+    pobj_type
+        Type to convert to
+
+        If "DataFrame", then `df` is simply returned.
+        If "Series", then the first column of `df` is returned.
+
+    Returns
+    -------
+    :
+        `df` converted to the desired type
+    """
+    if pobj_type == "DataFrame":
+        return df
+
+    if pobj_type == "Series":
+        res = df[df.columns[0]]
+        return res
+
+    raise NotImplementedError(pobj_type)  # pragma: no cover
+
+
+def check_result(res: P, exp: P) -> None:
+    """
+    Check result in the case where it could be multiple types
+
+    Specifically, [pd.DataFrame][pandas.DataFrame]
+    or [pd.Series][pandas.Series].
+
+    This is a thin wrapper, if you want specific functionality,
+    use the underlying function.
+
+    Parameters
+    ----------
+    res
+        Result
+
+    exp
+        Expected
+    """
+    if isinstance(res, pd.DataFrame):
+        assert_frame_alike(res, exp)
+    elif isinstance(res, pd.Series):
+        pd.testing.assert_series_equal(res, exp)
+    else:  # pragma: no cover
+        raise NotImplementedError(type(res))
 
 
 def create_test_df(

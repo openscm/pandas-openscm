@@ -61,7 +61,7 @@ def test_to_category_index_series():
     run_checks(res, start)
 
 
-def test_accessor(setup_pandas_accessor):
+def test_accessor(setup_pandas_accessors):
     units = ["Mt", "kg", "W"]
 
     # Biggish DataFrame

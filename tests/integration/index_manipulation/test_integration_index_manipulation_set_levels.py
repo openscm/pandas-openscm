@@ -9,6 +9,15 @@ import pandas as pd
 import pytest
 
 from pandas_openscm.index_manipulation import set_index_levels_func, set_levels
+from pandas_openscm.testing import convert_to_desired_type
+
+pobj_type = pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series
+"""
 
 
 @pytest.mark.parametrize(
@@ -160,7 +169,8 @@ def test_set_levels(start, levels_to_set, exp):
     pd.testing.assert_index_equal(res, exp)
 
 
-def test_set_levels_with_a_dataframe():
+@pobj_type
+def test_set_levels_with_a_dataframe(pobj_type):
     start = pd.MultiIndex.from_tuples(
         [
             ("sa", "va", "kg", 0),
@@ -170,11 +180,14 @@ def test_set_levels_with_a_dataframe():
         ],
         names=["scenario", "variable", "unit", "run_id"],
     )
-    start_df = pd.DataFrame(
-        np.zeros((start.shape[0], 3)), columns=[2010, 2020, 2030], index=start
+    start_pobj = convert_to_desired_type(
+        pd.DataFrame(
+            np.zeros((start.shape[0], 3)), columns=[2010, 2020, 2030], index=start
+        ),
+        pobj_type,
     )
 
-    res = set_index_levels_func(start_df, levels_to_set={"new_variable": "test"})
+    res = set_index_levels_func(start_pobj, levels_to_set={"new_variable": "test"})
 
     exp = pd.MultiIndex.from_tuples(
         [
@@ -189,11 +202,13 @@ def test_set_levels_with_a_dataframe():
     pd.testing.assert_index_equal(res.index, exp)
 
 
-def test_set_levels_raises_type_error():
+@pobj_type
+def test_set_levels_raises_type_error(pobj_type):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
         columns=[2010, 2020],
     )
+    start = convert_to_desired_type(start, pobj_type)
 
     levels_to_set = {"new_variable": "test"}
 
@@ -221,7 +236,7 @@ def test_set_levels_raises_value_error():
         set_levels(start, levels_to_set=levels_to_set)
 
 
-def test_accessor(setup_pandas_accessor):
+def test_accessor_df(setup_pandas_accessors):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
         columns=[2010, 2020],
@@ -262,3 +277,44 @@ def test_accessor(setup_pandas_accessor):
     # Test function too
     res = set_index_levels_func(start, levels_to_set=levels_to_set)
     pd.testing.assert_frame_equal(res, exp)
+
+
+def test_accessor_series(setup_pandas_accessors):
+    start = pd.Series(
+        np.arange(4),
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("sa", "va", "kg", 0),
+                ("sb", "vb", "m", -1),
+                ("sa", "va", "kg", -2),
+                ("sa", "vb", "kg", 2),
+            ],
+            names=["scenario", "variable", "unit", "run_id"],
+        ),
+    )
+
+    levels_to_set = {
+        "model_id": "674",
+        "unit": ["t", "km", "g", "kg"],
+        "scenario": 1,
+    }
+
+    exp = pd.Series(
+        start.values,
+        index=pd.MultiIndex.from_tuples(
+            [
+                (1, "va", "t", 0, "674"),
+                (1, "vb", "km", -1, "674"),
+                (1, "va", "g", -2, "674"),
+                (1, "vb", "kg", 2, "674"),
+            ],
+            names=["scenario", "variable", "unit", "run_id", "model_id"],
+        ),
+    )
+
+    res = start.openscm.set_index_levels(levels_to_set=levels_to_set)
+    pd.testing.assert_series_equal(res, exp)
+
+    # Test function too
+    res = set_index_levels_func(start, levels_to_set=levels_to_set)
+    pd.testing.assert_series_equal(res, exp)

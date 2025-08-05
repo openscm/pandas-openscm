@@ -910,41 +910,40 @@ def set_levels(
 
 
 def set_index_levels_func(
-    df: pd.DataFrame,
+    pobj: P,
     levels_to_set: dict[str, Any | Collection[Any]],
     copy: bool = True,
-) -> pd.DataFrame:
+) -> P:
     """
     Set the index levels of a [pd.DataFrame][pandas.DataFrame]
 
     Parameters
     ----------
-    df
+    pobj
         [pd.DataFrame][pandas.DataFrame] to update
 
     levels_to_set
         Mapping of level names to values to set
 
     copy
-        Should `df` be copied before returning?
-
+        Should `pobj` be copied before returning?
 
     Returns
     -------
     :
-        `df` with updates applied to its index
+        `pobj` with updates applied to its index
     """
-    if not isinstance(df.index, pd.MultiIndex):
+    if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
             "when `df`'s index is an instance of `MultiIndex`. "
-            f"Received {type(df.index)=}"
+            f"Received {type(pobj.index)=}"
         )
         raise TypeError(msg)
 
     if copy:
-        df = df.copy()
+        pobj = pobj.copy()
 
-    df.index = set_levels(df.index, levels_to_set=levels_to_set)  # type: ignore
+    pobj.index = set_levels(pobj.index, levels_to_set=levels_to_set)  # type: ignore
 
-    return df
+    return pobj
