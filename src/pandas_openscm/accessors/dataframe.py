@@ -845,7 +845,9 @@ class PandasDataFrameOpenSCMAccessor:
             ]
             | tuple[
                 tuple[Any, ...],
-                Callable[[tuple[Any, ...]], Any] | dict[Any, Any] | pd.Series[Any],
+                Callable[[tuple[Any, ...]], Any]
+                | dict[tuple[Any, ...], Any]
+                | pd.Series[Any],
             ],
         ],
         copy: bool = True,
