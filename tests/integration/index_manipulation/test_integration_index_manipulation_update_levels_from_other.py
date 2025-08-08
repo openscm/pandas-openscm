@@ -143,14 +143,62 @@ from pandas_openscm.index_manipulation import (
             },
             id="multiple-updates-incl-external-func",
         ),
+        pytest.param(
+            pd.MultiIndex.from_tuples(
+                [
+                    ("sa", "va", "kg", 0),
+                    ("sb", "vb", "m", -1),
+                    ("sa", "va", "kg", -2),
+                    ("sa", "vb", "kg", 2),
+                ],
+                names=["scenario", "variable", "unit", "run_id"],
+            ),
+            {
+                "vv": (("scenario", "variable"), lambda x: " - ".join(x)),
+                "sv": (
+                    ("scenario", "variable"),
+                    {
+                        ("sa", "va"): "hi",
+                        ("sb", "vb"): "bye",
+                        ("sa", "vb"): "psi",
+                    },
+                ),
+                "su": (
+                    ("scenario", "unit"),
+                    pd.Series(
+                        ["alpha", "beta"],
+                        index=pd.MultiIndex.from_tuples(
+                            [
+                                ("sa", "kg"),
+                                ("sb", "m"),
+                            ],
+                            names=["scenario", "unit"],
+                        ),
+                    ),
+                ),
+                "unit": ("unit", lambda x: x.replace("kg", "g").replace("m", "km")),
+                "u_run_id_abs": (
+                    ("unit", "run_id"),
+                    lambda x: f"{x[0]}_{np.abs(x[1])}",
+                ),
+            },
+            id="multiple-updates-multiple-sources-incl-dict-series-external-func",
+        ),
     ),
 )
 def test_update_levels_from_other(start, update_sources):
     res = update_levels_from_other(start, update_sources=update_sources)
 
-    exp = start.to_frame(index=False)
+    # Need this so we order of updates doesn't matter
+    helper = start.to_frame(index=False)
+    exp = helper.copy()
     for level, (source, mapper) in update_sources.items():
-        exp[level] = exp[source].map(mapper)
+        if isinstance(source, tuple):
+            exp[level] = pd.MultiIndex.from_frame(helper[list(source)]).map(mapper)
+
+        else:
+            exp[level] = helper[source].map(mapper)
+
     exp = pd.MultiIndex.from_frame(exp)
 
     pd.testing.assert_index_equal(res, exp)
@@ -178,6 +226,50 @@ def test_update_levels_from_other_missing_level():
             f"Available levels: {['scenario', 'variable', 'unit', 'run_id']}"
         ),
     ):
+        update_levels_from_other(start, update_sources=update_sources)
+
+
+@pytest.mark.parametrize(
+    "sources, exp",
+    (
+        (
+            ("units", "variable"),
+            pytest.raises(
+                KeyError,
+                match=re.escape(
+                    f"{sorted(set(['units']))} is not available in the index. "
+                    f"Available levels: {['scenario', 'variable', 'unit', 'run_id']}"
+                ),
+            ),
+        ),
+        (
+            ("units", "variables"),
+            pytest.raises(
+                KeyError,
+                match=re.escape(
+                    f"{sorted(set(['units', 'variables']))} "
+                    "are not available in the index. "
+                    f"Available levels: {['scenario', 'variable', 'unit', 'run_id']}"
+                ),
+            ),
+        ),
+    ),
+)
+def test_update_levels_from_other_missing_levels(sources, exp):
+    start = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "va", "kg", 0),
+            ("sb", "vb", "m", -1),
+            ("sa", "va", "kg", -2),
+            ("sa", "vb", "kg", 2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+    update_sources = {
+        "uu": (sources, lambda x: x),
+    }
+
+    with exp:
         update_levels_from_other(start, update_sources=update_sources)
 
 
@@ -272,8 +364,24 @@ def test_accessor(setup_pandas_accessors):
     )
 
     update_sources = {
+        # callables single source
         "vv": ("variable", lambda x: x.replace("v", "vv")),
         "unit": ("unit", lambda x: x.replace("kg", "g").replace("m", "km")),
+        # callables multi source
+        "y-label": (("variable", "unit"), lambda x: f"{x[0]} ({x[1]})"),
+        # dict
+        "title": ("scenario", {"sa": "Scenario A", "sb": "Delta"}),
+        # pd.Series
+        "Source": (
+            ("scenario", "variable"),
+            pd.Series(
+                ["Internal", "External", "External"],
+                index=pd.MultiIndex.from_tuples(
+                    [("sa", "va"), ("sb", "vb"), ("sa", "vb")],
+                    names=["scenario", "variable"],
+                ),
+            ),
+        ),
     }
 
     exp = pd.DataFrame(
@@ -281,12 +389,23 @@ def test_accessor(setup_pandas_accessors):
         columns=start.columns,
         index=pd.MultiIndex.from_tuples(
             [
-                ("sa", "va", "g", 0, "vva"),
-                ("sb", "vb", "km", -1, "vvb"),
-                ("sa", "va", "g", -2, "vva"),
-                ("sa", "vb", "g", 2, "vvb"),
+                # Updates not done sequentially
+                # hence y-label uses units from original data
+                ("sa", "va", "g", 0, "vva", "va (kg)", "Scenario A", "Internal"),
+                ("sb", "vb", "km", -1, "vvb", "vb (m)", "Delta", "External"),
+                ("sa", "va", "g", -2, "vva", "va (kg)", "Scenario A", "Internal"),
+                ("sa", "vb", "g", 2, "vvb", "vb (kg)", "Scenario A", "External"),
             ],
-            names=["scenario", "variable", "unit", "run_id", "vv"],
+            names=[
+                "scenario",
+                "variable",
+                "unit",
+                "run_id",
+                "vv",
+                "y-label",
+                "title",
+                "Source",
+            ],
         ),
     )
 

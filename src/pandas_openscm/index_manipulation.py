@@ -405,6 +405,53 @@ def create_new_level_and_codes_by_mapping(
     return new_level, new_codes
 
 
+def create_new_level_and_codes_by_mapping_multiple(
+    ini: pd.MultiIndex,
+    levels_to_create_from: tuple[str, ...],
+    mapper: Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
+    """
+    Create a new level and associated codes by mapping existing levels
+
+    This is a thin function intended for internal use
+    to handle some slightly tricky logic.
+
+    Parameters
+    ----------
+    ini
+        Input index
+
+    levels_to_create_from
+        Levels to create the new level from
+
+    mapper
+        Function to use to map existing levels to new levels
+
+    Returns
+    -------
+    new_level :
+        New level
+
+    new_codes :
+        New codes
+    """
+    # You could probably do some optimisation here
+    # that checks for unique combinations of codes
+    # for the levels we're using,
+    # then only applies the mapping to those unique combos
+    # to reduce the number of evaluations of mapper.
+    # That feels tricky to get right, so just doing the brute force way for now.
+    dup_level = ini.droplevel(
+        ini.names.difference(list(levels_to_create_from))  # type: ignore # pandas-stubs confused
+    ).map(mapper)
+
+    # Brute force: get codes from new levels
+    new_level = dup_level.unique()
+    new_codes = new_level.get_indexer(dup_level)
+
+    return new_level, new_codes
+
+
 def update_index_levels_func(
     df: pd.DataFrame,
     updates: Mapping[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
@@ -564,7 +611,17 @@ def update_levels(
 def update_index_levels_from_other_func(
     df: pd.DataFrame,
     update_sources: dict[
-        Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+        Any,
+        tuple[
+            Any,
+            Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+        ]
+        | tuple[
+            tuple[Any, ...],
+            Callable[[tuple[Any, ...]], Any]
+            | dict[tuple[Any, ...], Any]
+            | pd.Series[Any],
+        ],
     ],
     copy: bool = True,
     remove_unused_levels: bool = True,
@@ -586,8 +643,19 @@ def update_index_levels_from_other_func(
         Each key is the level to which the updates will be applied
         (or the level that will be created if it doesn't already exist).
 
-        Each value is a tuple of which the first element
+        There are two options for the values.
+
+        The first is used when only one level is used to update the 'target level'.
+        In this case, each value is a tuple of which the first element
         is the level to use to generate the values (the 'source level')
+        and the second is mapper of the form used by
+        [pd.Index.map][pandas.Index.map]
+        which will be applied to the source level
+        to update/create the level of interest.
+
+        Each value is a tuple of which the first element
+        is the level or levels (if a tuple)
+        to use to generate the values (the 'source level')
         and the second is mapper of the form used by
         [pd.Index.map][pandas.Index.map]
         which will be applied to the source level
@@ -629,7 +697,17 @@ def update_index_levels_from_other_func(
 def update_levels_from_other(
     ini: pd.MultiIndex,
     update_sources: dict[
-        Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+        Any,
+        tuple[
+            Any,
+            Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+        ]
+        | tuple[
+            tuple[Any, ...],
+            Callable[[tuple[Any, ...]], Any]
+            | dict[tuple[Any, ...], Any]
+            | pd.Series[Any],
+        ],
     ],
     remove_unused_levels: bool = True,
 ) -> pd.MultiIndex:
@@ -650,8 +728,19 @@ def update_levels_from_other(
         Each key is the level to which the updates will be applied
         (or the level that will be created if it doesn't already exist).
 
-        Each value is a tuple of which the first element
+        There are two options for the values.
+
+        The first is used when only one level is used to update the 'target level'.
+        In this case, each value is a tuple of which the first element
         is the level to use to generate the values (the 'source level')
+        and the second is mapper of the form used by
+        [pd.Index.map][pandas.Index.map]
+        which will be applied to the source level
+        to update/create the level of interest.
+
+        Each value is a tuple of which the first element
+        is the level or levels (if a tuple)
+        to use to generate the values (the 'source level')
         and the second is mapper of the form used by
         [pd.Index.map][pandas.Index.map]
         which will be applied to the source level
@@ -718,6 +807,19 @@ def update_levels_from_other(
                 ('sa', 'model sa', 'v2', 'km')],
                names=['scenario', 'model', 'variable', 'unit'])
     >>>
+    >>> # Create a new level based on multiple existing levels
+    >>> update_levels_from_other(
+    ...     start,
+    ...     {
+    ...         "model || scenario": (("model", "scenario"), lambda x: " || ".join(x)),
+    ...     },
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 'sa || ma'),
+                ('sb', 'ma', 'v2',  'm', 'sb || ma'),
+                ('sa', 'mb', 'v1', 'kg', 'sa || mb'),
+                ('sa', 'mb', 'v2',  'm', 'sa || mb')],
+               names=['scenario', 'model', 'variable', 'unit', 'model || scenario'])
+    >>>
     >>> # Both at the same time
     >>> update_levels_from_other(
     ...     start,
@@ -731,7 +833,28 @@ def update_levels_from_other(
                 ('sa', 'mb', 'v1', nan, 'Sa'),
                 ('sa', 'mb', 'v2', nan, 'Sa')],
                names=['scenario', 'model', 'variable', 'unit', 'title'])
-    """
+    >>>
+    >>> # Setting with a range of different methods
+    >>> update_levels_from_other(
+    ...     start,
+    ...     {
+    ...         # callable
+    ...         "y-label": (("variable", "unit"), lambda x: f"{x[0]} ({x[1]})"),
+    ...         # dict
+    ...         "title": ("scenario", {"sa": "Scenario A", "sb": "Delta"}),
+    ...         # pd.Series
+    ...         "Source": (
+    ...             "model",
+    ...             pd.Series(["Internal", "External"], index=["ma", "mb"]),
+    ...         ),
+    ...     },
+    ... )
+    MultiIndex([('sa', 'ma', 'v1', 'kg', 'v1 (kg)', 'Scenario A', 'Internal'),
+                ('sb', 'ma', 'v2',  'm',  'v2 (m)',      'Delta', 'Internal'),
+                ('sa', 'mb', 'v1', 'kg', 'v1 (kg)', 'Scenario A', 'External'),
+                ('sa', 'mb', 'v2',  'm',  'v2 (m)', 'Scenario A', 'External')],
+               names=['scenario', 'model', 'variable', 'unit', 'y-label', 'title', 'Source'])
+    """  # noqa: E501
     if remove_unused_levels:
         ini = ini.remove_unused_levels()  # type: ignore
 
@@ -740,17 +863,35 @@ def update_levels_from_other(
     names: list[str] = list(ini.names)
 
     for level, (source, updater) in update_sources.items():
-        if source not in ini.names:
-            msg = (
-                f"{source} is not available in the index. Available levels: {ini.names}"
-            )
-            raise KeyError(msg)
+        if isinstance(source, tuple):
+            missing_levels = set(source) - set(ini.names)
+            if missing_levels:
+                conj = "is" if len(missing_levels) == 1 else "are"
+                msg = (
+                    f"{sorted(missing_levels)} {conj} not available in the index. "
+                    f"Available levels: {ini.names}"
+                )
+                raise KeyError(msg)
 
-        new_level, new_codes = create_new_level_and_codes_by_mapping(
-            ini=ini,
-            level_to_create_from=source,
-            mapper=updater,
-        )
+            new_level, new_codes = create_new_level_and_codes_by_mapping_multiple(
+                ini=ini,
+                levels_to_create_from=source,
+                mapper=updater,
+            )
+
+        else:
+            if source not in ini.names:
+                msg = (
+                    f"{source} is not available in the index. "
+                    f"Available levels: {ini.names}"
+                )
+                raise KeyError(msg)
+
+            new_level, new_codes = create_new_level_and_codes_by_mapping(
+                ini=ini,
+                level_to_create_from=source,
+                mapper=updater,
+            )
 
         if level in ini.names:
             level_idx = ini.names.index(level)
