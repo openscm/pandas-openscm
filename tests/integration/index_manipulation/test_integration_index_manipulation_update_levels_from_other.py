@@ -363,8 +363,24 @@ def test_accessor(setup_pandas_accessors):
     )
 
     update_sources = {
+        # callables single source
         "vv": ("variable", lambda x: x.replace("v", "vv")),
         "unit": ("unit", lambda x: x.replace("kg", "g").replace("m", "km")),
+        # callables multi source
+        "y-label": (("variable", "unit"), lambda x: f"{x[0]} ({x[1]})"),
+        # dict
+        "title": ("scenario", {"sa": "Scenario A", "sb": "Delta"}),
+        # pd.Series
+        "Source": (
+            ("scenario", "variable"),
+            pd.Series(
+                ["Internal", "External", "External"],
+                index=pd.MultiIndex.from_tuples(
+                    [("sa", "va"), ("sb", "vb"), ("sa", "vb")],
+                    names=["scenario", "variable"],
+                ),
+            ),
+        ),
     }
 
     exp = pd.DataFrame(
@@ -372,12 +388,23 @@ def test_accessor(setup_pandas_accessors):
         columns=start.columns,
         index=pd.MultiIndex.from_tuples(
             [
-                ("sa", "va", "g", 0, "vva"),
-                ("sb", "vb", "km", -1, "vvb"),
-                ("sa", "va", "g", -2, "vva"),
-                ("sa", "vb", "g", 2, "vvb"),
+                # Updates not done sequentially
+                # hence y-label uses units from original data
+                ("sa", "va", "g", 0, "vva", "va (kg)", "Scenario A", "Internal"),
+                ("sb", "vb", "km", -1, "vvb", "vb (m)", "Delta", "External"),
+                ("sa", "va", "g", -2, "vva", "va (kg)", "Scenario A", "Internal"),
+                ("sa", "vb", "g", 2, "vvb", "vb (kg)", "Scenario A", "External"),
             ],
-            names=["scenario", "variable", "unit", "run_id", "vv"],
+            names=[
+                "scenario",
+                "variable",
+                "unit",
+                "run_id",
+                "vv",
+                "y-label",
+                "title",
+                "Source",
+            ],
         ),
     )
 
