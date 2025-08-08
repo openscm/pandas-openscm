@@ -21,6 +21,14 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.8.1 (2025-08-08)
+
+### 🎉 Improvements
+
+- [pandas_openscm.index_manipulation.update_levels_from_other][] now supports updating levels based on multiple other levels from the index at once (see the docstring for examples).
+  This update also propagates to [pandas_openscm.index_manipulation.update_index_levels_from_other_func][] and [pandas_openscm.accessors.dataframe.PandasDataFrameOpenSCMAccessor.update_index_levels_from_other][]. ([#28](https://github.com/openscm/pandas-openscm/pull/28))
+
+
 ## Pandas-OpenSCM v0.8.0 (2025-08-05)
 
 ### ⚠️ Breaking Changes
