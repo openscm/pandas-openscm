@@ -237,7 +237,7 @@ def test_update_levels_from_other_missing_level():
             pytest.raises(
                 KeyError,
                 match=re.escape(
-                    f"{set(['units'])} is not available in the index. "
+                    f"{sorted(set(['units']))} is not available in the index. "
                     f"Available levels: {['scenario', 'variable', 'unit', 'run_id']}"
                 ),
             ),
@@ -247,7 +247,8 @@ def test_update_levels_from_other_missing_level():
             pytest.raises(
                 KeyError,
                 match=re.escape(
-                    f"{set(['units', 'variables'])} are not available in the index. "
+                    f"{sorted(set(['units', 'variables']))} "
+                    "are not available in the index. "
                     f"Available levels: {['scenario', 'variable', 'unit', 'run_id']}"
                 ),
             ),

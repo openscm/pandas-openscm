@@ -868,7 +868,7 @@ def update_levels_from_other(
             if missing_levels:
                 conj = "is" if len(missing_levels) == 1 else "are"
                 msg = (
-                    f"{missing_levels} {conj} not available in the index. "
+                    f"{sorted(missing_levels)} {conj} not available in the index. "
                     f"Available levels: {ini.names}"
                 )
                 raise KeyError(msg)
