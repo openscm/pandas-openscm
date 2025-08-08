@@ -167,12 +167,12 @@ def unify_index_levels(
     MultiIndex([(1, 2, 3),
                 (4, 5, 6)],
                names=['a', 'b', 'c'])
-
+    >>>
     >>> unified_b
     MultiIndex([( 7,  8, nan),
                 (10, 11, nan)],
                names=['a', 'b', 'c'])
-
+    >>>
     >>> # Also fine if b has swapped levels
     >>> idx_b = pd.MultiIndex.from_tuples(
     ...     [
@@ -186,12 +186,12 @@ def unify_index_levels(
     MultiIndex([(1, 2, 3),
                 (4, 5, 6)],
                names=['a', 'b', 'c'])
-
+    >>>
     >>> unified_b
     MultiIndex([( 8,  7, nan),
                 (11, 10, nan)],
                names=['a', 'b', 'c'])
-
+    >>>
     >>> # Also works if a is 'inside' b
     >>> idx_a = pd.MultiIndex.from_tuples(
     ...     [
@@ -212,12 +212,12 @@ def unify_index_levels(
     MultiIndex([( 7,  8, nan),
                 (10, 11, nan)],
                names=['a', 'b', 'c'])
-
+    >>>
     >>> unified_b
     MultiIndex([(1, 2, 3),
                 (4, 5, 6)],
                names=['a', 'b', 'c'])
-
+    >>>
     >>> # But, be a bit careful, this is now sensitive to a's column order
     >>> idx_a = pd.MultiIndex.from_tuples(
     ...     [
@@ -239,7 +239,7 @@ def unify_index_levels(
     MultiIndex([( 7,  8, nan),
                 (10, 11, nan)],
                names=['b', 'a', 'c'])
-
+    >>>
     >>> unified_b
     MultiIndex([(2, 1, 3),
                 (5, 4, 6)],

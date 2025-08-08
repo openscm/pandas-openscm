@@ -446,7 +446,7 @@ def metadata_xr_to_df(
     0       scen_a  mod_a    var_a
     1       scen_b  mod_b    var_b
     2       scen_a  mod_b    var_a
-
+    >>>
     >>> # you can make the result smaller in memory is you use
     >>> # the `category_index` argument.
     >>> metadata_xr_to_df(metadata_xr, category_index=True).dtypes
