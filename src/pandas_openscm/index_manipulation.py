@@ -613,8 +613,12 @@ def update_index_levels_from_other_func(
     update_sources: dict[
         Any,
         tuple[
-            Any | tuple[Any, ...],
+            Any,
             Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+        ]
+        | tuple[
+            tuple[Any, ...],
+            Callable[[tuple[Any, ...]], Any] | dict[Any, Any] | pd.Series[Any],
         ],
     ],
     copy: bool = True,
@@ -693,8 +697,12 @@ def update_levels_from_other(
     update_sources: dict[
         Any,
         tuple[
-            Any | tuple[Any, ...],
+            Any,
             Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+        ]
+        | tuple[
+            tuple[Any, ...],
+            Callable[[tuple[Any, ...]], Any] | dict[Any, Any] | pd.Series[Any],
         ],
     ],
     remove_unused_levels: bool = True,

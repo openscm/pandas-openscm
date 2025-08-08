@@ -840,8 +840,12 @@ class PandasDataFrameOpenSCMAccessor:
         update_sources: dict[
             Any,
             tuple[
-                Any | tuple[Any, ...],
+                Any,
                 Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+            ]
+            | tuple[
+                tuple[Any, ...],
+                Callable[[tuple[Any, ...]], Any] | dict[Any, Any] | pd.Series[Any],
             ],
         ],
         copy: bool = True,
