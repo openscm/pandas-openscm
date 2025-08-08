@@ -838,7 +838,11 @@ class PandasDataFrameOpenSCMAccessor:
     def update_index_levels_from_other(
         self,
         update_sources: dict[
-            Any, tuple[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]]
+            Any,
+            tuple[
+                Any | tuple[Any, ...],
+                Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+            ],
         ],
         copy: bool = True,
         remove_unused_levels: bool = True,
@@ -849,13 +853,24 @@ class PandasDataFrameOpenSCMAccessor:
         Parameters
         ----------
         update_sources
-            Updates to apply to `df`'s index
+            Updates to apply to the data's index
 
             Each key is the level to which the updates will be applied
             (or the level that will be created if it doesn't already exist).
 
-            Each value is a tuple of which the first element
+            There are two options for the values.
+
+            The first is used when only one level is used to update the 'target level'.
+            In this case, each value is a tuple of which the first element
             is the level to use to generate the values (the 'source level')
+            and the second is mapper of the form used by
+            [pd.Index.map][pandas.Index.map]
+            which will be applied to the source level
+            to update/create the level of interest.
+
+            Each value is a tuple of which the first element
+            is the level or levels (if a tuple)
+            to use to generate the values (the 'source level')
             and the second is mapper of the form used by
             [pd.Index.map][pandas.Index.map]
             which will be applied to the source level
