@@ -1,6 +1,6 @@
 # Pandas accessors
 
-Pandas-OpenSCM also provides a [pandas][] accessor.
+Pandas-OpenSCM also provides [pandas][] accessors.
 For details of the implementation of this pattern, see
 [pandas' docs](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
 
@@ -10,8 +10,7 @@ which is a pattern we have had bad experiences with in the past).
 This is done with
 [register_pandas_accessors][pandas_openscm.accessors.register_pandas_accessors],
 
-By default, the accessors are provided under the "openscm" namespace
-and this is how the accessors are documented below.
+By default, the accessors are provided under the "openscm" namespace.
 However, the namespace can be customised when using
 [register_pandas_accessors][pandas_openscm.accessors.register_pandas_accessors],
 should you wish to use a different namespace for the accessor.
@@ -22,29 +21,41 @@ you will need to run something like:
 ```python
 from pandas_openscm.accessors import register_pandas_accessors
 
-# The 'pd.DataFrame.openscm' and 'pd.Series.openscm' namespace
+# The 'pd.DataFrame.openscm' and 'pd.Series.openscm' namespaces
 # will not be available at this point.
 
 # Register the accessors
 register_pandas_accessors()
 
-# The 'pd.DataFrame.openscm' and 'pd.Series.openscm' namespace
-# (or whatever other custom namespace you chose to register)
+# The 'pd.DataFrame.openscm' and 'pd.Series.openscm' namespaces
 # will now be available.
+# I.e. you could now do something like
+df = pd.DataFrame(
+    [
+        [1.1, 0.8, 1.2],
+        [2.1, np.nan, 8.4],
+    ],
+    columns=[2010.0, 2015.0, 2025.0],
+    index=pd.MultiIndex.from_tuples(
+        [
+            ("sa", "v2", "W"),
+            ("sb", "v2", "W"),
+        ],
+        names=["scenario", "variable", "unit"],
+    ),
+)
+
+# Use pandas-openscm's functionality via the registered accessors.
+df.openscm.to_long_data()
+
+# If you want to register the accessors under a custom namespace instead,
+# use something like the below instead
+register_pandas_accessors(namespace="my_custom_namespace")
+
+# Doing it this way will make the custom namespace available under
+# 'pd.DataFrame.my_custom_namespace' and 'pd.Series.my_custom_namespace'.
 ```
 
-The full accessor API is documented below.
-
-::: pandas_openscm.accessors.dataframe.PandasDataFrameOpenSCMAccessor
-    handler: python_accessors
-    options:
-        namespace: "pd.DataFrame.openscm"
-        show_root_full_path: false
-        show_root_heading: true
-
-::: pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor
-    handler: python_accessors
-    options:
-        namespace: "pd.Series.openscm"
-        show_root_full_path: false
-        show_root_heading: true
+The full accessor APIs are documented at
+[pandas_openscm.accessors.dataframe.PandasDataFrameOpenSCMAccessor][]
+and [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor][].
