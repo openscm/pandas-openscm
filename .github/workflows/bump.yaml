@@ -1,25 +1,21 @@
 name: Bump version
-# For the time being, we still do this with pdm.
-# Honestly, it doesn't really matter,
-# but one day uv will have a bump command too and we can switch to that.
-# Relevant issue in uv: https://github.com/astral-sh/uv/issues/6298
 
 on:
   workflow_dispatch:
     inputs:
       bump_rule:
         type: choice
-        description: How to bump the project's version (see https://github.com/carstencodes/pdm-bump#usage)
+        description: How to bump the project's version (see https://docs.astral.sh/uv/reference/cli/#uv-version)
         options:
-          - no-pre-release
-          # no micro because we always sit on a pre-release in main,
-          # so we would always use no-pre-release instead of micro
-          # - micro
+          - stable
+          - patch
           - minor
           - major
-          - "pre-release --pre alpha"
-          - "pre-release --pre beta"
-          - "pre-release --pre release-candidate"
+          - alpha
+          - beta
+          - rc
+          - post
+          - dev
         required: true
 
 jobs:
@@ -40,15 +36,6 @@ jobs:
           fetch-depth: 0
           token: "${{ secrets.PERSONAL_ACCESS_TOKEN }}"
 
-      - name: Setup PDM
-        uses: pdm-project/setup-pdm@v4.1
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install pdm-bump
-        run: |
-          pdm self add pdm-bump
-
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -63,7 +50,7 @@ jobs:
           echo "Bumping from version $BASE_VERSION"
 
           # Bump
-          pdm bump ${{ github.event.inputs.bump_rule }}
+          uv version --bump ${{ github.event.inputs.bump_rule }}
 
           NEW_VERSION=`sed -ne 's/^version = "\([0-9\.a]*\)"/\1/p' pyproject.toml`
           echo "Bumping to version $NEW_VERSION"
@@ -81,7 +68,7 @@ jobs:
           BASE_VERSION=`sed -ne 's/^version = "\([0-9\.a]*\)"/\1/p' pyproject.toml`
 
           # Bump to pre-release of next version
-          pdm bump pre-release --pre alpha
+          uv version --bump post
 
           NEW_VERSION=`sed -ne 's/^version = "\([0-9\.a]*\)"/\1/p' pyproject.toml`
           echo "Bumping version $BASE_VERSION > $NEW_VERSION"

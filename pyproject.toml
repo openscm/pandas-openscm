@@ -90,6 +90,7 @@ dev = [
     "types-tqdm>=4.67.0.20241221",
     "tomli>=2.2.1",
     "typer>=0.15.2",
+    "tomli-w>=1.2.0",
 ]
 docs = [
     # Key dependencies
@@ -154,16 +155,11 @@ all-dev = [
 ]
 
 [build-system]
-requires = [
-    "pdm-backend",
-    "pdm-build-locked",
-]
-build-backend = "pdm.backend"
+requires = ["uv_build>=0.8.7,<0.9.0"]
+build-backend = "uv_build"
 
-[tool.pdm]
-[tool.pdm.build]
-locked = true
-includes = [
+[tool.uv.build-backend]
+source-include = [
     "src/pandas_openscm",
     "LICENCE",
 ]
