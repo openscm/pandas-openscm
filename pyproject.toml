@@ -90,6 +90,7 @@ dev = [
     "types-tqdm>=4.67.0.20241221",
     "tomli>=2.2.1",
     "typer>=0.15.2",
+    "tomli-w>=1.2.0",
 ]
 docs = [
     # Key dependencies
