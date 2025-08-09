@@ -33,7 +33,7 @@ def parse_uv_export_output(raw: str) -> list[str]:
         Parsed dependencies
     """
     raw_split = raw.splitlines()
-    deps = [v for v in raw_split if not v.startswith("#")]
+    deps = [v for v in raw_split if not v.strip().startswith("#")]
 
     return deps
 
@@ -64,6 +64,7 @@ def main():
                 "uv",
                 "export",
                 "--no-hashes",
+                "--no-annotate",
                 "--no-emit-project",
                 "--no-dev",
                 *uv_export_flags,
