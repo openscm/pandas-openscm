@@ -8,9 +8,6 @@ on:
         description: How to bump the project's version (see https://docs.astral.sh/uv/reference/cli/#uv-version)
         options:
           - stable
-          # no micro because we always sit on a pre-release in main,
-          # so we would always use no-pre-release instead of micro
-          # - micro
           - patch
           - minor
           - major
