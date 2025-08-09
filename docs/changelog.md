@@ -21,6 +21,13 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.8.3 (2025-08-09)
+
+### 🔧 Trivial/Internal Changes
+
+- [#32](https://github.com/openscm/pandas-openscm/pull/32)
+
+
 ## Pandas-OpenSCM v0.8.2 (2025-08-09)
 
 ### 📚 Improved Documentation
