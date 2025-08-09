@@ -21,6 +21,17 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.8.2 (2025-08-09)
+
+### 📚 Improved Documentation
+
+- Fixed up the issues related to the docs rendering ([#29](https://github.com/openscm/pandas-openscm/issues/29)) and simplified the documentation of the accessors ([#30](https://github.com/openscm/pandas-openscm/pull/30))
+
+### 🔧 Trivial/Internal Changes
+
+- [#30](https://github.com/openscm/pandas-openscm/pull/30), [#31](https://github.com/openscm/pandas-openscm/pull/31)
+
+
 ## Pandas-OpenSCM v0.8.1 (2025-08-08)
 
 ### 🎉 Improvements
