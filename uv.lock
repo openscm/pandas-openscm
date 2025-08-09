@@ -2767,7 +2767,7 @@ wheels = [
 
 [[package]]
 name = "pandas-openscm"
-version = "0.8.3"
+version = "0.8.3.post1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
