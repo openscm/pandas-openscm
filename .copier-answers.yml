@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: v0.12.3
+_commit: v0.14.0
 _src_path: gl:openscm/copier-core-python-repository
 conda_release: true
 email: zebedee.nicholls@climate-energy-college.org

@@ -7,10 +7,10 @@ on:
         type: choice
         description: How to bump the project's version (see https://docs.astral.sh/uv/reference/cli/#uv-version)
         options:
-          - stable
           - patch
           - minor
           - major
+          - stable
           - alpha
           - beta
           - rc
@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         os: [ "ubuntu-latest" ]
-        python-version: [ "3.9" ]
+        python-version: [ "3.11" ]
     runs-on: "${{ matrix.os }}"
     env:
       CI_COMMIT_EMAIL: "ci-runner@pandas-openscm.invalid"
