@@ -46,6 +46,15 @@ def main() -> None:
             dependency.split(">")[0].split("<")[0].split(">=")[0].split("<=")[0]
         )
 
+        if package_name in pypi_to_conda_name_map:
+            conda_name = pypi_to_conda_name_map[package_name]
+        else:
+            conda_name = package_name
+
+        if conda_name in (v.name for v in version_info_l):
+            print(f"Not re-processing {package_name}")
+            continue
+
         package_version_lines = []
         for line in requirements_info:
             if line.startswith(package_name):
@@ -64,17 +73,12 @@ def main() -> None:
             print(f"Using range for {dependency}. " f"{package_version_lines=}.")
             versions = [
                 # Assume some split based on Python version
-                Version(v.split("==")[-1].split(";")[0].strip())
+                Version(v.split(";")[0].split("==")[-1].strip())
                 for v in package_version_lines
             ]
             min_pin = min(versions)
             max_version = max(versions)
             max_pin = f"{max_version.major}.{max_version.minor}.{max_version.micro + 1}"
-
-        if package_name in pypi_to_conda_name_map:
-            conda_name = pypi_to_conda_name_map[package_name]
-        else:
-            conda_name = package_name
 
         version_info_l.append(
             VersionInfoHere(name=conda_name, min_pin=min_pin, max_pin=max_pin)
