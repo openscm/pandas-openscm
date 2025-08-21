@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 import pandas as pd
 
 from pandas_openscm.index_manipulation import (
+    ensure_index_is_multiindex,
     set_index_levels_func,
 )
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
@@ -181,46 +182,46 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         # If users want correct type hints, they should use the functional form.
         return res  # type: ignore
 
-    # def ensure_index_is_multiindex(self, copy: bool = True) -> pd.DataFrame:
-    #     """
-    #     Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
-    #
-    #     Parameters
-    #     ----------
-    #     copy
-    #         Whether to copy `df` before manipulating the index name
-    #
-    #     Returns
-    #     -------
-    #     :
-    #         `df` with a [pd.MultiIndex][pandas.MultiIndex]
-    #
-    #         If the index was already a [pd.MultiIndex][pandas.MultiIndex],
-    #         this is a no-op (although the value of copy is respected).
-    #     """
-    #     return ensure_index_is_multiindex(self._df, copy=copy)
-    #
-    # def eiim(self, copy: bool = True) -> pd.DataFrame:
-    #     """
-    #     Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
-    #
-    #     Alias for [ensure_index_is_multiindex][pandas_openscm.index_manipulation.]
-    #
-    #     Parameters
-    #     ----------
-    #     copy
-    #         Whether to copy `df` before manipulating the index name
-    #
-    #     Returns
-    #     -------
-    #     :
-    #         `df` with a [pd.MultiIndex][pandas.MultiIndex]
-    #
-    #         If the index was already a [pd.MultiIndex][pandas.MultiIndex],
-    #         this is a no-op (although the value of copy is respected).
-    #     """
-    #     return self.ensure_index_is_multiindex(copy=copy)
-    #
+    def ensure_index_is_multiindex(self, copy: bool = True) -> S:
+        """
+        Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
+
+        Parameters
+        ----------
+        copy
+            Whether to copy `series` before manipulating the index name
+
+        Returns
+        -------
+        :
+            `series` with a [pd.MultiIndex][pandas.MultiIndex]
+
+            If the index was already a [pd.MultiIndex][pandas.MultiIndex],
+            this is a no-op (although the value of copy is respected).
+        """
+        return ensure_index_is_multiindex(self._series, copy=copy)
+
+    def eiim(self, copy: bool = True) -> pd.DataFrame:
+        """
+        Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
+
+        Alias for [ensure_index_is_multiindex][pandas_openscm.index_manipulation.]
+
+        Parameters
+        ----------
+        copy
+            Whether to copy `series` before manipulating the index name
+
+        Returns
+        -------
+        :
+            `series` with a [pd.MultiIndex][pandas.MultiIndex]
+
+            If the index was already a [pd.MultiIndex][pandas.MultiIndex],
+            this is a no-op (although the value of copy is respected).
+        """
+        return self.ensure_index_is_multiindex(copy=copy)
+
     # def fix_index_name_after_groupby_quantile(
     #     self, new_name: str = "quantile", copy: bool = False
     # ) -> pd.DataFrame:
