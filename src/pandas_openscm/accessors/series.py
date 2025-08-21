@@ -199,9 +199,11 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
             If the index was already a [pd.MultiIndex][pandas.MultiIndex],
             this is a no-op (although the value of copy is respected).
         """
-        return ensure_index_is_multiindex(self._series, copy=copy)
+        res = ensure_index_is_multiindex(self._series, copy=copy)
 
-    def eiim(self, copy: bool = True) -> pd.DataFrame:
+        return res  # type: ignore # something wront with generic type hinting
+
+    def eiim(self, copy: bool = True) -> S:
         """
         Ensure that the index is a [pd.MultiIndex][pandas.MultiIndex]
 
