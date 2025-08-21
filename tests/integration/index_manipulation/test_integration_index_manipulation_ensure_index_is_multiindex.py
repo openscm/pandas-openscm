@@ -9,7 +9,10 @@ import pandas as pd
 import pytest
 
 from pandas_openscm.index_manipulation import ensure_index_is_multiindex
-from pandas_openscm.testing import create_test_df
+from pandas_openscm.testing import (
+    convert_to_desired_type,
+    create_test_df,
+)
 
 
 @pytest.mark.parametrize("copy, copy_exp", ((None, True), (True, True), (False, False)))
@@ -71,12 +74,17 @@ def test_ensure_index_is_multiindex_no_op(copy, copy_exp):
 
 
 @pytest.mark.parametrize("copy, copy_exp", ((None, True), (True, True), (False, False)))
-def test_accessor(setup_pandas_accessors, copy, copy_exp):
+@pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+def test_accessor(setup_pandas_accessors, copy, copy_exp, pobj_type):
     start = pd.DataFrame(
         [[1, 2], [3, 4]],
         columns=[10, 20],
         index=pd.Index(["a", "b"], name="variable"),
     )
+    start = convert_to_desired_type(start, pobj_type)
 
     call_kwargs = {}
     if copy is not None:
