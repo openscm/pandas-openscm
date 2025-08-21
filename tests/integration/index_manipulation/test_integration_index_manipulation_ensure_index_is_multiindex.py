@@ -178,6 +178,8 @@ def test_ensure_is_multiindex_accessor_index(setup_pandas_accessors):
     start = pd.Index([1, 2, 3], name="id")
 
     res = start.openscm.ensure_is_multiindex()
+    res_short = start.openscm.eim()
+    pd.testing.assert_index_equal(res, res_short)
 
     assert isinstance(res, pd.MultiIndex)
 
@@ -203,6 +205,8 @@ def test_ensure_is_multiindex_accessor_multiindex(setup_pandas_accessors):
     )
 
     res = start.openscm.ensure_is_multiindex()
+    res_short = start.openscm.eim()
+    pd.testing.assert_index_equal(res, res_short)
 
     # Same object returned
     assert id(start) == id(res)
