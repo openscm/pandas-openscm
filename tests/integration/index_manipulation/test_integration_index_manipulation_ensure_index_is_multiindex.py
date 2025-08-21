@@ -8,7 +8,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pandas_openscm.index_manipulation import ensure_index_is_multiindex
+from pandas_openscm.index_manipulation import (
+    ensure_index_is_multiindex,
+    ensure_is_multiindex,
+)
 from pandas_openscm.testing import (
     convert_to_desired_type,
     create_test_df,
@@ -114,3 +117,94 @@ def test_accessor(setup_pandas_accessors, copy, copy_exp, pobj_type):
     else:
         # Same object returned
         assert id(start) == id(res_short)
+
+
+def test_ensure_is_multiindex_index():
+    start = pd.Index([1, 2, 3], name="id")
+
+    res = ensure_is_multiindex(start)
+
+    assert isinstance(res, pd.MultiIndex)
+
+    exp = pd.MultiIndex.from_tuples(
+        [
+            (1,),
+            (2,),
+            (3,),
+        ],
+        names=["id"],
+    )
+
+    pd.testing.assert_index_equal(res, exp)
+
+
+def test_ensure_is_multiindex_index_no_name():
+    start = pd.Index([1, 2, 3])
+
+    res = ensure_is_multiindex(start)
+
+    assert isinstance(res, pd.MultiIndex)
+
+    exp = pd.MultiIndex.from_tuples(
+        [
+            (1,),
+            (2,),
+            (3,),
+        ],
+        names=[None],
+    )
+
+    pd.testing.assert_index_equal(res, exp)
+
+
+def test_ensure_is_multiindex():
+    start = pd.MultiIndex.from_tuples(
+        [
+            ("a", "b"),
+            ("c", "d"),
+        ],
+        names=["mod", "scen"],
+    )
+
+    res = ensure_is_multiindex(start)
+
+    # Same object returned
+    assert id(start) == id(res)
+    assert isinstance(res, pd.MultiIndex)
+    pd.testing.assert_index_equal(res, start)
+
+
+def test_ensure_is_multiindex_accessor_index(setup_pandas_accessors):
+    start = pd.Index([1, 2, 3], name="id")
+
+    res = start.openscm.ensure_is_multiindex()
+
+    assert isinstance(res, pd.MultiIndex)
+
+    exp = pd.MultiIndex.from_tuples(
+        [
+            (1,),
+            (2,),
+            (3,),
+        ],
+        names=["id"],
+    )
+
+    pd.testing.assert_index_equal(res, exp)
+
+
+def test_ensure_is_multiindex_accessor_multiindex(setup_pandas_accessors):
+    start = pd.MultiIndex.from_tuples(
+        [
+            ("a", "b"),
+            ("c", "d"),
+        ],
+        names=["mod", "scen"],
+    )
+
+    res = start.openscm.ensure_is_multiindex()
+
+    # Same object returned
+    assert id(start) == id(res)
+    assert isinstance(res, pd.MultiIndex)
+    pd.testing.assert_index_equal(res, start)
