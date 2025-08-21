@@ -21,13 +21,13 @@ you will need to run something like:
 ```python
 from pandas_openscm.accessors import register_pandas_accessors
 
-# The 'pd.DataFrame.openscm' and 'pd.Series.openscm' namespaces
+# The `pd.DataFrame.openscm` and `pd.Series.openscm` namespaces
 # will not be available at this point.
 
 # Register the accessors
 register_pandas_accessors()
 
-# The 'pd.DataFrame.openscm' and 'pd.Series.openscm' namespaces
+# The `pd.DataFrame.openscm`, `pd.Series.openscm` and `pd.Index.openscm` namespaces
 # will now be available.
 # I.e. you could now do something like
 df = pd.DataFrame(
@@ -53,9 +53,14 @@ df.openscm.to_long_data()
 register_pandas_accessors(namespace="my_custom_namespace")
 
 # Doing it this way will make the custom namespace available under
-# 'pd.DataFrame.my_custom_namespace' and 'pd.Series.my_custom_namespace'.
+# `pd.DataFrame.my_custom_namespace`,
+# `pd.Series.my_custom_namespace`
+# and `pd.Index.my_custom_namespace`.
+df.my_custom_namespace.to_long_data()
 ```
 
 The full accessor APIs are documented at
-[pandas_openscm.accessors.dataframe.PandasDataFrameOpenSCMAccessor][]
-and [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor][].
+[pandas_openscm.accessors.dataframe.PandasDataFrameOpenSCMAccessor][],
+[pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor][]
+and
+[pandas_openscm.accessors.index.PandasIndexOpenSCMAccessor][].

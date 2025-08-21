@@ -45,3 +45,7 @@ def setup_pandas_accessors() -> None:
     pd.Series._accessors.discard("openscm")
     if hasattr(pd.Series, "openscm"):
         del pd.Series.openscm
+
+    pd.Index._accessors.discard("openscm")
+    if hasattr(pd.Index, "openscm"):
+        del pd.Index.openscm
