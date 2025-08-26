@@ -252,13 +252,18 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         :
             `series`, with the last level in its index renamed to `new_name`.
         """
-        return fix_index_name_after_groupby_quantile(
+        res = fix_index_name_after_groupby_quantile(
             self._series, new_name=new_name, copy=copy
         )
 
+        # Ignore return type
+        # because I've done something wrong with how I've set this up.
+        # Figuring this out is a job for another day
+        return res  # type: ignore
+
     def groupby_except(
         self, non_groupers: str | list[str], observed: bool = True
-    ) -> pd.core.groupby.generic.SeriesGroupBy[Any]:
+    ) -> pd.core.groupby.generic.SeriesGroupBy[Any, Any]:
         """
         Group by all index levels except specified levels
 

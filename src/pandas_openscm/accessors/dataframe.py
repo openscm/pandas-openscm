@@ -264,7 +264,7 @@ class PandasDataFrameOpenSCMAccessor:
             The [pd.DataFrame][pandas.DataFrame],
             grouped by all columns except `non_groupers`.
         """
-        return groupby_except(df=self._df, non_groupers=non_groupers, observed=observed)
+        return groupby_except(self._df, non_groupers=non_groupers, observed=observed)
 
     def mi_loc(
         self,
