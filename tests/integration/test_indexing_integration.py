@@ -1,5 +1,5 @@
 """
-Tests of `pandas_openscm.indexing` and `pd.DataFrame.openscm.mi_loc`
+Tests of `pandas_openscm.indexing`, `...openscm.mi_loc`
 """
 
 from __future__ import annotations
@@ -14,12 +14,20 @@ from pandas_openscm.indexing import (
     multi_index_lookup,
     multi_index_match,
 )
-from pandas_openscm.testing import create_test_df
+from pandas_openscm.testing import check_result, convert_to_desired_type, create_test_df
 
 try:
     import pandas_indexing as pix
 except ImportError:
     pix = None
+
+pobj_type = pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series
+"""
 
 
 @pytest.mark.parametrize(
@@ -139,7 +147,8 @@ def test_multi_index_match(start, locator, exp):
     np.testing.assert_equal(res, exp)
 
 
-def test_multi_index_lookup():
+@pobj_type
+def test_multi_index_lookup(pobj_type):
     # Most of the tests are in test_multi_index_match.
     # Hence why there is only one here.
     start = pd.DataFrame(
@@ -155,17 +164,21 @@ def test_multi_index_lookup():
             names=["model", "scenario", "id"],
         ),
     )
+    start = convert_to_desired_type(start, pobj_type)
 
     locator = pd.MultiIndex.from_tuples(
         (("sb", 2), ("sa", 3), ("sa", 4)),
         names=["scenario", "id"],
     )
 
-    exp = start.iloc[[1, 2], :]
+    if isinstance(start, pd.DataFrame):
+        exp = start.iloc[[1, 2], :]
+    else:
+        exp = start.iloc[[1, 2]]
 
     res = multi_index_lookup(start, locator)
 
-    pd.testing.assert_frame_equal(res, exp)
+    check_result(res, exp)
 
 
 @pytest.mark.parametrize(
@@ -222,7 +235,8 @@ def test_index_name_aware_match(start, locator, exp):
     np.testing.assert_equal(res, exp)
 
 
-def test_index_name_aware_lookup():
+@pobj_type
+def test_index_name_aware_lookup(pobj_type):
     # Most of the tests are in test_index_name_aware_match.
     # Hence why there is only one here.
     start = pd.DataFrame(
@@ -238,16 +252,21 @@ def test_index_name_aware_lookup():
             names=["model", "scenario", "id"],
         ),
     )
+    start = convert_to_desired_type(start, pobj_type)
 
     locator = pd.Index((2, 4), name="id")
 
-    exp = start.iloc[[1, 3], :]
+    if isinstance(start, pd.DataFrame):
+        exp = start.iloc[[1, 3], :]
+    else:
+        exp = start.iloc[[1, 3]]
 
     res = index_name_aware_lookup(start, locator)
 
-    pd.testing.assert_frame_equal(res, exp)
+    check_result(res, exp)
 
 
+@pobj_type
 @pytest.mark.parametrize(
     "locator",
     (
@@ -287,7 +306,7 @@ def test_index_name_aware_lookup():
         ),
     ),
 )
-def test_mi_loc_same_as_pandas(locator, setup_pandas_accessors):
+def test_mi_loc_same_as_pandas(locator, setup_pandas_accessors, pobj_type):
     """
     Test pass through in the cases where pass through should happen
 
@@ -301,8 +320,9 @@ def test_mi_loc_same_as_pandas(locator, setup_pandas_accessors):
         n_runs=6,
         timepoints=np.arange(1990.0, 2010.0 + 1.0),
     )
+    start = convert_to_desired_type(start, pobj_type)
 
-    pd.testing.assert_frame_equal(
+    check_result(
         start.loc[locator],
         start.openscm.mi_loc(locator),
     )

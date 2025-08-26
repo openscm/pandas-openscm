@@ -17,6 +17,7 @@ from pandas_openscm.index_manipulation import (
     ensure_index_is_multiindex,
     set_index_levels_func,
 )
+from pandas_openscm.indexing import mi_loc
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ if TYPE_CHECKING:
     # Figuring it out is a job for another day
     S = TypeVar("S", bound=pd.Series[Any])
 
+    import pandas_indexing as pix
     import pint
 
 else:
@@ -287,42 +289,43 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
             self._series, non_groupers=non_groupers, observed=observed
         )
 
-    # def mi_loc(
-    #     self,
-    #     locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector,
-    # ) -> pd.DataFrame:
-    #     """
-    #     Select data, being slightly smarter than the default [pandas.DataFrame.loc][].
-    #
-    #     Parameters
-    #     ----------
-    #     locator
-    #         Locator to apply
-    #
-    #         If this is a multi-index, we use
-    #         [multi_index_lookup][pandas_openscm.indexing.] to ensure correct alignment.  # noqa: E501
-    #
-    #         If this is an index that has a name,
-    #         we use the name to ensure correct alignment.
-    #
-    #     Returns
-    #     -------
-    #     :
-    #         Selected data
-    #
-    #     Notes
-    #     -----
-    #     If you have [pandas_indexing][] installed,
-    #     you can get the same (perhaps even better) functionality
-    #     using something like the following instead
-    #
-    #     ```python
-    #     ...
-    #     pandas_obj.loc[pandas_indexing.isin(locator)]
-    #     ...
-    #     ```
-    #     """
-    #     return mi_loc(self._df, locator)
+    def mi_loc(
+        self,
+        locator: pd.Index[Any] | pd.MultiIndex | pix.selectors.Selector,
+    ) -> S:
+        """
+        Select data, being slightly smarter than the default [pandas.Series.loc][].
+
+        Parameters
+        ----------
+        locator
+            Locator to apply
+
+            If this is a multi-index, we use
+            [multi_index_lookup][pandas_openscm.indexing.]
+            to ensure correct alignment.
+
+            If this is an index that has a name,
+            we use the name to ensure correct alignment.
+
+        Returns
+        -------
+        :
+            Selected data
+
+        Notes
+        -----
+        If you have [pandas_indexing][] installed,
+        you can get the same (perhaps even better) functionality
+        using something like the following instead
+
+        ```python
+        ...
+        pandas_obj.loc[pandas_indexing.isin(locator)]
+        ...
+        ```
+        """
+        return mi_loc(self._series, locator)
 
     def set_index_levels(
         self,
