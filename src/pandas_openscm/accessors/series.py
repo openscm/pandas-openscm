@@ -325,7 +325,12 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         ...
         ```
         """
-        return mi_loc(self._series, locator)
+        res = mi_loc(self._series, locator)
+
+        # Ignore return type
+        # because I've done something wrong with how I've set this up.
+        # Figuring this out is a job for another day
+        return res  # type: ignore
 
     def set_index_levels(
         self,
