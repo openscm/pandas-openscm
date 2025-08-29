@@ -240,7 +240,6 @@ def test_accessor(setup_pandas_accessors, pobj_type):
             names=["scenario", "variable", "unit", "run_id"],
         ),
     )
-    convert_to_desired_type(start, pobj_type)
 
     updates = {
         "variable": lambda x: x.replace("v", "vv"),
@@ -260,6 +259,8 @@ def test_accessor(setup_pandas_accessors, pobj_type):
             names=["scenario", "variable", "unit", "run_id"],
         ),
     )
+
+    start = convert_to_desired_type(start, pobj_type)
     exp = convert_to_desired_type(exp, pobj_type)
 
     res = start.openscm.update_index_levels(updates)

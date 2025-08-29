@@ -399,7 +399,6 @@ def test_accessor(setup_pandas_accessors, pobj_type):
             names=["scenario", "variable", "unit", "run_id"],
         ),
     )
-    convert_to_desired_type(start, pobj_type)
 
     update_sources = {
         # callables single source
@@ -446,6 +445,8 @@ def test_accessor(setup_pandas_accessors, pobj_type):
             ],
         ),
     )
+
+    start = convert_to_desired_type(start, pobj_type)
     exp = convert_to_desired_type(exp, pobj_type)
 
     res = start.openscm.update_index_levels_from_other(update_sources)
