@@ -453,54 +453,54 @@ def create_new_level_and_codes_by_mapping_multiple(
 
 
 def update_index_levels_func(
-    df: pd.DataFrame,
+    pobj: P,
     updates: Mapping[Any, Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any]],
     copy: bool = True,
     remove_unused_levels: bool = True,
-) -> pd.DataFrame:
+) -> P:
     """
-    Update the index levels of a [pd.DataFrame][pandas.DataFrame]
+    Update the index levels of a [pandas][] object
 
     Parameters
     ----------
-    df
-        [pd.DataFrame][pandas.DataFrame] to update
+    pobj
+        Supported [pandas][] object to update
 
     updates
-        Updates to apply to `df`'s index
+        Updates to apply to `pobj`'s index
 
         Each key is the index level to which the updates will be applied.
         Each value is a function which updates the levels to their new values.
 
     copy
-        Should `df` be copied before returning?
+        Should `pobj` be copied before returning?
 
     remove_unused_levels
-        Call `df.index.remove_unused_levels` before updating the levels
+        Call `pobj.index.remove_unused_levels` before updating the levels
 
         This avoids trying to update levels that aren't being used.
 
     Returns
     -------
     :
-        `df` with updates applied to its index
+        `pobj` with updates applied to its index
     """
     if copy:
-        df = df.copy()
+        pobj = pobj.copy()
 
-    if not isinstance(df.index, pd.MultiIndex):
+    if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
-            f"Received {type(df.index)=}"
+            "when `pobj`'s index is an instance of `MultiIndex`. "
+            f"Received {type(pobj.index)=}"
         )
         raise TypeError(msg)
 
-    df.index = update_levels(
-        df.index, updates=updates, remove_unused_levels=remove_unused_levels
+    pobj.index = update_levels(
+        pobj.index, updates=updates, remove_unused_levels=remove_unused_levels
     )
 
-    return df
+    return pobj
 
 
 def update_levels(
@@ -609,7 +609,7 @@ def update_levels(
 
 
 def update_index_levels_from_other_func(
-    df: pd.DataFrame,
+    pobj: P,
     update_sources: dict[
         Any,
         tuple[
@@ -625,20 +625,20 @@ def update_index_levels_from_other_func(
     ],
     copy: bool = True,
     remove_unused_levels: bool = True,
-) -> pd.DataFrame:
+) -> P:
     """
-    Update the index levels based on other levels of a [pd.DataFrame][pandas.DataFrame]
+    Update the index levels based on other levels of a [pandas][] object
 
     If the level to be updated doesn't exist,
     it is created.
 
     Parameters
     ----------
-    df
-        [pd.DataFrame][pandas.DataFrame] to update
+    pobj
+        Supported [pandas][] object to update
 
     update_sources
-        Updates to apply to `df`'s index
+        Updates to apply to `pobj`'s index
 
         Each key is the level to which the updates will be applied
         (or the level that will be created if it doesn't already exist).
@@ -662,36 +662,36 @@ def update_index_levels_from_other_func(
         to update/create the level of interest.
 
     copy
-        Should `df` be copied before returning?
+        Should `pobj` be copied before returning?
 
     remove_unused_levels
-        Call `df.index.remove_unused_levels` before updating the levels
+        Call `pobj.index.remove_unused_levels` before updating the levels
 
         This avoids trying to update levels that aren't being used.
 
     Returns
     -------
     :
-        `df` with updates applied to its index
+        `pobj` with updates applied to its index
     """
     if copy:
-        df = df.copy()
+        pobj = pobj.copy()
 
-    if not isinstance(df.index, pd.MultiIndex):
+    if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
-            f"Received {type(df.index)=}"
+            "when `pobj`'s index is an instance of `MultiIndex`. "
+            f"Received {type(pobj.index)=}"
         )
         raise TypeError(msg)
 
-    df.index = update_levels_from_other(
-        df.index,
+    pobj.index = update_levels_from_other(
+        pobj.index,
         update_sources=update_sources,
         remove_unused_levels=remove_unused_levels,
     )
 
-    return df
+    return pobj
 
 
 def update_levels_from_other(
@@ -749,7 +749,7 @@ def update_levels_from_other(
     remove_unused_levels
         Call `ini.remove_unused_levels` before updating the levels
 
-        This avoids trying to update bsaed on levels that aren't being used.
+        This avoids trying to update based on levels that aren't being used.
 
     Returns
     -------
@@ -1061,7 +1061,7 @@ def set_index_levels_func(
     Parameters
     ----------
     pobj
-        [pd.DataFrame][pandas.DataFrame] to update
+        Supported [pandas][] object to update
 
     levels_to_set
         Mapping of level names to values to set
@@ -1077,7 +1077,7 @@ def set_index_levels_func(
     if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
+            "when `pobj`'s index is an instance of `MultiIndex`. "
             f"Received {type(pobj.index)=}"
         )
         raise TypeError(msg)

@@ -11,6 +11,15 @@ import pandas as pd
 import pytest
 
 from pandas_openscm.index_manipulation import update_index_levels_func, update_levels
+from pandas_openscm.testing import check_result, convert_to_desired_type
+
+pobj_type = pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series
+"""
 
 
 @pytest.mark.parametrize(
@@ -123,6 +132,50 @@ def test_update_levels_missing_level():
         update_levels(start, updates=updates)
 
 
+def test_accessor_index(setup_pandas_accessors):
+    start = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "va", "kg", 0),
+            ("sb", "vb", "m", -1),
+            ("sa", "va", "kg", -2),
+            ("sa", "vb", "kg", 2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+    updates = {
+        "variable": lambda x: x.replace("v", "vv"),
+        "unit": lambda x: x.replace("kg", "g").replace("m", "km"),
+    }
+
+    res = start.openscm.update_levels(updates=updates)
+
+    exp = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "vva", "g", 0),
+            ("sb", "vvb", "km", -1),
+            ("sa", "vva", "g", -2),
+            ("sa", "vvb", "g", 2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+
+    pd.testing.assert_index_equal(res, exp)
+
+
+def test_accessor_index_not_multiindex(setup_pandas_accessors):
+    start = pd.Index([1, 2, 3])
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "This method is only intended to be used "
+            "when index is an instance of `MultiIndex`. "
+        )
+        + "Received .*Index.*'",
+    ):
+        start.openscm.update_levels(updates={})
+
+
 def test_doesnt_trip_over_droped_levels(setup_pandas_accessors):
     def update_func(in_v: int) -> int:
         if in_v < 0:
@@ -190,8 +243,34 @@ def test_doesnt_trip_over_droped_levels(setup_pandas_accessors):
             updates, remove_unused_levels=False
         )
 
+    # Same thing but from a Series
+    start_series = start_df[2020]
 
-def test_accessor(setup_pandas_accessors):
+    res_series = update_index_levels_func(start_series.iloc[:-1], updates=updates)
+
+    exp_series = pd.Series(np.zeros(exp.shape[0]), name=2020, index=exp)
+
+    pd.testing.assert_series_equal(res_series, exp_series)
+    with exp_error_no_removal:
+        update_index_levels_func(
+            start_series.iloc[:-1],
+            updates=updates,
+            remove_unused_levels=False,
+        )
+
+    # Lastly, test the accessor
+    pd.testing.assert_series_equal(
+        start_series.iloc[:-1].openscm.update_index_levels(updates),
+        exp_series,
+    )
+    with exp_error_no_removal:
+        start_series.iloc[:-1].openscm.update_index_levels(
+            updates, remove_unused_levels=False
+        )
+
+
+@pobj_type
+def test_accessor(setup_pandas_accessors, pobj_type):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
         columns=[2010, 2020],
@@ -225,21 +304,26 @@ def test_accessor(setup_pandas_accessors):
         ),
     )
 
+    start = convert_to_desired_type(start, pobj_type)
+    exp = convert_to_desired_type(exp, pobj_type)
+
     res = start.openscm.update_index_levels(updates)
-    pd.testing.assert_frame_equal(res, exp)
+    check_result(res, exp)
 
     # Test function too
     res = update_index_levels_func(start, updates)
-    pd.testing.assert_frame_equal(res, exp)
+    check_result(res, exp)
 
 
-def test_accessor_not_multiindex(setup_pandas_accessors):
+@pobj_type
+def test_accessor_not_multiindex(setup_pandas_accessors, pobj_type):
     start = pd.DataFrame(np.arange(2 * 4).reshape((4, 2)))
+    start = convert_to_desired_type(start, pobj_type)
 
     error_msg = re.escape(
         "This function is only intended to be used "
-        "when `df`'s index is an instance of `MultiIndex`. "
-        "Received type(df.index)="
+        "when `pobj`'s index is an instance of `MultiIndex`. "
+        "Received type(pobj.index)="
     )
     with pytest.raises(TypeError, match=error_msg):
         start.openscm.update_index_levels({})
