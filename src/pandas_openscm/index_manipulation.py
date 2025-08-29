@@ -1077,7 +1077,7 @@ def set_index_levels_func(
     if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
+            "when `pobj`'s index is an instance of `MultiIndex`. "
             f"Received {type(pobj.index)=}"
         )
         raise TypeError(msg)

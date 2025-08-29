@@ -464,8 +464,8 @@ def test_accessor_not_multiindex(setup_pandas_accessors, pobj_type):
 
     error_msg = re.escape(
         "This function is only intended to be used "
-        "when `df`'s index is an instance of `MultiIndex`. "
-        "Received type(df.index)="
+        "when `pobj`'s index is an instance of `MultiIndex`. "
+        "Received type(pobj.index)="
     )
     with pytest.raises(TypeError, match=error_msg):
         start.openscm.update_index_levels_from_other({})

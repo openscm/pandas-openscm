@@ -48,7 +48,7 @@ def test_index_is_not_multi_index():
         TypeError,
         match=re.escape(
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
+            "when `pandas_obj`'s index is an instance of `MultiIndex`. "
             "Received type(pandas_obj.index)=<class 'pandas"
         ),
     ):
@@ -60,7 +60,7 @@ def test_index_name_aware_lookup():
         TypeError,
         match=re.escape(
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
+            "when `pandas_obj`'s index is an instance of `MultiIndex`. "
             "Received type(pandas_obj.index)=<class 'pandas"
         ),
     ):

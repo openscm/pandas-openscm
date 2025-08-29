@@ -176,7 +176,7 @@ def multi_index_lookup(pandas_obj: P, locator: pd.MultiIndex) -> P:
     if not isinstance(pandas_obj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
+            "when `pobj`'s index is an instance of `MultiIndex`. "
             f"Received {type(pandas_obj.index)=}"
         )
         raise TypeError(msg)
@@ -280,7 +280,7 @@ def index_name_aware_lookup(pandas_obj: P, locator: pd.Index[Any]) -> P:
     if not isinstance(pandas_obj.index, pd.MultiIndex):
         msg = (
             "This function is only intended to be used "
-            "when `df`'s index is an instance of `MultiIndex`. "
+            "when `pandas_obj`'s index is an instance of `MultiIndex`. "
             f"Received {type(pandas_obj.index)=}"
         )
         raise TypeError(msg)
