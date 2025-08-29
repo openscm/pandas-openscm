@@ -11,6 +11,15 @@ import pandas as pd
 import pytest
 
 from pandas_openscm.index_manipulation import update_index_levels_func, update_levels
+from pandas_openscm.testing import check_result, convert_to_desired_type
+
+pobj_type = pytest.mark.parametrize(
+    "pobj_type",
+    ("DataFrame", "Series"),
+)
+"""
+Parameterisation to use to check handling of both DataFrame and Series
+"""
 
 
 @pytest.mark.parametrize(
@@ -190,8 +199,34 @@ def test_doesnt_trip_over_droped_levels(setup_pandas_accessors):
             updates, remove_unused_levels=False
         )
 
+    # Same thing but from a Series
+    start_series = start_df[2020]
 
-def test_accessor(setup_pandas_accessors):
+    res_series = update_index_levels_func(start_series.iloc[:-1], updates=updates)
+
+    exp_series = pd.Series(np.zeros(exp.shape[0]), name=2020, index=exp)
+
+    pd.testing.assert_series_equal(res_series, exp_series)
+    with exp_error_no_removal:
+        update_index_levels_func(
+            start_series.iloc[:-1],
+            updates=updates,
+            remove_unused_levels=False,
+        )
+
+    # Lastly, test the accessor
+    pd.testing.assert_series_equal(
+        start_series.iloc[:-1].openscm.update_index_levels(updates),
+        exp_series,
+    )
+    with exp_error_no_removal:
+        start_series.iloc[:-1].openscm.update_index_levels(
+            updates, remove_unused_levels=False
+        )
+
+
+@pobj_type
+def test_accessor(setup_pandas_accessors, pobj_type):
     start = pd.DataFrame(
         np.arange(2 * 4).reshape((4, 2)),
         columns=[2010, 2020],
@@ -205,6 +240,7 @@ def test_accessor(setup_pandas_accessors):
             names=["scenario", "variable", "unit", "run_id"],
         ),
     )
+    convert_to_desired_type(start, pobj_type)
 
     updates = {
         "variable": lambda x: x.replace("v", "vv"),
@@ -224,17 +260,20 @@ def test_accessor(setup_pandas_accessors):
             names=["scenario", "variable", "unit", "run_id"],
         ),
     )
+    exp = convert_to_desired_type(exp, pobj_type)
 
     res = start.openscm.update_index_levels(updates)
-    pd.testing.assert_frame_equal(res, exp)
+    check_result(res, exp)
 
     # Test function too
     res = update_index_levels_func(start, updates)
-    pd.testing.assert_frame_equal(res, exp)
+    check_result(res, exp)
 
 
-def test_accessor_not_multiindex(setup_pandas_accessors):
+@pobj_type
+def test_accessor_not_multiindex(setup_pandas_accessors, pobj_type):
     start = pd.DataFrame(np.arange(2 * 4).reshape((4, 2)))
+    start = convert_to_desired_type(start, pobj_type)
 
     error_msg = re.escape(
         "This function is only intended to be used "
