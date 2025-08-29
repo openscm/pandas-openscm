@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 import pandas as pd
 
-from pandas_openscm.index_manipulation import ensure_is_multiindex, update_levels
+from pandas_openscm.index_manipulation import (
+    ensure_is_multiindex,
+    update_levels,
+    update_levels_from_other,
+)
 
 if TYPE_CHECKING:
     # Hmm this is somehow not correct.
@@ -100,8 +104,16 @@ class PandasIndexOpenSCMAccessor(Generic[Idx]):
         Returns
         -------
         :
-            [pd.MultiIndex][pandas.MultiIndex] with updates applied
+            `index` with updates applied
         """
+        if not isinstance(self._index, pd.MultiIndex):
+            msg = (
+                "This method is only intended to be used "
+                "when index is an instance of `MultiIndex`. "
+                f"Received {type(self._index)}"
+            )
+            raise TypeError(msg)
+
         return update_levels(
             self._index,
             updates=updates,
@@ -110,35 +122,72 @@ class PandasIndexOpenSCMAccessor(Generic[Idx]):
 
     def update_levels_from_other(
         self,
-        updates: dict[Any, Callable[[Any], Any]],
+        update_sources: dict[
+            Any,
+            tuple[
+                Any,
+                Callable[[Any], Any] | dict[Any, Any] | pd.Series[Any],
+            ]
+            | tuple[
+                tuple[Any, ...],
+                Callable[[tuple[Any, ...]], Any]
+                | dict[tuple[Any, ...], Any]
+                | pd.Series[Any],
+            ],
+        ],
         remove_unused_levels: bool = True,
     ) -> pd.MultiIndex:
         """
-        Update the levels
+        Update levels based on other levels
+
+        If the level to be updated doesn't exist, it is created.
 
         Parameters
         ----------
-        updates
-            Updates to apply
+        update_sources
+            Updates to apply and their source levels
 
-            Each key is the level to which the updates will be applied.
-            Each value is a function which updates the level to its new values.
+            Each key is the level to which the updates will be applied
+            (or the level that will be created if it doesn't already exist).
+
+            There are two options for the values.
+
+            The first is used when only one level is used to update the 'target level'.
+            In this case, each value is a tuple of which the first element
+            is the level to use to generate the values (the 'source level')
+            and the second is mapper of the form used by
+            [pd.Index.map][pandas.Index.map]
+            which will be applied to the source level
+            to update/create the level of interest.
+
+            Each value is a tuple of which the first element
+            is the level or levels (if a tuple)
+            to use to generate the values (the 'source level')
+            and the second is mapper of the form used by
+            [pd.Index.map][pandas.Index.map]
+            which will be applied to the source level
+            to update/create the level of interest.
 
         remove_unused_levels
-            Remove unused levels before applying the update
+            Call `ini.remove_unused_levels` before updating the levels
 
-            Specifically, call
-            [pd.MultiIndex.remove_unused_levels][pandas.MultiIndex.remove_unused_levels].
-
-            This avoids trying to update levels that aren't being used.
+            This avoids trying to update based on levels that aren't being used.
 
         Returns
         -------
         :
-            [pd.MultiIndex][pandas.MultiIndex] with updates applied
+            `index` with updates applied
         """
-        return update_levels(
+        if not isinstance(self._index, pd.MultiIndex):
+            msg = (
+                "This method is only intended to be used "
+                "when index is an instance of `MultiIndex`. "
+                f"Received {type(self._index)}"
+            )
+            raise TypeError(msg)
+
+        return update_levels_from_other(
             self._index,
-            updates=updates,
+            update_sources=update_sources,
             remove_unused_levels=remove_unused_levels,
         )

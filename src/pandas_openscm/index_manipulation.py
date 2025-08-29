@@ -749,7 +749,7 @@ def update_levels_from_other(
     remove_unused_levels
         Call `ini.remove_unused_levels` before updating the levels
 
-        This avoids trying to update bsaed on levels that aren't being used.
+        This avoids trying to update based on levels that aren't being used.
 
     Returns
     -------
