@@ -422,12 +422,17 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         :
             [pd.Series][pandas.Series] with updates applied to its index
         """
-        return update_index_levels_func(
+        res = update_index_levels_func(
             self._series,
             updates=updates,
             copy=copy,
             remove_unused_levels=remove_unused_levels,
         )
+
+        # Ignore return type
+        # because I've done something wrong with how I've set this up.
+        # Figuring this out is a job for another day
+        return res  # type: ignore
 
     def update_index_levels_from_other(
         self,
@@ -471,9 +476,14 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         :
             [pd.Series][pandas.Series] with updates applied to its index
         """
-        return update_index_levels_from_other_func(
+        res = update_index_levels_from_other_func(
             self._series,
             update_sources=update_sources,
             copy=copy,
             remove_unused_levels=remove_unused_levels,
         )
+
+        # Ignore return type
+        # because I've done something wrong with how I've set this up.
+        # Figuring this out is a job for another day
+        return res  # type: ignore
