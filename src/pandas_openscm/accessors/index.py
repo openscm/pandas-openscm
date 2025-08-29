@@ -77,7 +77,7 @@ class PandasIndexOpenSCMAccessor(Generic[Idx]):
         """
         return self.ensure_is_multiindex()
 
-    def update_index_levels(
+    def update_levels(
         self,
         updates: dict[Any, Callable[[Any], Any]],
         remove_unused_levels: bool = True,

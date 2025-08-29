@@ -132,6 +132,50 @@ def test_update_levels_missing_level():
         update_levels(start, updates=updates)
 
 
+def test_accessor_index(setup_pandas_accessors):
+    start = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "va", "kg", 0),
+            ("sb", "vb", "m", -1),
+            ("sa", "va", "kg", -2),
+            ("sa", "vb", "kg", 2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+    updates = {
+        "variable": lambda x: x.replace("v", "vv"),
+        "unit": lambda x: x.replace("kg", "g").replace("m", "km"),
+    }
+
+    res = start.openscm.update_levels(updates=updates)
+
+    exp = pd.MultiIndex.from_tuples(
+        [
+            ("sa", "vva", "g", 0),
+            ("sb", "vvb", "km", -1),
+            ("sa", "vva", "g", -2),
+            ("sa", "vvb", "g", 2),
+        ],
+        names=["scenario", "variable", "unit", "run_id"],
+    )
+
+    pd.testing.assert_index_equal(res, exp)
+
+
+def test_accessor_index_not_multiindex(setup_pandas_accessors):
+    start = pd.Index([1, 2, 3])
+
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "This method is only intended to be used "
+            "when index is an instance of `MultiIndex`. "
+        )
+        + "Received .*Index.*'",
+    ):
+        start.openscm.update_levels(updates={})
+
+
 def test_doesnt_trip_over_droped_levels(setup_pandas_accessors):
     def update_func(in_v: int) -> int:
         if in_v < 0:
