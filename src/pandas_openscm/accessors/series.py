@@ -380,7 +380,12 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
             [pd.Series][pandas.Series] with all index levels
             converted to category type.
         """
-        return convert_index_to_category_index(self._series)
+        res = convert_index_to_category_index(self._series)
+
+        # Ignore return type
+        # because I've done something wrong with how I've set this up.
+        # Figuring this out is a job for another day
+        return res  # type: ignore
 
     # def update_index_levels(
     #     self,
