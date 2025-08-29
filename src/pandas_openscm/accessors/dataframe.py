@@ -675,7 +675,7 @@ class PandasDataFrameOpenSCMAccessor:
         Returns
         -------
         :
-            [pd.DataFrame][pandas.DataFrame] with all index columns
+            [pd.DataFrame][pandas.DataFrame] with all index levels
             converted to category type.
         """
         return convert_index_to_category_index(self._df)

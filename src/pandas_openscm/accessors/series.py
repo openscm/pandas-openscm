@@ -14,6 +14,7 @@ from pandas_openscm.grouping import (
     groupby_except,
 )
 from pandas_openscm.index_manipulation import (
+    convert_index_to_category_index,
     ensure_index_is_multiindex,
     set_index_levels_func,
 )
@@ -364,22 +365,22 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         # Figuring this out is a job for another day
         return res  # type: ignore
 
-    # def to_category_index(self) -> pd.DataFrame:
-    #     """
-    #     Convert the index's values to categories
-    #
-    #     This can save a lot of memory and improve the speed of processing.
-    #     However, it comes with some pitfalls.
-    #     For a nice discussion of some of them,
-    #     see [this article](https://towardsdatascience.com/staying-sane-while-adopting-pandas-categorical-datatypes-78dbd19dcd8a/).
-    #
-    #     Returns
-    #     -------
-    #     :
-    #         [pd.DataFrame][pandas.DataFrame] with all index columns
-    #         converted to category type.
-    #     """
-    #     return convert_index_to_category_index(self._df)
+    def to_category_index(self) -> S:
+        """
+        Convert the index's values to categories
+
+        This can save a lot of memory and improve the speed of processing.
+        However, it comes with some pitfalls.
+        For a nice discussion of some of them,
+        see [this article](https://towardsdatascience.com/staying-sane-while-adopting-pandas-categorical-datatypes-78dbd19dcd8a/).
+
+        Returns
+        -------
+        :
+            [pd.Series][pandas.Series] with all index levels
+            converted to category type.
+        """
+        return convert_index_to_category_index(self._series)
 
     # def update_index_levels(
     #     self,
