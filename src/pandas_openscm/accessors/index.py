@@ -4,11 +4,11 @@ Accessor for [pd.Index][pandas.Index] (and sub-classes)
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 import pandas as pd
 
-from pandas_openscm.index_manipulation import ensure_is_multiindex
+from pandas_openscm.index_manipulation import ensure_is_multiindex, update_levels
 
 if TYPE_CHECKING:
     # Hmm this is somehow not correct.
@@ -72,3 +72,73 @@ class PandasIndexOpenSCMAccessor(Generic[Idx]):
             this is a no-op (although the value of copy is respected).
         """
         return self.ensure_is_multiindex()
+
+    def update_index_levels(
+        self,
+        updates: dict[Any, Callable[[Any], Any]],
+        remove_unused_levels: bool = True,
+    ) -> pd.MultiIndex:
+        """
+        Update the levels
+
+        Parameters
+        ----------
+        updates
+            Updates to apply
+
+            Each key is the level to which the updates will be applied.
+            Each value is a function which updates the level to its new values.
+
+        remove_unused_levels
+            Remove unused levels before applying the update
+
+            Specifically, call
+            [pd.MultiIndex.remove_unused_levels][pandas.MultiIndex.remove_unused_levels].
+
+            This avoids trying to update levels that aren't being used.
+
+        Returns
+        -------
+        :
+            [pd.MultiIndex][pandas.MultiIndex] with updates applied
+        """
+        return update_levels(
+            self._index,
+            updates=updates,
+            remove_unused_levels=remove_unused_levels,
+        )
+
+    def update_levels_from_other(
+        self,
+        updates: dict[Any, Callable[[Any], Any]],
+        remove_unused_levels: bool = True,
+    ) -> pd.MultiIndex:
+        """
+        Update the levels
+
+        Parameters
+        ----------
+        updates
+            Updates to apply
+
+            Each key is the level to which the updates will be applied.
+            Each value is a function which updates the level to its new values.
+
+        remove_unused_levels
+            Remove unused levels before applying the update
+
+            Specifically, call
+            [pd.MultiIndex.remove_unused_levels][pandas.MultiIndex.remove_unused_levels].
+
+            This avoids trying to update levels that aren't being used.
+
+        Returns
+        -------
+        :
+            [pd.MultiIndex][pandas.MultiIndex] with updates applied
+        """
+        return update_levels(
+            self._index,
+            updates=updates,
+            remove_unused_levels=remove_unused_levels,
+        )
