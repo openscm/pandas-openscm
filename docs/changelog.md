@@ -21,6 +21,26 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.9.0 (2025-08-29)
+
+### ⚠️ Breaking Changes
+
+- Renamed `df` to `pobj` in [pandas_openscm.index_manipulation.update_index_levels_func] and [pandas_openscm.index_manipulation.update_index_levels_from_other_func] ([#39](https://github.com/openscm/pandas-openscm/pull/39))
+
+### 🆕 Features
+
+- - [pd.Index][pandas.Index] accessor [pandas_openscm.accessors.index.PandasIndexOpenSCMAccessor]
+  - ensure multiindex related functionality: [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.ensure_index_is_multiindex] and [pandas_openscm.accessors.index.PandasIndexOpenSCMAccessor.ensure_is_multiindex]
+
+  ([#36](https://github.com/openscm/pandas-openscm/pull/36))
+- More methods for [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor], moving towards feature completeness ([#25](https://github.com/openscm/pandas-openscm/issues/25)), specifically [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.fix_index_name_after_groupby_quantile], [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.groupby_except], [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.mi_loc] and [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.to_category_index] ([#37](https://github.com/openscm/pandas-openscm/pull/37))
+- More methods for [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor] and [pandas_openscm.accessors.index.PandasIndexOpenSCMAccessor], leading to feature completeness ([#25](https://github.com/openscm/pandas-openscm/issues/25)), specifically [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.update_index_levels], [pandas_openscm.accessors.series.PandasSeriesOpenSCMAccessor.update_index_levels_from_other], [pandas_openscm.accessors.index.PandasIndexOpenSCMAccessor.update_levels] and [pandas_openscm.accessors.index.PandasIndexOpenSCMAccessor.update_levels_from_other] ([#39](https://github.com/openscm/pandas-openscm/pull/39))
+
+### 🔧 Trivial/Internal Changes
+
+- [#33](https://github.com/openscm/pandas-openscm/pull/33), [#34](https://github.com/openscm/pandas-openscm/pull/34), [#35](https://github.com/openscm/pandas-openscm/pull/35), [#38](https://github.com/openscm/pandas-openscm/pull/38)
+
+
 ## Pandas-OpenSCM v0.8.3 (2025-08-09)
 
 ### 🔧 Trivial/Internal Changes
