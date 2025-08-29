@@ -48,7 +48,7 @@ def test_to_category_index():
 def test_to_category_index_series():
     units = ["Mt", "kg", "W"]
 
-    # Biggish DataFrame
+    # Biggish Series
     start = create_test_df(
         variables=[(f"variable_{i}", units[i % len(units)]) for i in range(25)],
         n_scenarios=30,
@@ -71,6 +71,22 @@ def test_accessor(setup_pandas_accessors):
         n_runs=60,
         timepoints=np.arange(1750.0, 2100.0 + 1.0),
     )
+
+    res = start.openscm.to_category_index()
+
+    run_checks(res, start)
+
+
+def test_accessor_series(setup_pandas_accessors):
+    units = ["Mt", "kg", "W"]
+
+    # Biggish Series
+    start = create_test_df(
+        variables=[(f"variable_{i}", units[i % len(units)]) for i in range(25)],
+        n_scenarios=30,
+        n_runs=60,
+        timepoints=np.arange(1750.0, 2100.0 + 1.0),
+    )[1850.0]
 
     res = start.openscm.to_category_index()
 

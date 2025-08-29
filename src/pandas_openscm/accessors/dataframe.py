@@ -264,7 +264,7 @@ class PandasDataFrameOpenSCMAccessor:
             The [pd.DataFrame][pandas.DataFrame],
             grouped by all columns except `non_groupers`.
         """
-        return groupby_except(df=self._df, non_groupers=non_groupers, observed=observed)
+        return groupby_except(self._df, non_groupers=non_groupers, observed=observed)
 
     def mi_loc(
         self,
@@ -675,7 +675,7 @@ class PandasDataFrameOpenSCMAccessor:
         Returns
         -------
         :
-            [pd.DataFrame][pandas.DataFrame] with all index columns
+            [pd.DataFrame][pandas.DataFrame] with all index levels
             converted to category type.
         """
         return convert_index_to_category_index(self._df)
