@@ -2928,7 +2928,7 @@ tests-min = [
 
 [package.metadata]
 requires-dist = [
-    { name = "attrs", specifier = ">=23.0.0" },
+    { name = "attrs", specifier = ">=22.1.0" },
     { name = "filelock", marker = "extra == 'db'", specifier = ">=3.12.3" },
     { name = "matplotlib", marker = "extra == 'plots'", specifier = ">=3.7.1" },
     { name = "netcdf4", marker = "extra == 'db-full'", specifier = ">=1.7.2" },
