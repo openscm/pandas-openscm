@@ -79,7 +79,9 @@ jobs:
           # because these seem to be the flakiest from experience
           # so are worth the extra testing
           - os: "windows-latest"
-            python-version: "3.13"
+            # 3.13.1 because of
+            # https://github.com/python/cpython/issues/125235
+            python-version: "3.13.1"
           - os: "macos-latest"
             python-version: "3.13"
 
