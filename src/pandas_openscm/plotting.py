@@ -1710,3 +1710,115 @@ def plot_background_lines(  # noqa: PLR0913
     )
 
     return ax
+
+
+def plot_background_scatter(  # noqa: PLR0913
+    df: pd.DataFrame,
+    year: Any,
+    index_col: str,
+    x_value: Any,
+    y_value: Any,
+    ax: matplotlib.axes.Axes | None = None,
+    *,
+    color: COLOUR_VALUE_LIKE = "gray",
+    marker: str = "o",
+    s: float = 20.0,
+    alpha: float = 0.3,
+    zorder: float = 1.0,
+    **pkwargs: Any,
+) -> matplotlib.axes.Axes:
+    """
+    Plot background scatter points from two index values at a given year
+
+    A point is plotted for each shared index row (all index levels except
+    `index_col`), where the x-value comes from `x_value` and y-value comes from
+    `y_value` at `year`.
+
+    The `label` is always forced to `"_nolegend_"` so background points do not
+    appear in legends created by default handle discovery.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to plot.
+
+    year
+        Column label in `df` from which to extract values.
+
+    index_col
+        Index level over which to choose x-values and y-values.
+
+    x_value
+        Value of `index_col` to use for the x-values.
+
+    y_value
+        Value of `index_col` to use for the y-values.
+
+    ax
+        Axes on which to plot.
+
+        If not supplied, a new axes is created.
+
+    color
+        Colour to use for all points.
+
+    marker
+        Marker to use for all points.
+
+    s
+        Marker area for all points.
+
+    alpha
+        Alpha to use for all points.
+
+    zorder
+        Z-order to use for all points.
+
+    **pkwargs
+        Passed to [matplotlib.axes.Axes.scatter][].
+
+    Returns
+    -------
+    :
+        Axes on which the data was plotted
+
+    Raises
+    ------
+    MissingOptionalDependencyError
+        `ax` is `None` and [matplotlib][] is not installed.
+
+    TypeError
+        `label` is supplied as an argument ("label" should not be supplied)
+    """
+    if pkwargs is not None and "label" in pkwargs:
+        msg = "'label' should not be supplied as an argument to this function"
+        raise TypeError(msg)
+
+    if ax is None:
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(  # noqa: TRY003
+                "plot_background_scatter(df, ..., ax=None, ...)",
+                requirement="matplotlib",
+            ) from exc
+
+        _, ax = plt.subplots()
+
+    series_year = df.loc[:, year]
+    vals_by_index_col = series_year.unstack(index_col)
+    xy_vals = vals_by_index_col.loc[:, [x_value, y_value]].dropna()
+
+    ax.scatter(
+        xy_vals[x_value].values,
+        xy_vals[y_value].values,
+        label="_nolegend_",
+        color=color,
+        marker=marker,
+        s=s,
+        alpha=alpha,
+        zorder=zorder,
+        **pkwargs,
+    )
+
+    return ax
