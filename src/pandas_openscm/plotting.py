@@ -1620,3 +1620,93 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
         create_legend=create_legend,
         observed=observed,
     )
+
+
+def plot_background_lines(  # noqa: PLR0913
+    df: pd.DataFrame,
+    ax: matplotlib.axes.Axes | None = None,
+    *,
+    color: COLOUR_VALUE_LIKE = "gray",
+    linestyle: DASH_VALUE_LIKE = "-",
+    linewidth: float = 0.5,
+    alpha: float = 0.3,
+    zorder: float = 1.0,
+    **pkwargs: Any,
+) -> matplotlib.axes.Axes:
+    """
+    Plot each row of a [pd.DataFrame][pandas.DataFrame] as a background line
+
+    The `label` is always forced to `"_nolegend_"` so background lines do not
+    appear in legends created by default handle discovery.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to plot.
+
+        One line is plotted for each row in `df`.
+
+    ax
+        Axes on which to plot.
+
+        If not supplied, a new axes is created.
+
+    color
+        Colour to use for all lines.
+
+    linestyle
+        Linestyle to use for all lines.
+
+    linewidth
+        Linewidth to use for all lines.
+
+    alpha
+        Alpha to use for all lines.
+
+    zorder
+        Z-order to use for all lines.
+
+    **pkwargs
+        Passed to [matplotlib.axes.Axes.plot][].
+
+    Returns
+    -------
+    :
+        Axes on which the data was plotted
+
+    Raises
+    ------
+    MissingOptionalDependencyError
+        `ax` is `None` and [matplotlib][] is not installed.
+
+    TypeError
+        `label` is supplied as an argument ("label" should not be supplied)
+    """
+    if pkwargs is not None and "label" in pkwargs:
+        msg = "'label' should not be supplied as an argument to this function"
+        raise TypeError(msg)
+
+    if ax is None:
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(  # noqa: TRY003
+                "plot_background_lines(df, ax=None, ...)", requirement="matplotlib"
+            ) from exc
+
+        _, ax = plt.subplots()
+
+    x_vals = df.columns.values
+    ax.plot(
+        x_vals,
+        df.values.T,
+        label="_nolegend_",
+        color=color,
+        linestyle=linestyle,
+        linewidth=linewidth,
+        alpha=alpha,
+        zorder=zorder,
+        **pkwargs,
+    )
+
+    return ax

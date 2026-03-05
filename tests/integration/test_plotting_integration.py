@@ -25,6 +25,7 @@ from pandas_openscm.plotting import (
     get_quantiles,
     get_values_line,
     get_values_plume,
+    plot_background_lines,
     plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
 )
@@ -242,6 +243,109 @@ def test_plot_plume_with_other_plot_calls(
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
     plt.close()
+
+
+def test_plot_background_lines_hidden_from_legend(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1960.0),
+        rng=np.random.default_rng(seed=65123),
+    )
+
+    fig, ax = plt.subplots()
+    res = plot_background_lines(
+        df,
+        ax=ax,
+        color="tab:gray",
+        linestyle="--",
+        linewidth=0.8,
+        alpha=0.4,
+        zorder=0.4,
+    )
+    assert res is ax
+    assert len(ax.lines) == df.shape[0]
+    for line in ax.lines:
+        assert line.get_label() == "_nolegend_"
+        assert line.get_color() == "tab:gray"
+        assert line.get_linestyle() == "--"
+        assert line.get_linewidth() == 0.8
+        assert line.get_alpha() == 0.4
+        assert line.get_zorder() == 0.4
+
+    ax.plot(
+        np.arange(1950.0, 1960.0),
+        np.linspace(0.0, 1.0, 10),
+        label="foreground",
+        color="tab:red",
+        linewidth=2.0,
+        zorder=1.2,
+    )
+    ax.legend(loc="center left", bbox_to_anchor=(1.05, 0.5))
+    legend = ax.get_legend()
+    assert legend is not None
+
+    assert [t.get_text() for t in legend.get_texts()] == ["foreground"]
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+def test_plot_background_lines_default_ax_auto_creation(setup_pandas_accessors):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=1162),
+    )
+
+    res = plot_background_lines(df)
+
+    assert isinstance(res, matplotlib.axes.Axes)
+    assert len(res.lines) == df.shape[0]
+    assert all(line.get_label() == "_nolegend_" for line in res.lines)
+
+    plt.close(res.figure)
+
+
+def test_plot_background_lines_label_in_kwargs():
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "'label' should not be supplied as an argument to this function"
+        ),
+    ):
+        plot_background_lines("df", ax=None, label="hi")
+
+
+def test_plot_background_lines_no_matplotlib():
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=1,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1955.0),
+    )
+
+    with patch.dict(sys.modules, {"matplotlib": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`plot_background_lines(df, ax=None, ...)` "
+                "requires matplotlib to be installed"
+            ),
+        ):
+            plot_background_lines(df, ax=None)
 
 
 @pytest.mark.parametrize(
