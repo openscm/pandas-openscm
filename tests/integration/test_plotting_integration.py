@@ -1023,6 +1023,8 @@ def test_single_line_plotter_wrong_shape_y_vals():
         )
 
 
+# TODO: read through these tests to get rid of unnecessary asserts
+# (i.e. asserts that are effectively testing matplotlib)
 def test_plot_background_lines_hidden_from_legend(
     tmp_path, image_regression, setup_pandas_accessors
 ):
@@ -1097,14 +1099,72 @@ def test_plot_background_lines_default_ax_auto_creation(setup_pandas_accessors):
     plt.close(res.figure)
 
 
-def test_plot_background_lines_label_in_kwargs():
-    with pytest.raises(
-        TypeError,
-        match=re.escape(
-            "'label' should not be supplied as an argument to this function"
-        ),
-    ):
-        plot_background_lines("df", ax=None, label="hi")
+def test_plot_background_lines_single_legend_label(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=8433),
+    )
+    _, ax = plt.subplots()
+    plot_background_lines(
+        df,
+        ax=ax,
+        color="tab:gray",
+        linestyle="--",
+        linewidth=0.8,
+        alpha=0.4,
+        zorder=0.4,
+        label="background",
+    )
+
+    all_labels = [line.get_label() for line in ax.lines]
+    assert all_labels.count("background") == 1
+    assert all_labels.count("_nolegend_") == df.shape[0] - 1
+
+    ax.plot(
+        np.arange(1950.0, 1955.0),
+        np.linspace(0.0, 1.0, 5),
+        label="foreground",
+        color="tab:red",
+    )
+    legend = ax.legend()
+    assert legend is not None
+
+    legend_labels = [text.get_text() for text in legend.get_texts()]
+    assert legend_labels == ["background", "foreground"]
+
+    legend_background = legend.get_lines()[legend_labels.index("background")]
+    assert legend_background.get_color() == "tab:gray"
+    assert legend_background.get_linestyle() == "--"
+    assert legend_background.get_linewidth() == 0.8
+    assert legend_background.get_alpha() == 0.4
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close(ax.figure)
+
+
+def test_plot_background_lines_empty_input_raises_value_error(setup_pandas_accessors):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=8433),
+    ).iloc[:0]
+
+    with pytest.raises(ValueError, match=re.escape("`df` must not be empty")):
+        plot_background_lines(df, label="background")
 
 
 def test_plot_background_lines_no_matplotlib():

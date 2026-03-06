@@ -1631,13 +1631,16 @@ def plot_background_lines(  # noqa: PLR0913
     linewidth: float = 0.5,
     alpha: float = 0.3,
     zorder: float = 1.0,
+    label: str | None = None,
     **pkwargs: Any,
 ) -> matplotlib.axes.Axes:
     """
     Plot each row of a [pd.DataFrame][pandas.DataFrame] as a background line
 
-    The `label` is always forced to `"_nolegend_"` so background lines do not
-    appear in legends created by default handle discovery.
+    If `label` is `None`, labels are forced to `"_nolegend_"` so background
+    lines do not appear in legends created by default handle discovery.
+    If `label` is supplied, one plotted line is assigned that label so
+    that a single legend element is added.
 
     Parameters
     ----------
@@ -1666,6 +1669,9 @@ def plot_background_lines(  # noqa: PLR0913
     zorder
         Z-order to use for all lines.
 
+    label
+        If supplied, the Label to use for the background lines.
+
     **pkwargs
         Passed to [matplotlib.axes.Axes.plot][].
 
@@ -1676,15 +1682,16 @@ def plot_background_lines(  # noqa: PLR0913
 
     Raises
     ------
+    ValueError
+        `df` is empty.
+
     MissingOptionalDependencyError
         `ax` is `None` and [matplotlib][] is not installed.
 
-    TypeError
-        `label` is supplied as an argument ("label" should not be supplied)
     """
-    if pkwargs is not None and "label" in pkwargs:
-        msg = "'label' should not be supplied as an argument to this function"
-        raise TypeError(msg)
+    if df.empty:
+        msg = "`df` is empty"
+        raise ValueError(msg)
 
     if ax is None:
         try:
@@ -1697,7 +1704,7 @@ def plot_background_lines(  # noqa: PLR0913
         _, ax = plt.subplots()
 
     x_vals = df.columns.values
-    ax.plot(
+    plotted_lines = ax.plot(
         x_vals,
         df.values.T,
         # Lines whose labels start with an underscore aren't included in the legend
@@ -1710,6 +1717,9 @@ def plot_background_lines(  # noqa: PLR0913
         zorder=zorder,
         **pkwargs,
     )
+
+    if label is not None:
+        plotted_lines[0].set_label(label)
 
     return ax
 
