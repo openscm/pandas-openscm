@@ -62,6 +62,7 @@ def groupby_except(
     )
 
 
+# TODO: rename to `replace_none_index_level_with`
 def fix_index_name_after_groupby_quantile(
     pandas_obj: P, new_name: str = "quantile", copy: bool = False
 ) -> P:

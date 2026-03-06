@@ -1700,6 +1700,8 @@ def plot_background_lines(  # noqa: PLR0913
     ax.plot(
         x_vals,
         df.values.T,
+        # Lines whose labels start with an underscore aren't included in the legend
+        # matplotlib docs here: https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.legend.html#matplotlib-axes-axes-legend
         label="_nolegend_",
         color=color,
         linestyle=linestyle,
