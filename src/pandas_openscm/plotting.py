@@ -1677,7 +1677,6 @@ def plot_background_lines(  # noqa: PLR0913
 
     legend_subheading
         If supplied, text for a heading legend element to add before `label`.
-        The legend handle for this heading is blank.
 
     **pkwargs
         Passed to [matplotlib.axes.Axes.plot][].

@@ -83,11 +83,39 @@ ax = sns.lineplot(
     y="value",
     hue="scenario",
 )
-# TODO: add option to add a single legend entry for the background lines
+lh, l = ax.get_legend_handles_labels()
 plot_background_lines(
     background,
     ax=ax,
+    legend_subheading="Background",
+    label="background lines label",
 )
+# Hmmm have to think about how to handle seaborn's subtitle elements so they don't disappear.
+ax.legend()
+
+# %%
+len(ax.get_legend().legend_handles)
+
+# %%
+dir(ax.get_legend())
+
+# %%
+len(l)
+
+# %%
+len(lh)
+
+# %%
+ax.legend().legend_handles[0].get_label()
+
+# %%
+dir(ax.legend())
+
+# %%
+l
+
+# %%
+lh
 
 # %% [markdown]
 # You can also make more complicated grid plots quite simply.
@@ -186,12 +214,6 @@ for mosaic_element, ax in axes.items():
         background.loc[ax_loc],
         ax=ax,
     )
-
-# %%
-res_df.index.names
-
-# %%
-name_mapping
 
 # %%
 from functools import partial
@@ -311,3 +333,39 @@ for mosaic_element, ax in axes.items():
     #     ax=ax,
     # )
     # break
+
+# TODO:
+# - line plot with unit labels or variable-unit labels
+#     - prepare for seaborn, including returning mapping
+#     - combine them with simple wrapper
+# - background line plot onto existing seaborn facet grid
+#   (needs to handle row, col and row and col and legend)
+#
+# Think about whether the above is easier or harder with mosaic grids
+# (might actually be easier than fighting seaborn's relplot,
+# although it will require reproducing an annoyingly large fraction of seaborn's API
+# but you can't do a grid with different y-labels for each plot
+# with seaborn, so maybe unavoidable).
+#
+# - we'll want some mosaic_generator function too
+# - building with our own API then makes it much easier to do background lines
+#   and switch to scatter plots
+#
+# Cases to support:
+# - seaborn style line plots on a grid but with custom y labels
+# - background line plots on a grid
+# - seaborn style scatter plots
+#   (more complicated as you need to set x and y more carefully)
+# - background style scatter plots
+#   (more complicated as you need to set x and y more carefully)
+#
+# To do this: it's easy once you know a) the grid
+# b) the palette c) that you have reshaped your data/cut/split in an easily usable way.
+# Then you can just roll over all the created data and make the plots
+# with whatever plotting tool you want.
+# So split into three: setup/data splitting
+# plus plotting plus figure level stuff like legends.
+#
+# Turns out this is a relatively complex problem in the general,
+# so maybe make life easier by just doing the concrete infilling db case
+# without seaborn, then go from there.
