@@ -21,6 +21,13 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.9.1 (2026-03-05)
+
+### 🎉 Improvements
+
+- Loosened the pin of attrs version ([#40](https://github.com/openscm/pandas-openscm/pull/40))
+
+
 ## Pandas-OpenSCM v0.9.0 (2025-08-29)
 
 ### ⚠️ Breaking Changes
