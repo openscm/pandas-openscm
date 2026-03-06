@@ -1632,6 +1632,7 @@ def plot_background_lines(  # noqa: PLR0913
     alpha: float = 0.3,
     zorder: float = 1.0,
     label: str | None = None,
+    legend_subheading: str | None = None,
     **pkwargs: Any,
 ) -> matplotlib.axes.Axes:
     """
@@ -1641,6 +1642,8 @@ def plot_background_lines(  # noqa: PLR0913
     lines do not appear in legends created by default handle discovery.
     If `label` is supplied, one plotted line is assigned that label so
     that a single legend element is added.
+    If `legend_subheading` is supplied, a text-only legend element is added
+    before any legend element created from `label`.
 
     Parameters
     ----------
@@ -1672,6 +1675,10 @@ def plot_background_lines(  # noqa: PLR0913
     label
         If supplied, the Label to use for the background lines.
 
+    legend_subheading
+        If supplied, text for a heading legend element to add before `label`.
+        The legend handle for this heading is blank.
+
     **pkwargs
         Passed to [matplotlib.axes.Axes.plot][].
 
@@ -1702,6 +1709,17 @@ def plot_background_lines(  # noqa: PLR0913
             ) from exc
 
         _, ax = plt.subplots()
+
+    if legend_subheading is not None:
+        # Add a text-only legend entry (blank handle) as a heading.
+        ax.plot(
+            [],
+            [],
+            label=legend_subheading,
+            linestyle="none",
+            marker="",
+            color="none",
+        )
 
     x_vals = df.columns.values
     plotted_lines = ax.plot(

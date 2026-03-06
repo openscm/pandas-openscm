@@ -1154,6 +1154,59 @@ def test_plot_background_lines_single_legend_label(
     plt.close(ax.figure)
 
 
+def test_plot_background_lines_legend_subheading(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=8433),
+    )
+
+    _, ax = plt.subplots()
+    plot_background_lines(
+        df,
+        ax=ax,
+        color="tab:gray",
+        linestyle="--",
+        linewidth=0.8,
+        alpha=0.4,
+        zorder=0.4,
+        label="background",
+        legend_subheading="Background lines",
+    )
+
+    ax.plot(
+        np.arange(1950.0, 1955.0),
+        np.linspace(0.0, 1.0, 5),
+        label="foreground",
+        color="tab:red",
+    )
+    legend = ax.legend()
+    assert legend is not None
+
+    legend_labels = [text.get_text() for text in legend.get_texts()]
+    assert legend_labels == ["Background lines", "background", "foreground"]
+
+    subheading_handle = legend.legend_handles[0]
+    assert isinstance(subheading_handle, matplotlib.lines.Line2D)
+    assert subheading_handle.get_linestyle() == "None"
+    assert subheading_handle.get_marker() == ""
+    assert subheading_handle.get_color() == "none"
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close(ax.figure)
+
+
 def test_plot_background_lines_empty_input_raises_value_error(setup_pandas_accessors):
     df = create_test_df(
         variables=(("variable_1", "K"),),
@@ -1163,7 +1216,7 @@ def test_plot_background_lines_empty_input_raises_value_error(setup_pandas_acces
         rng=np.random.default_rng(seed=8433),
     ).iloc[:0]
 
-    with pytest.raises(ValueError, match=re.escape("`df` must not be empty")):
+    with pytest.raises(ValueError, match=re.escape("`df` is empty")):
         plot_background_lines(df, label="background")
 
 
