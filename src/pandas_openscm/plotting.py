@@ -1620,3 +1620,122 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
         create_legend=create_legend,
         observed=observed,
     )
+
+
+def plot_background_lines(  # noqa: PLR0913
+    df: pd.DataFrame,
+    ax: matplotlib.axes.Axes | None = None,
+    *,
+    color: COLOUR_VALUE_LIKE = "gray",
+    linestyle: DASH_VALUE_LIKE = "-",
+    linewidth: float = 0.5,
+    alpha: float = 0.3,
+    zorder: float = 1.0,
+    label: str | None = None,
+    legend_subheading: str | None = None,
+    **pkwargs: Any,
+) -> matplotlib.axes.Axes:
+    """
+    Plot each row of a [pd.DataFrame][pandas.DataFrame] as a background line
+
+    If `label` is `None`, labels are forced to `"_nolegend_"` so background
+    lines do not appear in legends created by default handle discovery.
+    If `label` is supplied, one plotted line is assigned that label so
+    that a single legend element is added.
+    If `legend_subheading` is supplied, a text-only legend element is added
+    before any legend element created from `label`.
+
+    Parameters
+    ----------
+    df
+        [pd.DataFrame][pandas.DataFrame] to plot.
+
+        One line is plotted for each row in `df`.
+
+    ax
+        Axes on which to plot.
+
+        If not supplied, a new axes is created.
+
+    color
+        Colour to use for all lines.
+
+    linestyle
+        Linestyle to use for all lines.
+
+    linewidth
+        Linewidth to use for all lines.
+
+    alpha
+        Alpha to use for all lines.
+
+    zorder
+        Z-order to use for all lines.
+
+    label
+        If supplied, the Label to use for the background lines.
+
+    legend_subheading
+        If supplied, text for a heading legend element to add before `label`.
+
+    **pkwargs
+        Passed to [matplotlib.axes.Axes.plot][].
+
+    Returns
+    -------
+    :
+        Axes on which the data was plotted
+
+    Raises
+    ------
+    ValueError
+        `df` is empty.
+
+    MissingOptionalDependencyError
+        `ax` is `None` and [matplotlib][] is not installed.
+
+    """
+    if df.empty:
+        msg = "`df` is empty"
+        raise ValueError(msg)
+
+    if ax is None:
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(  # noqa: TRY003
+                "plot_background_lines(df, ax=None, ...)", requirement="matplotlib"
+            ) from exc
+
+        _, ax = plt.subplots()
+
+    if legend_subheading is not None:
+        # Add a text-only legend entry (blank handle) as a heading.
+        ax.plot(
+            [],
+            [],
+            label=legend_subheading,
+            linestyle="none",
+            marker="",
+            color="none",
+        )
+
+    x_vals = df.columns.values
+    plotted_lines = ax.plot(
+        x_vals,
+        df.values.T,
+        # Lines whose labels start with an underscore aren't included in the legend
+        # matplotlib docs here: https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.legend.html#matplotlib-axes-axes-legend
+        label="_nolegend_",
+        color=color,
+        linestyle=linestyle,
+        linewidth=linewidth,
+        alpha=alpha,
+        zorder=zorder,
+        **pkwargs,
+    )
+
+    if label is not None:
+        plotted_lines[0].set_label(label)
+
+    return ax

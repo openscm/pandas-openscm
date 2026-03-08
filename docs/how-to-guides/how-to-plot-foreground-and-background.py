@@ -1,0 +1,383 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.17.2
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
+# %% [markdown]
+# # How to plot foreground and background
+#
+# In this notebook we show how to plot lines in the foreground
+# with a number of other lines in the background.
+
+# %% [markdown]
+# ## Imports
+
+# %%
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas_indexing as pix
+import seaborn as sns
+
+from pandas_openscm import register_pandas_accessors
+from pandas_openscm.testing import create_test_df
+
+# %% [markdown]
+# ## Setup
+
+# %%
+# Register the openscm accessor for pandas objects
+# (we don't do this on import
+# as we have had bad experiences with implicit behaviour like that)
+register_pandas_accessors()
+
+# %% [markdown]
+# ## Basics
+#
+# Imagine we start with some data for different variables.
+# For example, input emissions for simple climate models.
+
+# %%
+df_basic = create_test_df(
+    variables=(("CO2", "Gt C / yr"), ("CH4", "Mt CH4 / yr"), ("SOx", "Mt S / yr")),
+    n_scenarios=100,
+    n_runs=1,
+    timepoints=np.arange(2000.0, 2030.0 + 1.0),
+).reset_index("run", drop=True)
+df_basic.columns.name = "time"
+df_basic
+
+# %% [markdown]
+# ## Line plot
+#
+# From this data, we can split it into two groups.
+# Then we can plot one in the foreground and one in the background.
+# How you plot in the foreground is up to you
+# (below we use seaborn).
+# The trick here is really getting the background lines
+# (and even that, it turns out is not that complicated
+# once you know some tricks with matplotlib,
+# see the source code for details).
+
+# %%
+# TODO: switch to accessor
+from pandas_openscm.plotting import plot_background_lines
+
+# %%
+loc = pix.ismatch(scenario="*4", variable="CO2")
+foreground = df_basic.loc[loc]
+background = df_basic.loc[~loc]
+
+ax = sns.lineplot(
+    data=foreground.openscm.to_long_data(),
+    x="time",
+    y="value",
+    hue="scenario",
+)
+# lh, l = ax.get_legend_handles_labels()
+# plot_background_lines(
+#     background,
+#     ax=ax,
+#     legend_subheading="Background",
+#     label="background lines label",
+# )
+# # Hmmm have to think about how to handle seaborn's subtitle elements so they don't disappear.
+# ax.legend()
+
+# %%
+ax.get_legend().get_title()
+
+# %%
+ax.legend_.get_title()
+
+# %%
+ax.legend_.properties()
+
+# %%
+len(ax.legend_.legend_handles)
+
+# %%
+len(ax.get_legend().legend_handles)
+
+# %%
+dir(ax.get_legend())
+
+# %%
+len(l)
+
+# %%
+len(lh)
+
+# %%
+ax.legend().legend_handles[0].get_label()
+
+# %%
+dir(ax.legend())
+
+# %%
+l
+
+# %%
+lh
+
+# %% [markdown]
+# You can also make more complicated grid plots quite simply.
+
+# %%
+from functools import partial
+
+loc = pix.ismatch(scenario="*5")
+foreground = df_basic.loc[loc]
+background = df_basic.loc[~loc]
+mosaic = [
+    ["CO2", "CH4"],
+    ["CO2", "SOx"],
+]
+mosaic_index_level = "variable"
+figsize = (8, 4)
+hue = "scenario"
+plot_legend = lambda v: v == "SOx"
+position_legend = partial(
+    sns.move_legend, loc="center left", bbox_to_anchor=(1.05, 1.0)
+)
+x_label = "year"
+
+# TODO: a wrapper so that you get y-labels
+# from a column(s) of choice
+# (potentially passed through some function)
+# rather than the seaborn way
+# where the y-label is just 'value'
+# the whole time and the variation is shown in the axis titles
+# (which isn't really how science does things).
+import pandas as pd
+
+
+def prepare_for_variable_unit_level_plot(
+    indf: pd.DataFrame,
+) -> tuple[pd.DataFrame, str]:
+    res_df = (
+        indf.openscm.update_index_levels_from_other(
+            {"variable-unit": (("variable", "unit"), lambda vu: f"{vu[0]} [{vu[1]}]")}
+        )
+        .stack()
+        .unstack("variable-unit")
+    )
+    to_plot = res_df.columns[0]
+
+    res_df = res_df.reset_index()
+    return res_df, to_plot
+
+
+prepare_for_plot = prepare_for_variable_unit_level_plot
+# prepare_for_plot = None
+
+# TODO: put something like this in a wrapper called
+# `plot_fore_and_background_lines`.
+# Generate axes if not supplied
+_, axes = plt.subplot_mosaic(
+    mosaic,
+    figsize=figsize,
+)
+
+# Use default colour cycler if not supplied
+default_colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+palette = {
+    scenario: default_colours[i]
+    for i, scenario in enumerate(foreground.pix.unique(hue))
+}
+for mosaic_element, ax in axes.items():
+    ax_loc = pix.isin(**{mosaic_index_level: mosaic_element})
+    tmp = foreground.loc[ax_loc].rename_axis(columns=x_label)
+
+    if prepare_for_plot is None:
+        df_to_plot = tmp.stack().unstack(mosaic_index_level).reset_index()
+        to_plot = mosaic_element
+
+    else:
+        df_to_plot, to_plot = prepare_for_plot(tmp)
+        if to_plot not in df_to_plot.columns:
+            msg = f"{to_plot=} is not in {df_to_plot.columns=}, which was generated by {prepare_for_plot=}"
+            raise AssertionError(msg)
+
+    legend = plot_legend(mosaic_element)
+    sns.lineplot(
+        data=df_to_plot,
+        x=x_label,
+        y=to_plot,
+        hue=hue,
+        palette=palette,
+        ax=ax,
+        legend=legend,
+    )
+
+    if legend:
+        position_legend(ax)
+
+    plot_background_lines(
+        background.loc[ax_loc],
+        ax=ax,
+    )
+
+# %%
+from functools import partial
+
+loc = pix.ismatch(scenario="*5")
+foreground = df_basic.loc[loc, [2025]]
+background = df_basic.loc[~loc, [2025]]
+mosaic = [
+    ["CO2-CH4", "CO2-SOx"],
+]
+mosaic_separator = "-"
+mosaic_index_level = "variable"
+figsize = (8, 4)
+hue = "scenario"
+plot_legend = lambda p: p == "CO2-SOx"
+position_legend = partial(
+    sns.move_legend, loc="center left", bbox_to_anchor=(1.05, 0.5)
+)
+
+# TODO: a wrapper so that you get y-labels
+# from a column(s) of choice
+# (potentially passed through some function)
+# rather than the seaborn way
+# where the y-label is just 'value'
+# the whole time and the variation is shown in the axis titles
+# (which isn't really how science does things).
+from typing import Any
+
+import pandas as pd
+
+
+def prepare_for_plot(indf: pd.DataFrame) -> tuple[pd.DataFrame, dict[Any, Any]]:
+    res_df = indf.openscm.update_index_levels_from_other(
+        {"variable-unit": (("variable", "unit"), lambda vu: f"{vu[0]} [{vu[1]}]")}
+    )
+    mosaic_element_plot_level_map = (
+        res_df.index.droplevel(
+            res_df.index.names.difference([mosaic_index_level, "variable-unit"])
+        )
+        .drop_duplicates()
+        .to_frame()["variable-unit"]
+        .reset_index("variable-unit", drop=True)
+        .to_dict()
+    )
+
+    res_df = (
+        res_df.stack()
+        .reset_index(["variable", "unit"], drop=True)
+        .unstack("variable-unit")
+        .reset_index()
+    )
+
+    return res_df, mosaic_element_plot_level_map
+
+
+prepare_for_plot = prepare_for_plot
+# prepare_for_plot = None
+
+# TODO: put something like this in a wrapper called
+# `plot_fore_and_background_scatter`.
+# Generate axes if not supplied
+_, axes = plt.subplot_mosaic(
+    mosaic,
+    figsize=figsize,
+)
+
+# Use default colour cycler if not supplied
+default_colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+palette = {
+    scenario: default_colours[i]
+    for i, scenario in enumerate(foreground.pix.unique(hue))
+}
+if prepare_for_plot is None:
+    df_to_plot = tmp.stack().unstack(mosaic_index_level).reset_index()
+    to_plot = mosaic_element
+
+else:
+    df_to_plot, name_mapping = prepare_for_plot(foreground)
+    missing = [v for v in name_mapping.values() if v not in df_to_plot.columns]
+    if missing:
+        msg = f"Mapped values {missing} are not in {df_to_plot.columns=}, which was generated by {prepare_for_plot=}"
+        raise AssertionError(msg)
+
+    df_to_plot_background, _ = prepare_for_plot(background)
+
+for mosaic_element, ax in axes.items():
+    x, y = mosaic_element.split(mosaic_separator)
+
+    legend = plot_legend(mosaic_element)
+
+    sns.scatterplot(
+        data=df_to_plot,
+        x=name_mapping[x],
+        y=name_mapping[y],
+        hue=hue,
+        palette=palette,
+        ax=ax,
+        legend=legend,
+        zorder=1.5,
+        s=50,
+    )
+
+    if legend:
+        position_legend(ax)
+
+    ax.scatter(
+        df_to_plot_background[name_mapping[x]],
+        df_to_plot_background[name_mapping[y]],
+        label="_no_legend_",
+        zorder=1,
+        color="tab:gray",
+        alpha=0.3,
+        s=15,
+    )
+    # plot_background_lines(
+    #     background.loc[ax_loc],
+    #     ax=ax,
+    # )
+    # break
+
+# TODO:
+# - line plot with unit labels or variable-unit labels
+#     - prepare for seaborn, including returning mapping
+#     - combine them with simple wrapper
+# - background line plot onto existing seaborn facet grid
+#   (needs to handle row, col and row and col and legend)
+#
+# Think about whether the above is easier or harder with mosaic grids
+# (might actually be easier than fighting seaborn's relplot,
+# although it will require reproducing an annoyingly large fraction of seaborn's API
+# but you can't do a grid with different y-labels for each plot
+# with seaborn, so maybe unavoidable).
+#
+# - we'll want some mosaic_generator function too
+# - building with our own API then makes it much easier to do background lines
+#   and switch to scatter plots
+#
+# Cases to support:
+# - seaborn style line plots on a grid but with custom y labels
+# - background line plots on a grid
+# - seaborn style scatter plots
+#   (more complicated as you need to set x and y more carefully)
+# - background style scatter plots
+#   (more complicated as you need to set x and y more carefully)
+#
+# To do this: it's easy once you know a) the grid
+# b) the palette c) that you have reshaped your data/cut/split in an easily usable way.
+# Then you can just roll over all the created data and make the plots
+# with whatever plotting tool you want.
+# So split into three: setup/data splitting
+# plus plotting plus figure level stuff like legends.
+#
+# Turns out this is a relatively complex problem in the general,
+# so maybe make life easier by just doing the concrete infilling db case
+# without seaborn, then go from there.

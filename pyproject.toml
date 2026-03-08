@@ -52,6 +52,7 @@ db-full = [
 ]
 plots = [
     "matplotlib>=3.7.1",
+    "seaborn>=0.13.2",
 ]
 progress = [
     "tqdm>=4.0.0",
@@ -116,6 +117,7 @@ docs = [
     "openscm-units>=0.6.3",
     "pandas-indexing>=0.6.2",
     "pint>=0.24.4",
+    "seaborn>=0.13.2",
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.

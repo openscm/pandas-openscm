@@ -25,6 +25,8 @@ from pandas_openscm.plotting import (
     get_quantiles,
     get_values_line,
     get_values_plume,
+    plot_background_lines,
+    plot_background_scatter,
     plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
 )
@@ -1019,3 +1021,362 @@ def test_single_line_plotter_wrong_shape_y_vals():
             color="blue",
             alpha=0.3,
         )
+
+
+# TODO: read through these tests to get rid of unnecessary asserts
+# (i.e. asserts that are effectively testing matplotlib)
+def test_plot_background_lines_hidden_from_legend(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1960.0),
+        rng=np.random.default_rng(seed=65123),
+    )
+
+    fig, ax = plt.subplots()
+    res = plot_background_lines(
+        df,
+        ax=ax,
+        color="tab:gray",
+        linestyle="--",
+        linewidth=0.8,
+        alpha=0.4,
+        zorder=0.4,
+    )
+    assert res is ax
+    assert len(ax.lines) == df.shape[0]
+    for line in ax.lines:
+        assert line.get_label() == "_nolegend_"
+        assert line.get_color() == "tab:gray"
+        assert line.get_linestyle() == "--"
+        assert line.get_linewidth() == 0.8
+        assert line.get_alpha() == 0.4
+        assert line.get_zorder() == 0.4
+
+    ax.plot(
+        np.arange(1950.0, 1960.0),
+        np.linspace(0.0, 1.0, 10),
+        label="foreground",
+        color="tab:red",
+        linewidth=2.0,
+        zorder=1.2,
+    )
+    ax.legend(loc="center left", bbox_to_anchor=(1.05, 0.5))
+    legend = ax.get_legend()
+    assert legend is not None
+
+    assert [t.get_text() for t in legend.get_texts()] == ["foreground"]
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+def test_plot_background_lines_default_ax_auto_creation(setup_pandas_accessors):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=1162),
+    )
+
+    res = plot_background_lines(df)
+
+    assert isinstance(res, matplotlib.axes.Axes)
+    assert len(res.lines) == df.shape[0]
+    assert all(line.get_label() == "_nolegend_" for line in res.lines)
+
+    plt.close(res.figure)
+
+
+def test_plot_background_lines_single_legend_label(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=8433),
+    )
+    _, ax = plt.subplots()
+    plot_background_lines(
+        df,
+        ax=ax,
+        color="tab:gray",
+        linestyle="--",
+        linewidth=0.8,
+        alpha=0.4,
+        zorder=0.4,
+        label="background",
+    )
+
+    all_labels = [line.get_label() for line in ax.lines]
+    assert all_labels.count("background") == 1
+    assert all_labels.count("_nolegend_") == df.shape[0] - 1
+
+    ax.plot(
+        np.arange(1950.0, 1955.0),
+        np.linspace(0.0, 1.0, 5),
+        label="foreground",
+        color="tab:red",
+    )
+    legend = ax.legend()
+    assert legend is not None
+
+    legend_labels = [text.get_text() for text in legend.get_texts()]
+    assert legend_labels == ["background", "foreground"]
+
+    legend_background = legend.get_lines()[legend_labels.index("background")]
+    assert legend_background.get_color() == "tab:gray"
+    assert legend_background.get_linestyle() == "--"
+    assert legend_background.get_linewidth() == 0.8
+    assert legend_background.get_alpha() == 0.4
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close(ax.figure)
+
+
+def test_plot_background_lines_legend_subheading(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=8433),
+    )
+
+    _, ax = plt.subplots()
+    plot_background_lines(
+        df,
+        ax=ax,
+        color="tab:gray",
+        linestyle="--",
+        linewidth=0.8,
+        alpha=0.4,
+        zorder=0.4,
+        label="background",
+        legend_subheading="Background lines",
+    )
+
+    ax.plot(
+        np.arange(1950.0, 1955.0),
+        np.linspace(0.0, 1.0, 5),
+        label="foreground",
+        color="tab:red",
+    )
+    legend = ax.legend()
+    assert legend is not None
+
+    legend_labels = [text.get_text() for text in legend.get_texts()]
+    assert legend_labels == ["Background lines", "background", "foreground"]
+
+    subheading_handle = legend.legend_handles[0]
+    assert isinstance(subheading_handle, matplotlib.lines.Line2D)
+    assert subheading_handle.get_linestyle() == "None"
+    assert subheading_handle.get_marker() == ""
+    assert subheading_handle.get_color() == "none"
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close(ax.figure)
+
+
+def test_plot_background_lines_empty_input_raises_value_error(setup_pandas_accessors):
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=8433),
+    ).iloc[:0]
+
+    with pytest.raises(ValueError, match=re.escape("`df` is empty")):
+        plot_background_lines(df, label="background")
+
+
+def test_plot_background_lines_no_matplotlib():
+    df = create_test_df(
+        variables=(("variable_1", "K"),),
+        n_scenarios=1,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1955.0),
+    )
+
+    with patch.dict(sys.modules, {"matplotlib": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`plot_background_lines(df, ax=None, ...)` "
+                "requires matplotlib to be installed"
+            ),
+        ):
+            plot_background_lines(df, ax=None)
+
+
+def test_plot_background_scatter_hidden_from_legend(
+    tmp_path, image_regression, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=3,
+        timepoints=np.arange(1950.0, 1960.0),
+        rng=np.random.default_rng(seed=65123),
+    )
+
+    year = 1955.0
+    _, ax = plt.subplots()
+    res = plot_background_scatter(
+        df,
+        year=year,
+        index_col="variable",
+        x_value="variable_1",
+        y_value="variable_2",
+        ax=ax,
+        color="tab:gray",
+        marker="x",
+        s=30.0,
+        alpha=0.4,
+        zorder=0.4,
+    )
+    assert res is ax
+    assert len(ax.collections) == 1
+    scatter = ax.collections[0]
+    assert scatter.get_label() == "_nolegend_"
+    assert scatter.get_alpha() == 0.4
+    assert scatter.get_zorder() == 0.4
+
+    offsets = scatter.get_offsets()
+    assert offsets.shape == (6, 2)
+
+    x_exp = (
+        df.loc[df.index.get_level_values("variable") == "variable_1", year]
+        .sort_index()
+        .values
+    )
+    y_exp = (
+        df.loc[df.index.get_level_values("variable") == "variable_2", year]
+        .sort_index()
+        .values
+    )
+
+    np.testing.assert_allclose(np.sort(offsets[:, 0]), np.sort(x_exp))
+    np.testing.assert_allclose(np.sort(offsets[:, 1]), np.sort(y_exp))
+
+    ax.scatter(
+        np.arange(-5, 5) + 10,
+        np.arange(7, 17),
+        label="foreground",
+        color="tab:red",
+        linewidth=2.0,
+        zorder=1.2,
+    )
+    ax.legend(loc="center left", bbox_to_anchor=(1.05, 0.5))
+    legend = ax.get_legend()
+    assert legend is not None
+
+    assert [t.get_text() for t in legend.get_texts()] == ["foreground"]
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(legend,),
+        bbox_inches="tight",
+    )
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+def test_plot_background_scatter_default_ax_auto_creation(setup_pandas_accessors):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=2,
+        n_runs=2,
+        timepoints=np.arange(1950.0, 1955.0),
+        rng=np.random.default_rng(seed=1162),
+    )
+
+    res = plot_background_scatter(
+        df,
+        year=1952.0,
+        index_col="variable",
+        x_value="variable_1",
+        y_value="variable_2",
+    )
+
+    assert isinstance(res, matplotlib.axes.Axes)
+    assert len(res.collections) == 1
+    assert res.collections[0].get_label() == "_nolegend_"
+
+    plt.close(res.figure)
+
+
+def test_plot_background_scatter_label_in_kwargs():
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "'label' should not be supplied as an argument to this function"
+        ),
+    ):
+        plot_background_scatter(
+            "df",
+            year=2020.0,
+            index_col="variable",
+            x_value="x",
+            y_value="y",
+            ax=None,
+            label="hi",
+        )
+
+
+def test_plot_background_scatter_no_matplotlib():
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=1,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1955.0),
+    )
+
+    with patch.dict(sys.modules, {"matplotlib": None}):
+        with pytest.raises(
+            MissingOptionalDependencyError,
+            match=re.escape(
+                "`plot_background_scatter(df, ..., ax=None, ...)` "
+                "requires matplotlib to be installed"
+            ),
+        ):
+            plot_background_scatter(
+                df,
+                year=1952.0,
+                index_col="variable",
+                x_value="variable_1",
+                y_value="variable_2",
+                ax=None,
+            )
