@@ -750,9 +750,6 @@ class SinglePlumePlotter:
     )
     """y-values to plot as the upper bound of the plume"""
 
-    quantiles: tuple[float, float]
-    """Quantiles that this plume represents"""
-
     color: COLOUR_VALUE_LIKE
     """Colour to use when plotting the plume"""
 
@@ -762,27 +759,7 @@ class SinglePlumePlotter:
     pkwargs: dict[str, Any] | None = None
     """Other arguments to pass to [matplotlib.axes.Axes.fill_between][] when plotting"""
 
-    def get_label(self, quantile_legend_round: int = 2) -> str:
-        """
-        Get the label for the plume
-
-        Parameters
-        ----------
-        quantile_legend_round
-            Rounding to apply to the quantiles when creating the label
-
-        Returns
-        -------
-        :
-            Label for the plume
-        """
-        label = " - ".join(
-            [str(np.round(qv, quantile_legend_round)) for qv in self.quantiles]
-        )
-
-        return label
-
-    def plot(self, ax: matplotlib.axes.Axes, quantile_legend_round: int = 2) -> None:
+    def plot(self, ax: matplotlib.axes.Axes) -> matplotlib.axes.Axes:
         """
         Plot
 
@@ -790,9 +767,6 @@ class SinglePlumePlotter:
         ----------
         ax
             Axes on which to plot
-
-        quantile_legend_round
-            Rounding to apply to the quantiles when creating the label
         """
         pkwargs = self.pkwargs if self.pkwargs is not None else {}
 
@@ -800,16 +774,59 @@ class SinglePlumePlotter:
             self.x_vals,
             self.y_vals_lower,
             self.y_vals_upper,
-            label=self.get_label(quantile_legend_round=quantile_legend_round),
             facecolor=self.color,
             alpha=self.alpha,
             **pkwargs,
         )
 
+        return ax
+
+
+@define
+class QuantilePlumePlotter:
+    """Object which plots single plumes representing a range between two quantiles"""
+
+    quantiles: tuple[float, float]
+    """Quantiles that this plume represents"""
+
+    single_plume_plotter: SinglePlumePlotter
+    """Plotter of the plume"""
+
+    def get_label_quantile(self, round: int = 2) -> str:
+        """
+        Get the label for the plume including quantile information
+
+        Parameters
+        ----------
+        round
+            Rounding to apply to the quantiles when creating the label
+
+        Returns
+        -------
+        :
+            Label for the plume
+        """
+        label = " - ".join([str(np.round(qv, round)) for qv in self.quantiles])
+
+        return label
+
+    def plot(self, ax: matplotlib.axes.Axes) -> matplotlib.axes.Axes:
+        """
+        Plot
+
+        Parameters
+        ----------
+        ax
+            Axes on which to plot
+        """
+        return self.single_plume_plotter.plot(ax=ax)
+
 
 @define
 class PlumePlotter:
-    """Object which is able to plot plume plots"""
+    """
+    Object which is able to plot plume plots
+    """
 
     lines: Iterable[SingleLinePlotter]
     """Lines to plot"""
@@ -878,10 +895,11 @@ class PlumePlotter:
         quantiles_plumes
             Quantiles to plot in each plume.
 
-            If the first element of each tuple is a tuple,
-            a [SinglePlumePlotter][(m).] object will be created.
-            Otherwise, if the first element is a plain float,
+            If the first sub-element of each element is a plain float,
             a [SingleLinePlotter][(m).] object will be created.
+            Otherwise, a [SinglePlumePlotter][(m).] object will be created
+            on the assumption that the first sub-element is itself a tuple
+            with two elements (the quantile range to show for this plume).
 
         quantile_var
             Variable/column in the multi-index which stores information
@@ -1054,18 +1072,20 @@ class PlumePlotter:
                         warn_about_missing_quantile(exc=exc)
                         continue
 
-                    plume_plotter = SinglePlumePlotter(
-                        *get_values_plume(
-                            pdf,
-                            quantiles=q,
-                            quantile_var=quantile_var,
-                            unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
-                            unit_var=unit_var,
-                            time_units=time_units,
-                        ),
+                    plume_plotter = QuantilePlumePlotter(
                         quantiles=q,
-                        color=colour,
-                        alpha=alpha,
+                        single_plume_plotter=SinglePlumePlotter(
+                            *get_values_plume(
+                                pdf,
+                                quantiles=q,
+                                quantile_var=quantile_var,
+                                unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
+                                unit_var=unit_var,
+                                time_units=time_units,
+                            ),
+                            color=colour,
+                            alpha=alpha,
+                        ),
                     )
                     plumes.append(plume_plotter)
 
@@ -1164,13 +1184,15 @@ class PlumePlotter:
             generated_quantile_items.append(pid_line)
 
         for plume in self.plumes:
-            label = plume.get_label(quantile_legend_round=quantile_legend_round)
-            pid_plume = (plume.quantiles, plume.alpha, label)
+            label = plume.get_label_quantile(round=quantile_legend_round)
+            pid_plume = (plume.quantiles, plume.single_plume_plotter.alpha, label)
             if pid_plume in generated_quantile_items:
                 continue
 
             quantile_items.append(
-                mpatches.Patch(color="k", alpha=plume.alpha, label=label)
+                mpatches.Patch(
+                    color="k", alpha=plume.single_plume_plotter.alpha, label=label
+                )
             )
             generated_quantile_items.append(pid_plume)
 
