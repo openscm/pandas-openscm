@@ -474,6 +474,8 @@ def get_default_colour_cycler() -> Iterator[COLOUR_VALUE_LIKE]:
 
 
 def fill_out_palette(
+    # TODO: rename 'hue' to 'color' throughout
+    # TODO: find TODOs in other 'fore-background-plot-*' branches
     hue_values: Iterable[T],
     palette_user_supplied: PALETTE_LIKE[T] | None,
     warn_on_value_missing: bool,
@@ -846,10 +848,10 @@ class PlumePlotter:
     """
 
     lines: Iterable[QuantileLinePlotter]
-    """Lines to plot"""
+    """Line plotters"""
 
     plumes: Iterable[QuantilePlumePlotter]
-    """Lines to plot"""
+    """Plume plotters"""
 
     hue_var_label: str
     """Label for the hue variable in the legend"""
@@ -1001,14 +1003,14 @@ class PlumePlotter:
         :
              Initialised instance
         """
+        if quantile_var_label is None:
+            quantile_var_label = quantile_var.capitalize()
+
         if hue_var_label is None:
             hue_var_label = hue_var.capitalize()
 
         if style_var is not None and style_var_label is None:
             style_var_label = style_var.capitalize()
-
-        if quantile_var_label is None:
-            quantile_var_label = quantile_var.capitalize()
 
         infer_y_label = (
             (not unit_aware)
@@ -1667,3 +1669,372 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
         create_legend=create_legend,
         observed=observed,
     )
+
+
+@define
+class SeabornLineLikePlotter:
+    """
+    Seaborn-like plotter for line plots
+
+    This is really just a data holder,
+    which helps split the logic for preparing data
+    from the logic of actually making plots.
+
+    It's 'seaborn-like' because it is based on similar ideas to
+    [seaborn](https://seaborn.pydata.org/),
+    but has been adjusted to suit the style of data we have.
+    If you're looking at this, you may also want to consider
+    raw seaborn (or even matplotlib), because those libraries
+    provide much more flexibility than this API.
+    """
+
+    lines: Iterable[SingleLinePlotter]
+    """Line plotters"""
+
+    color_var_label: str
+    """Label for the variable by which lines are coloured in the legend"""
+
+    linestyle_var_label: str | None
+    """Label for the variable by which lines are styled in the legend (if not `None`)"""
+
+    palette: PALETTE_LIKE[Any]
+    """
+    Palette used for different values of the variable by which lines are coloured
+    """
+
+    dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None
+    """
+    Dashes used for different values of the variable by which lines are styled
+    """
+
+    x_label: str | None
+    """Label to apply to the x-axis (if `None`, no label is applied)"""
+
+    y_label: str | None
+    """Label to apply to the y-axis (if `None`, no label is applied)"""
+
+    @classmethod
+    def from_df(  # noqa: PLR0912, PLR0913 # object creation code is the worst
+        cls,
+        df: pd.DataFrame,
+        *,
+        color_var: str = "scenario",
+        color_var_label: str | None = None,
+        palette: PALETTE_LIKE[Any] | None = None,
+        warn_on_palette_value_missing: bool = True,
+        linestyle_var: str | None = None,
+        linestyle_var_label: str | None = None,
+        dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
+        warn_on_dashes_value_missing: bool = True,
+        linewidth: float = 3.0,
+        alpha: float = 0.8,
+        unit_var: str | None = "unit",
+        unit_aware: bool | pint.facets.PlainRegistry = False,
+        time_units: str | None = None,
+        x_label: str | None = "time",
+        y_label: str | bool | None = True,
+        warn_infer_y_label_with_multi_unit: bool = True,
+        observed: bool = True,
+    ) -> SeabornLineLikePlotter:
+        """
+        Initialise from a [pd.DataFrame][pandas.DataFrame]
+
+        Parameters
+        ----------
+        df
+            [pd.DataFrame][pandas.DataFrame] from which to initialise
+
+        color_var
+            Variable to use for grouping data into different colour groups
+
+        color_var_label
+            Label to use as the header for the colour section in the legend
+
+        palette
+            Colour to use for the different groups in the data.
+
+            If any groups are not included in `palette`,
+            they are auto-filled.
+
+        warn_on_palette_value_missing
+            Should a warning be emitted if there are values missing from `palette`?
+
+        linestyle_var
+            Variable to use for grouping data into different linestyle groups
+
+        linestyle_var_label
+            Label to use as the header for the style section in the legend
+
+        dashes
+            Dash/linestyle to use for the different groups in the data.
+
+            If any groups are not included in `dashes`,
+            they are auto-filled.
+
+        warn_on_dashes_value_missing
+            Should a warning be emitted if there are values missing from `dashes`?
+
+        linewidth
+            Width to use for plotting lines.
+
+        alpha
+            Alpha to use when plotting the line
+
+        unit_var
+            Variable/column in the multi-index which stores information
+            about the unit of each timeseries.
+
+        unit_aware
+            Should the values be extracted in a unit-aware way?
+
+            If `True`, we use the default application registry
+            (retrieved with [pint.get_application_registry][]).
+            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+        time_units
+            Units of the time axis of the data.
+
+            These are required if `unit_aware` is not `False`.
+
+        x_label
+            Label to apply to the x-axis.
+
+            If `None`, no label will be applied.
+
+        y_label
+            Label to apply to the y-axis.
+
+            If `True`, we will try and infer the y-label based on the data's units.
+
+            If `None`, no label will be applied.
+
+        warn_infer_y_label_with_multi_unit
+            Should a warning be raised if we try to infer the y-unit
+            but the data has more than one unit?
+
+        observed
+            Passed to [pd.DataFrame.groupby][pandas.DataFrame.groupby].
+
+        Returns
+        -------
+        :
+             Initialised instance
+        """
+        # TODO: refactor out function
+        # `get_(
+        #      color_var_label,
+        #      linestyle_var_label,
+        #      unit_aware,
+        #      y_label,
+        #      unit_var,
+        #      color_var,
+        #      palette,
+        #      warn_on_palette_value_missing,
+        #      linestyle_var,
+        #      dashes,
+        #      warn_on_dashes_value_missing,
+        # )`
+        if color_var_label is None:
+            color_var_label = color_var.capitalize()
+
+        if linestyle_var is not None and linestyle_var_label is None:
+            linestyle_var_label = linestyle_var.capitalize()
+
+        infer_y_label = (
+            (not unit_aware)
+            and isinstance(y_label, bool)
+            and y_label
+            and unit_var is not None
+        )
+
+        palette_complete = fill_out_palette(
+            df.index.get_level_values(color_var).unique(),
+            palette_user_supplied=palette,
+            warn_on_value_missing=warn_on_palette_value_missing,
+        )
+
+        if linestyle_var is not None:
+            group_cols = [color_var, linestyle_var]
+            dashes_complete = fill_out_dashes(
+                df.index.get_level_values(linestyle_var).unique(),
+                dashes_user_supplied=dashes,
+                warn_on_value_missing=warn_on_dashes_value_missing,
+            )
+
+        else:
+            group_cols = [color_var]
+            dashes_complete = None
+
+        lines: list[QuantileLinePlotter] = []
+        values_units: list[str] = []
+        for info, gdf in df.groupby(group_cols, observed=observed):
+            info_d = {k: v for k, v in zip(group_cols, info)}
+
+            colour = palette_complete[info_d[color_var]]
+
+            if linestyle_var is not None:
+                if dashes_complete is None:  # pragma: no cover
+                    # should be impossible to hit this
+                    raise AssertionError
+                linestyle = dashes_complete[info_d[linestyle_var]]
+
+            else:
+                linestyle = "-"
+
+            line_plotter = SingleLinePlotter(
+                *get_values_line(
+                    gdf,
+                    unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
+                    unit_var=unit_var,
+                    time_units=time_units,
+                ),
+                linewidth=linewidth,
+                linestyle=linestyle,
+                color=colour,
+                alpha=alpha,
+            )
+            lines.append(line_plotter)
+
+            if infer_y_label and unit_var in gdf.index.names:
+                values_units.extend(gdf.index.get_level_values(unit_var).unique())
+
+        if unit_aware and isinstance(y_label, bool) and y_label:
+            # Let unit-aware plotting do its thing
+            y_label = None
+
+        elif unit_var is None:
+            y_label = None
+
+        elif infer_y_label:
+            if unit_var not in df.index.names:
+                warnings.warn(
+                    "Not auto-setting the y_label "
+                    f"because {unit_var=} is not in {df.index.names=}"
+                )
+                y_label = None
+
+            else:
+                # Try to infer the y-label
+                units_s = set(values_units)
+                if len(units_s) == 1:
+                    y_label = values_units[0]
+                else:
+                    # More than one unit plotted, don't infer a y-label
+                    if warn_infer_y_label_with_multi_unit:
+                        warnings.warn(
+                            "Not auto-setting the y_label "
+                            "because the plotted data has more than one unit: "
+                            f"data units {units_s}"
+                        )
+
+                    y_label = None
+
+        if isinstance(y_label, bool):
+            msg = "y_label should have been converted before getting here"
+            raise TypeError(msg)
+
+        res = SeabornLineLikePlotter(
+            lines=lines,
+            color_var_label=color_var_label,
+            linestyle_var_label=linestyle_var_label,
+            palette=palette_complete,
+            dashes=dashes_complete,
+            x_label=x_label,
+            y_label=y_label,
+        )
+
+        return res
+
+    def generate_legend_handles(self) -> list[matplotlib.artist.Artist]:
+        """
+        Generate handles for the legend
+
+        Returns
+        -------
+        :
+            Generated handles for the legend
+        """
+        try:
+            import matplotlib.lines as mlines
+            import matplotlib.patches as mpatches
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(
+                "generate_legend_handles", requirement="matplotlib"
+            ) from exc
+
+        color_items = [
+            mlines.Line2D([], [], color=color, label=color_value)
+            for color_value, color in self.palette.items()
+        ]
+        legend_items = [
+            mpatches.Patch(alpha=0, label=self.color_var_label),
+            *color_items,
+        ]
+        if self.dashes is not None:
+            style_items = [
+                mlines.Line2D(
+                    [],
+                    [],
+                    linestyle=linestyle,
+                    label=style_value,
+                    color="gray",
+                )
+                for style_value, linestyle in self.dashes.items()
+            ]
+            legend_items.append(mpatches.Patch(alpha=0, label=self.linestyle_var_label))
+            legend_items.extend(style_items)
+
+        return legend_items
+
+    def plot(
+        self,
+        ax: matplotlib.axes.Axes | None = None,
+        *,
+        create_legend: Callable[
+            [matplotlib.axes.Axes, list[matplotlib.artist.Artist]], None
+        ] = create_legend_default,
+        quantile_legend_round: int = 2,
+    ) -> matplotlib.axes.Axes:
+        """
+        Plot
+
+        Parameters
+        ----------
+        ax
+            Axes onto which to plot
+
+        create_legend
+            Function to use to create the legend.
+
+            This allows the user to have full control over the creation of the legend.
+
+        Returns
+        -------
+        :
+            Axes on which the data was plotted
+        """
+        if ax is None:
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError as exc:
+                raise MissingOptionalDependencyError(  # noqa: TRY003
+                    "plot(ax=None, ...)", requirement="matplotlib"
+                ) from exc
+
+            _, ax = plt.subplots()
+
+        for line in self.lines:
+            line.plot(ax=ax)
+
+        create_legend(ax, self.generate_legend_handles())
+
+        if self.x_label is not None:
+            ax.set_xlabel(self.x_label)
+
+        if self.y_label is not None:
+            ax.set_ylabel(self.y_label)
+
+        return ax
+
+
+# TODO: split this module
