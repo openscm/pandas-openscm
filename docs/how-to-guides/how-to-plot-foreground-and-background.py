@@ -83,15 +83,27 @@ ax = sns.lineplot(
     y="value",
     hue="scenario",
 )
-lh, l = ax.get_legend_handles_labels()
-plot_background_lines(
-    background,
-    ax=ax,
-    legend_subheading="Background",
-    label="background lines label",
-)
-# Hmmm have to think about how to handle seaborn's subtitle elements so they don't disappear.
-ax.legend()
+# lh, l = ax.get_legend_handles_labels()
+# plot_background_lines(
+#     background,
+#     ax=ax,
+#     legend_subheading="Background",
+#     label="background lines label",
+# )
+# # Hmmm have to think about how to handle seaborn's subtitle elements so they don't disappear.
+# ax.legend()
+
+# %%
+ax.get_legend().get_title()
+
+# %%
+ax.legend_.get_title()
+
+# %%
+ax.legend_.properties()
+
+# %%
+len(ax.legend_.legend_handles)
 
 # %%
 len(ax.get_legend().legend_handles)
