@@ -842,7 +842,7 @@ class QuantilePlumePlotter:
 @define
 class PlumePlotter:
     """
-    Object which is able to plot plume plots
+    Object which is able to plot (quantile) plume plots
     """
 
     lines: Iterable[QuantileLinePlotter]
