@@ -845,10 +845,10 @@ class PlumePlotter:
     Object which is able to plot plume plots
     """
 
-    lines: Iterable[SingleLinePlotter]
+    lines: Iterable[QuantileLinePlotter]
     """Lines to plot"""
 
-    plumes: Iterable[SinglePlumePlotter]
+    plumes: Iterable[QuantilePlumePlotter]
     """Lines to plot"""
 
     hue_var_label: str
@@ -1035,8 +1035,8 @@ class PlumePlotter:
             group_cols = [hue_var]
             dashes_complete = None
 
-        lines: list[SingleLinePlotter] = []
-        plumes: list[SinglePlumePlotter] = []
+        lines: list[QuantileLinePlotter] = []
+        plumes: list[QuantilePlumePlotter] = []
         values_units: list[str] = []
         for info, gdf in df.groupby(group_cols, observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
