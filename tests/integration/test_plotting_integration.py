@@ -1013,7 +1013,6 @@ def test_single_line_plotter_wrong_shape_y_vals():
         SingleLinePlotter(
             np.array([1, 2, 3]),
             np.array([1, 2]),
-            quantile=0.3,
             linewidth=1.0,
             linestyle="-",
             color="blue",

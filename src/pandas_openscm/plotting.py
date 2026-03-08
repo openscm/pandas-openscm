@@ -671,9 +671,6 @@ class SingleLinePlotter:
     )
     """y-values to plot"""
 
-    quantile: float
-    """Quantile that this line represents"""
-
     linewidth: float
     """Linewidth to use when plotting the line"""
 
@@ -689,25 +686,7 @@ class SingleLinePlotter:
     pkwargs: dict[str, Any] | None = None
     """Other arguments to pass to [matplotlib.axes.Axes.plot][] when plotting"""
 
-    def get_label(self, quantile_legend_round: int = 2) -> str:
-        """
-        Get the label for the line
-
-        Parameters
-        ----------
-        quantile_legend_round
-            Rounding to apply to the quantile when creating the label
-
-        Returns
-        -------
-        :
-            Label for the line
-        """
-        label = str(np.round(self.quantile, quantile_legend_round))
-
-        return label
-
-    def plot(self, ax: matplotlib.axes.Axes, quantile_legend_round: int = 2) -> None:
+    def plot(self, ax: matplotlib.axes.Axes) -> matplotlib.axes.Axes:
         """
         Plot
 
@@ -715,22 +694,60 @@ class SingleLinePlotter:
         ----------
         ax
             Axes on which to plot
-
-        quantile_legend_round
-            Rounding to apply to the quantile when creating the label
         """
         pkwargs = self.pkwargs if self.pkwargs is not None else {}
 
         ax.plot(
             self.x_vals,
             self.y_vals,
-            label=self.get_label(quantile_legend_round=quantile_legend_round),
             linewidth=self.linewidth,
             linestyle=self.linestyle,
             color=self.color,
             alpha=self.alpha,
             **pkwargs,
         )
+
+        return ax
+
+
+@define
+class QuantileLinePlotter:
+    """Object which plots single lines representing quantile"""
+
+    quantile: float
+    """Quantile that this line represents"""
+
+    single_line_plotter: SingleLinePlotter
+    """Plotter for the line"""
+
+    def get_label_quantile(self, round: int = 2) -> str:
+        """
+        Get the label for the line's quantile information
+
+        Parameters
+        ----------
+        round
+            Rounding to apply to the quantile when creating the label
+
+        Returns
+        -------
+        :
+            Label for the line
+        """
+        label = str(np.round(self.quantile, round))
+
+        return label
+
+    def plot(self, ax: matplotlib.axes.Axes) -> matplotlib.axes.Axes:
+        """
+        Plot
+
+        Parameters
+        ----------
+        ax
+            Axes on which to plot
+        """
+        return self.single_line_plotter.plot(ax=ax)
 
 
 @define
@@ -790,11 +807,11 @@ class QuantilePlumePlotter:
     """Quantiles that this plume represents"""
 
     single_plume_plotter: SinglePlumePlotter
-    """Plotter of the plume"""
+    """Plotter for the plume"""
 
     def get_label_quantile(self, round: int = 2) -> str:
         """
-        Get the label for the plume including quantile information
+        Get the label for the plume's quantile information
 
         Parameters
         ----------
@@ -1050,18 +1067,20 @@ class PlumePlotter:
                         warn_about_missing_quantile(exc=exc)
                         continue
 
-                    line_plotter = SingleLinePlotter(
-                        *get_values_line(
-                            pdf,
-                            unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
-                            unit_var=unit_var,
-                            time_units=time_units,
-                        ),
+                    line_plotter = QuantileLinePlotter(
                         quantile=q,
-                        linewidth=linewidth,
-                        linestyle=linestyle,
-                        color=colour,
-                        alpha=alpha,
+                        single_line_plotter=SingleLinePlotter(
+                            *get_values_line(
+                                pdf,
+                                unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
+                                unit_var=unit_var,
+                                time_units=time_units,
+                            ),
+                            linewidth=linewidth,
+                            linestyle=linestyle,
+                            color=colour,
+                            alpha=alpha,
+                        ),
                     )
                     lines.append(line_plotter)
 
@@ -1173,13 +1192,19 @@ class PlumePlotter:
         ] = []
         quantile_items: list[matplotlib.artist.Artist] = []
         for line in self.lines:
-            label = line.get_label(quantile_legend_round=quantile_legend_round)
-            pid_line = (line.quantile, line.alpha, label)
+            label = line.get_label_quantile(round=quantile_legend_round)
+            pid_line = (line.quantile, line.single_line_plotter.alpha, label)
             if pid_line in generated_quantile_items:
                 continue
 
             quantile_items.append(
-                mlines.Line2D([0], [0], color="k", alpha=line.alpha, label=label)
+                mlines.Line2D(
+                    [],
+                    [],
+                    color="k",
+                    alpha=line.single_line_plotter.alpha,
+                    label=label,
+                )
             )
             generated_quantile_items.append(pid_line)
 
@@ -1197,7 +1222,7 @@ class PlumePlotter:
             generated_quantile_items.append(pid_plume)
 
         hue_items = [
-            mlines.Line2D([0], [0], color=colour, label=hue_value)
+            mlines.Line2D([], [], color=colour, label=hue_value)
             for hue_value, colour in self.palette.items()
         ]
 
@@ -1210,8 +1235,8 @@ class PlumePlotter:
         if self.dashes is not None and self.lines:
             style_items = [
                 mlines.Line2D(
-                    [0],
-                    [0],
+                    [],
+                    [],
                     linestyle=linestyle,
                     label=style_value,
                     color="gray",
