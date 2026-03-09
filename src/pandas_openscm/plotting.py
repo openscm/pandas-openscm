@@ -1820,20 +1820,8 @@ class SeabornLineLikePlotter:
         :
              Initialised instance
         """
-        # TODO: refactor out function
-        # `get_(
-        #      color_var_label,
-        #      linestyle_var_label,
-        #      unit_aware,
-        #      y_label,
-        #      unit_var,
-        #      color_var,
-        #      palette,
-        #      warn_on_palette_value_missing,
-        #      linestyle_var,
-        #      dashes,
-        #      warn_on_dashes_value_missing,
-        # )`
+        # TODO: consider which bits of logic should be shared across
+        # `from_df` functions and refactor out.
         if color_var_label is None:
             color_var_label = color_var.capitalize()
 
@@ -1929,6 +1917,7 @@ class SeabornLineLikePlotter:
 
                     y_label = None
 
+        # TODO: split out the y_label handling and test what happens if y_label is False
         if isinstance(y_label, bool):
             msg = "y_label should have been converted before getting here"
             raise TypeError(msg)
