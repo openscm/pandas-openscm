@@ -30,22 +30,35 @@ def handle_axis_label_inference_from_unit_information(
 
     Parameters
     ----------
-    unit_aware
-        Should the plot be unit-aware? Any 'truthy' value is treated as `True`
-        and the y-label is not set (the unit-aware plotting will handle the y-label).
+    label
+        Label to use.
 
-    y_label
-        If `True`, we will try and infer the y-label based on the data's units
-        if `unit_var` is not `None`. Otherwise, we will not try and infer.
+        If a string or `None`, this is returned as-is.
+
+        If `True` and `not unit_aware`, then we will attempt to generate the label.
+
+        If `False`, then `None` is returned.
+
+    unit_aware
+        Is the plot being done unit-aware?
+
+        If `y_label` is `True`, then we will return `None`
+        so that the unit-aware plotting can control the y-label value.
+
+    pandas_obj
+        Pandas object from which to get unit values if needed.
 
     unit_index_level
-        Index level from which unit information
-        should be extracted from the plotting data.
+        Index level from which unit information should be extracted if needed.
+
+    warn_infer_label_with_multi_unit
+            Should a warning be raised if we try to infer the unit
+            but the data has more than one unit?
 
     Returns
     -------
     :
-        Whether the axis label should be inferred from the unit information or not
+        Axis label to use when plotting.
     """
     if isinstance(label, str) or label is None or not label:
         # Use user-supplied value
@@ -56,7 +69,7 @@ def handle_axis_label_inference_from_unit_information(
         return None
 
     if not isinstance(label, bool):
-        msg = f"Type of {label=} is not supported"
+        msg = f"{type(label)} are not supported. {label=}"
         raise TypeError(msg)
 
     # y_label is `True` from here on
@@ -67,7 +80,7 @@ def handle_axis_label_inference_from_unit_information(
     # Try to infer y-label
     if unit_index_level not in pandas_obj.index.names:
         warnings.warn(
-            "Not auto-generating the _label "
+            "Not auto-generating the label "
             f"because {unit_index_level=} is not in {pandas_obj.index.names=}",
             stacklevel=3,
         )
@@ -83,7 +96,7 @@ def handle_axis_label_inference_from_unit_information(
             warnings.warn(
                 "Not auto-generating the label "
                 "because the data has more than one unit: "
-                f"data units {units_s}",
+                f"data units {sorted(units_s)}",
                 stacklevel=3,
             )
 
