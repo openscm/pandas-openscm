@@ -16,7 +16,7 @@ def create_legend_default(
     """
     Create legend, default implementation
 
-    Intended to be used with [plot_plume_func][(m).]
+    Intended to be used with plotting functions.
 
     Parameters
     ----------

@@ -426,17 +426,17 @@ class PlumePlotter:
     plumes: Iterable[QuantilePlumePlotter]
     """Plume plotters"""
 
-    hue_var_label: str
-    """Label for the hue variable in the legend"""
+    color_var_label: str
+    """Label for the colour variable in the legend"""
 
-    style_var_label: str | None
-    """Label for the style variable in the legend (if not `None`)"""
+    linestyle_var_label: str | None
+    """Label for the linestyle variable in the legend (if not `None`)"""
 
     quantile_var_label: str
     """Label for the quantile variable in the legend"""
 
     palette: PALETTE_LIKE[Any]
-    """Palette used for plotting different values of the hue variable"""
+    """Palette used for plotting different values of the colour variable"""
 
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None
     """Dashes used for plotting different values of the style variable"""
@@ -459,12 +459,12 @@ class PlumePlotter:
         quantile_var: str = "quantile",
         quantile_var_label: str | None = None,
         quantile_legend_round: int = 2,
-        hue_var: str = "scenario",
-        hue_var_label: str | None = None,
+        color_var: str = "scenario",
+        color_var_label: str | None = None,
         palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
-        style_var: str | None = "variable",
-        style_var_label: str | None = None,
+        linestyle_var: str | None = "variable",
+        linestyle_var_label: str | None = None,
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
@@ -503,11 +503,11 @@ class PlumePlotter:
         quantile_legend_round
             Rounding to apply to quantile values when creating the legend
 
-        hue_var
+        color_var
             Variable to use for grouping data into different colour groups
 
-        hue_var_label
-            Label to use as the header for the hue/colour section in the legend
+        color_var_label
+            Label to use as the header for the colour section in the legend
 
         palette
             Colour to use for the different groups in the data.
@@ -518,11 +518,11 @@ class PlumePlotter:
         warn_on_palette_value_missing
             Should a warning be emitted if there are values missing from `palette`?
 
-        style_var
-            Variable to use for grouping data into different (line)style groups
+        linestyle_var
+            Variable to use for grouping data into different linestyle groups
 
-        style_var_label
-            Label to use as the header for the style section in the legend
+        linestyle_var_label
+            Label to use as the header for the linestyle section in the legend
 
         dashes
             Dash/linestyle to use for the different groups in the data.
@@ -576,11 +576,11 @@ class PlumePlotter:
         :
              Initialised instance
         """
-        if hue_var_label is None:
-            hue_var_label = get_default_color_var_label(hue_var)
+        if color_var_label is None:
+            color_var_label = get_default_color_var_label(color_var)
 
-        if style_var is not None and style_var_label is None:
-            style_var_label = get_default_linestyle_var_label(style_var)
+        if linestyle_var is not None and linestyle_var_label is None:
+            linestyle_var_label = get_default_linestyle_var_label(linestyle_var)
 
         if quantile_var_label is None:
             quantile_var_label = get_default_quantile_var_label(quantile_var)
@@ -591,22 +591,22 @@ class PlumePlotter:
 
         palette_complete = fill_out_palette(
             df,
-            color_index_level=hue_var,
+            color_index_level=color_var,
             palette_user_supplied=palette,
             warn_on_value_missing=warn_on_palette_value_missing,
         )
 
-        if style_var is not None:
-            group_cols = [hue_var, style_var]
+        if linestyle_var is not None:
+            group_cols = [color_var, linestyle_var]
             dashes_complete = fill_out_dashes(
                 df,
-                linestyle_index_level=style_var,
+                linestyle_index_level=linestyle_var,
                 dashes_user_supplied=dashes,
                 warn_on_value_missing=warn_on_dashes_value_missing,
             )
 
         else:
-            group_cols = [hue_var]
+            group_cols = [color_var]
             dashes_complete = None
 
         lines: list[QuantileLinePlotter] = []
@@ -615,7 +615,7 @@ class PlumePlotter:
         for info, gdf in df.groupby(group_cols, observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
 
-            colour = palette_complete[info_d[hue_var]]
+            colour = palette_complete[info_d[color_var]]
 
             gpdf = partial(get_pdf_from_pre_calculated, gdf, quantile_col=quantile_var)
 
@@ -626,11 +626,11 @@ class PlumePlotter:
 
             for q, alpha in quantiles_plumes:
                 if isinstance(q, float):
-                    if style_var is not None:
+                    if linestyle_var is not None:
                         if dashes_complete is None:  # pragma: no cover
                             # should be impossible to hit this
                             raise AssertionError
-                        linestyle = dashes_complete[info_d[style_var]]
+                        linestyle = dashes_complete[info_d[linestyle_var]]
                     else:
                         linestyle = "-"
 
@@ -723,8 +723,8 @@ class PlumePlotter:
         res = PlumePlotter(
             lines=lines,
             plumes=plumes,
-            hue_var_label=hue_var_label,
-            style_var_label=style_var_label,
+            color_var_label=color_var_label,
+            linestyle_var_label=linestyle_var_label,
             quantile_var_label=quantile_var_label,
             palette=palette_complete,
             dashes=dashes_complete,
@@ -795,30 +795,30 @@ class PlumePlotter:
             )
             generated_quantile_items.append(pid_plume)
 
-        hue_items = [
-            mlines.Line2D([], [], color=colour, label=hue_value)
-            for hue_value, colour in self.palette.items()
+        color_items = [
+            mlines.Line2D([], [], color=color, label=color_value)
+            for color_value, color in self.palette.items()
         ]
 
         legend_items = [
             mpatches.Patch(alpha=0, label=self.quantile_var_label),
             *quantile_items,
-            mpatches.Patch(alpha=0, label=self.hue_var_label),
-            *hue_items,
+            mpatches.Patch(alpha=0, label=self.color_var_label),
+            *color_items,
         ]
         if self.dashes is not None and self.lines:
-            style_items = [
+            linestyle_items = [
                 mlines.Line2D(
                     [],
                     [],
                     linestyle=linestyle,
-                    label=style_value,
+                    label=linestyle_value,
                     color="gray",
                 )
-                for style_value, linestyle in self.dashes.items()
+                for linestyle_value, linestyle in self.dashes.items()
             ]
-            legend_items.append(mpatches.Patch(alpha=0, label=self.style_var_label))
-            legend_items.extend(style_items)
+            legend_items.append(mpatches.Patch(alpha=0, label=self.linestyle_var_label))
+            legend_items.extend(linestyle_items)
 
         return legend_items
 
@@ -891,12 +891,12 @@ def plot_plume_func(  # noqa: PLR0913
     quantile_var: str = "quantile",
     quantile_var_label: str | None = None,
     quantile_legend_round: int = 3,
-    hue_var: str = "scenario",
-    hue_var_label: str | None = None,
+    color_var: str = "scenario",
+    color_var_label: str | None = None,
     palette: PALETTE_LIKE[Any] | None = None,
     warn_on_palette_value_missing: bool = True,
-    style_var: str = "variable",
-    style_var_label: str | None = None,
+    linestyle_var: str = "variable",
+    linestyle_var_label: str | None = None,
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 2.0,
@@ -946,11 +946,11 @@ def plot_plume_func(  # noqa: PLR0913
     quantile_legend_round
         Rounding to apply to quantile values when creating the legend
 
-    hue_var
+    color_var
         Variable to use for grouping data into different colour groups
 
-    hue_var_label
-        Label to use as the header for the hue/colour section in the legend
+    color_var_label
+        Label to use as the header for the colour section in the legend
 
     palette
         Colour to use for the different groups in the data.
@@ -961,11 +961,11 @@ def plot_plume_func(  # noqa: PLR0913
     warn_on_palette_value_missing
         Should a warning be emitted if there are values missing from `palette`?
 
-    style_var
-        Variable to use for grouping data into different (line)style groups
+    linestyle_var
+        Variable to use for grouping data into different linestyle groups
 
-    style_var_label
-        Label to use as the header for the style section in the legend
+    linestyle_var_label
+        Label to use as the header for the linestyle section in the legend
 
     dashes
         Dash/linestyle to use for the different groups in the data.
@@ -1033,12 +1033,12 @@ def plot_plume_func(  # noqa: PLR0913
         quantiles_plumes=quantiles_plumes,
         quantile_var=quantile_var,
         quantile_var_label=quantile_var_label,
-        hue_var=hue_var,
-        hue_var_label=hue_var_label,
+        color_var=color_var,
+        color_var_label=color_var_label,
         palette=palette,
         warn_on_palette_value_missing=warn_on_palette_value_missing,
-        style_var=style_var,
-        style_var_label=style_var_label,
+        linestyle_var=linestyle_var,
+        linestyle_var_label=linestyle_var_label,
         dashes=dashes,
         warn_on_dashes_value_missing=warn_on_dashes_value_missing,
         linewidth=linewidth,
@@ -1070,12 +1070,12 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
     ),
     quantile_var_label: str | None = None,
     quantile_legend_round: int = 2,
-    hue_var: str = "scenario",
-    hue_var_label: str | None = None,
+    color_var: str = "scenario",
+    color_var_label: str | None = None,
     palette: PALETTE_LIKE[Any] | None = None,
     warn_on_palette_value_missing: bool = True,
-    style_var: str = "variable",
-    style_var_label: str | None = None,
+    linestyle_var: str = "variable",
+    linestyle_var_label: str | None = None,
     dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
@@ -1127,11 +1127,11 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
     quantile_legend_round
         Rounding to apply to quantile values when creating the legend
 
-    hue_var
+    color_var
         Variable to use for grouping data into different colour groups
 
-    hue_var_label
-        Label to use as the header for the hue/colour section in the legend
+    color_var_label
+        Label to use as the header for the colour section in the legend
 
     palette
         Colour to use for the different groups in the data.
@@ -1142,11 +1142,11 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
     warn_on_palette_value_missing
         Should a warning be emitted if there are values missing from `palette`?
 
-    style_var
-        Variable to use for grouping data into different (line)style groups
+    linestyle_var
+        Variable to use for grouping data into different linestyle groups
 
-    style_var_label
-        Label to use as the header for the style section in the legend
+    linestyle_var_label
+        Label to use as the header for the linestyle section in the legend
 
     dashes
         Dash/linestyle to use for the different groups in the data.
@@ -1223,12 +1223,12 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
         quantile_var=quantile_var,
         quantile_var_label=quantile_var_label,
         quantile_legend_round=quantile_legend_round,
-        hue_var=hue_var,
-        hue_var_label=hue_var_label,
+        color_var=color_var,
+        color_var_label=color_var_label,
         palette=palette,
         warn_on_palette_value_missing=warn_on_palette_value_missing,
-        style_var=style_var,
-        style_var_label=style_var_label,
+        linestyle_var=linestyle_var,
+        linestyle_var_label=linestyle_var_label,
         dashes=dashes,
         warn_on_dashes_value_missing=warn_on_dashes_value_missing,
         linewidth=linewidth,

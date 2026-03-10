@@ -15,7 +15,9 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 import pytest
+from packaging.version import parse
 
+import pandas_openscm
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.plotting import (
     PlumePlotter,
@@ -310,7 +312,7 @@ def test_plot_plume_quantiles(
 
 
 @pytest.mark.parametrize(
-    "quantile_over, hue_var, style_var, kwargs",
+    "quantile_over, color_var, linestyle_var, kwargs",
     (
         pytest.param(
             "scenario",
@@ -330,8 +332,8 @@ def test_plot_plume_quantiles(
 )
 def test_plot_plume_quantile_over(  # noqa: PLR0913
     quantile_over,
-    hue_var,
-    style_var,
+    color_var,
+    linestyle_var,
     kwargs,
     tmp_path,
     image_regression,
@@ -348,8 +350,8 @@ def test_plot_plume_quantile_over(  # noqa: PLR0913
     method_kwargs = dict(
         quantile_over=quantile_over,
         quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
-        hue_var=hue_var,
-        style_var=style_var,
+        color_var=color_var,
+        linestyle_var=linestyle_var,
         **kwargs,
     )
 
@@ -377,7 +379,7 @@ def test_plot_plume_extra_palette(
     method_kwargs = dict(
         quantile_over="run",
         quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
-        hue_var="scenario",
+        color_var="scenario",
         palette={
             "scenario_0": "tab:green",
             "scenario_1": "tab:purple",
@@ -385,7 +387,7 @@ def test_plot_plume_extra_palette(
             # Not df
             "scenario_3": "tab:orange",
         },
-        style_var="variable",
+        linestyle_var="variable",
         warn_infer_y_label_with_multi_unit=False,
     )
 
@@ -418,7 +420,7 @@ def test_plot_plume_missing_from_palette(
     method_kwargs = dict(
         quantile_over="run",
         quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
-        hue_var="scenario",
+        color_var="scenario",
         palette=palette,
     )
 
@@ -454,8 +456,8 @@ def test_plot_plume_extra_dashes(
     method_kwargs = dict(
         quantile_over="run",
         quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
-        hue_var="scenario",
-        style_var="variable",
+        color_var="scenario",
+        linestyle_var="variable",
         dashes={
             # Not in df
             "variable_0": "-",
@@ -492,8 +494,8 @@ def test_plot_plume_missing_from_dashes(
     method_kwargs = dict(
         quantile_over="run",
         quantiles_plumes=((0.5, 0.5), ((0.05, 0.95), 0.2)),
-        hue_var="scenario",
-        style_var="variable",
+        color_var="scenario",
+        linestyle_var="variable",
         dashes=dashes,
     )
 
@@ -625,16 +627,16 @@ def test_plot_plume_option_passing(setup_pandas_accessors, image_regression, tmp
         quantile_var="percentile",
         quantile_var_label="Percent",
         quantile_legend_round=3,
-        hue_var="variable",
-        hue_var_label="Var",
+        color_var="variable",
+        color_var_label="Var",
         palette={
             # Drop out to trigger warning below
             # "variable_1": "tab:green",
             "variable_2": "tab:purple",
         },
         warn_on_palette_value_missing=False,
-        style_var="scenario",
-        style_var_label="Scen",
+        linestyle_var="scenario",
+        linestyle_var_label="Scen",
         dashes={
             "scenario_0": "--",
             # Drop out to trigger warning below
@@ -691,16 +693,16 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         quantiles_plumes=((0.5, 1.0), ((1.0 / 6.0, 5.0 / 6.0), 0.3)),
         quantile_var_label="Percent",
         quantile_legend_round=3,
-        hue_var="variable",
-        hue_var_label="Var",
+        color_var="variable",
+        color_var_label="Var",
         palette={
             # Drop out to trigger warning below
             # "variable_1": "tab:green",
             "variable_2": "tab:purple",
         },
         warn_on_palette_value_missing=False,
-        style_var="scenario",
-        style_var_label="Scen",
+        linestyle_var="scenario",
+        linestyle_var_label="Scen",
         dashes={
             "scenario_0": "--",
             # Drop out to trigger warning below
@@ -973,8 +975,8 @@ def test_generate_legend_handles_no_matplotlib():
     pp = PlumePlotter(
         lines=[],
         plumes=[],
-        hue_var_label="a",
-        style_var_label="b",
+        color_var_label="a",
+        linestyle_var_label="b",
         quantile_var_label="c",
         palette={},
         dashes=None,
@@ -995,8 +997,8 @@ def test_plot_no_matplotlib():
     pp = PlumePlotter(
         lines=[],
         plumes=[],
-        hue_var_label="a",
-        style_var_label="b",
+        color_var_label="a",
+        linestyle_var_label="b",
         quantile_var_label="c",
         palette={},
         dashes=None,
@@ -1052,5 +1054,86 @@ def test_plot_line_default(
     plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
 
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+@pytest.mark.parametrize(
+    "should_be_deprecated,tvalue",
+    (
+        ("hue_var", "variable"),
+        ("hue_var_label", "Variable"),
+        ("style_var", "variable"),
+        ("style_var_label", "Variable"),
+    ),
+)
+def test_removal_plot_plume(should_be_deprecated, tvalue, setup_pandas_accessors):
+    df = (
+        create_test_df(
+            variables=(("variable_1", "K"), ("variable_2", "K")),
+            n_scenarios=5,
+            n_runs=1,
+            timepoints=np.arange(1950.0, 1965.0),
+            rng=np.random.default_rng(seed=19487),
+        )
+        .openscm.groupby_except("run")
+        .quantile([0.05, 0.5, 0.95])
+        .openscm.fix_index_name_after_groupby_quantile()
+    )
+
+    call_kwargs = {should_be_deprecated: tvalue}
+
+    pandas_openscm_version = parse(pandas_openscm.__version__)
+    if pandas_openscm_version.minor < 12:
+        with pytest.warns(DeprecationWarning):
+            df.openscm.plot_plume(
+                quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)), **call_kwargs
+            )
+    else:
+        with pytest.raises(TypeError):
+            df.openscm.plot_plume(
+                quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)), **call_kwargs
+            )
+
+    plt.close()
+
+
+@pytest.mark.parametrize(
+    "should_be_deprecated,tvalue",
+    (
+        ("hue_var", "variable"),
+        ("hue_var_label", "Variable"),
+        ("style_var", "variable"),
+        ("style_var_label", "Variable"),
+    ),
+)
+def test_removal_plot_plume_after_calculating_quantiles(
+    should_be_deprecated, tvalue, setup_pandas_accessors
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=5,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=19487),
+    )
+
+    call_kwargs = {should_be_deprecated: tvalue}
+
+    pandas_openscm_version = parse(pandas_openscm.__version__)
+    if pandas_openscm_version.minor < 12:
+        with pytest.warns(DeprecationWarning):
+            df.openscm.plot_plume_after_calculating_quantiles(
+                quantile_over="run",
+                quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)),
+                **call_kwargs,
+            )
+    else:
+        with pytest.raises(TypeError):
+            df.openscm.plot_plume(
+                quantile_over="run",
+                quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)),
+                **call_kwargs,
+            )
 
     plt.close()

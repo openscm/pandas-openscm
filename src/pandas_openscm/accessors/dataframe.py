@@ -4,6 +4,7 @@ Accessor for [pd.DataFrame][pandas.DataFrame]
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Collection, Mapping
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -308,11 +309,15 @@ class PandasDataFrameOpenSCMAccessor:
         quantile_var: str = "quantile",
         quantile_var_label: str | None = None,
         quantile_legend_round: int = 3,
-        hue_var: str = "scenario",
+        color_var: str = "scenario",
+        color_var_label: str | None = None,
+        hue_var: str | None = None,
         hue_var_label: str | None = None,
         palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
-        style_var: str = "variable",
+        linestyle_var: str = "variable",
+        linestyle_var_label: str | None = None,
+        style_var: str | None = None,
         style_var_label: str | None = None,
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         warn_on_dashes_value_missing: bool = True,
@@ -359,7 +364,25 @@ class PandasDataFrameOpenSCMAccessor:
         hue_var
             Variable to use for grouping data into different colour groups
 
+            /// admonition | Deprecation warning
+                type: warning
+
+            Deprecated as of v0.9.2, will be removed in v0.12.
+            ///
+
         hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+            /// admonition | Deprecation warning
+                type: warning
+
+            Deprecated as of v0.9.2, will be removed in v0.12.
+            ///
+
+        color_var
+            Variable to use for grouping data into different colour groups
+
+        color_var_label
             Label to use as the header for the hue/colour section in the legend
 
         palette
@@ -374,8 +397,26 @@ class PandasDataFrameOpenSCMAccessor:
         style_var
             Variable to use for grouping data into different (line)style groups
 
+            /// admonition | Deprecation warning
+                type: warning
+
+            Deprecated as of v0.9.2, will be removed in v0.12.
+            ///
+
         style_var_label
             Label to use as the header for the style section in the legend
+
+            /// admonition | Deprecation warning
+                type: warning
+
+            Deprecated as of v0.9.2, will be removed in v0.12.
+            ///
+
+        linestyle_var
+            Variable to use for grouping data into different linestyle groups
+
+        linestyle_var_label
+            Label to use as the header for the linestyle section in the legend
 
         dashes
             Dash/linestyle to use for the different groups in the data.
@@ -438,6 +479,35 @@ class PandasDataFrameOpenSCMAccessor:
         :
             Axes on which the data was plotted
         """
+        if hue_var is not None:
+            warnings.warn(
+                "`hue_var` is deprecated and will be removed in version 0.12. "
+                "Use `color_var` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if hue_var_label is not None:
+            warnings.warn(
+                "`hue_var_label` is deprecated and will be removed in version 0.12. "
+                "Use `color_var_label` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if style_var is not None:
+            warnings.warn(
+                "`style_var` is deprecated and will be removed in version 0.12. "
+                "Use `linestyle_var` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if style_var_label is not None:
+            warnings.warn(
+                "`style_var_label` is deprecated and will be removed in version 0.12. "
+                "Use `linestyle_var_label` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         return plot_plume_func(
             self._df,
             ax=ax,
@@ -445,12 +515,12 @@ class PandasDataFrameOpenSCMAccessor:
             quantile_var=quantile_var,
             quantile_var_label=quantile_var_label,
             quantile_legend_round=quantile_legend_round,
-            hue_var=hue_var,
-            hue_var_label=hue_var_label,
+            color_var=color_var,
+            color_var_label=color_var_label,
             palette=palette,
             warn_on_palette_value_missing=warn_on_palette_value_missing,
-            style_var=style_var,
-            style_var_label=style_var_label,
+            linestyle_var=linestyle_var,
+            linestyle_var_label=linestyle_var_label,
             dashes=dashes,
             warn_on_dashes_value_missing=warn_on_dashes_value_missing,
             linewidth=linewidth,
@@ -475,11 +545,15 @@ class PandasDataFrameOpenSCMAccessor:
         ),
         quantile_var_label: str | None = None,
         quantile_legend_round: int = 2,
-        hue_var: str = "scenario",
+        color_var: str = "scenario",
+        color_var_label: str | None = None,
+        hue_var: str | None = None,
         hue_var_label: str | None = None,
         palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
-        style_var: str = "variable",
+        linestyle_var: str = "variable",
+        linestyle_var_label: str | None = None,
+        style_var: str | None = None,
         style_var_label: str | None = None,
         dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
         warn_on_dashes_value_missing: bool = True,
@@ -528,7 +602,25 @@ class PandasDataFrameOpenSCMAccessor:
         hue_var
             Variable to use for grouping data into different colour groups
 
+            /// admonition | Deprecation warning
+                type: warning
+
+            Deprecated as of v0.9.2, will be removed in v0.12.
+            ///
+
         hue_var_label
+            Label to use as the header for the hue/colour section in the legend
+
+            /// admonition | Deprecation warning
+                type: warning
+
+            Deprecated as of v0.9.2, will be removed in v0.12.
+            ///
+
+        color_var
+            Variable to use for grouping data into different colour groups
+
+        color_var_label
             Label to use as the header for the hue/colour section in the legend
 
         palette
@@ -607,6 +699,35 @@ class PandasDataFrameOpenSCMAccessor:
         :
             Axes on which the data was plotted
         """
+        if hue_var is not None:
+            warnings.warn(
+                "`hue_var` is deprecated and will be removed in version 0.12. "
+                "Use `color_var` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if hue_var_label is not None:
+            warnings.warn(
+                "`hue_var_label` is deprecated and will be removed in version 0.12. "
+                "Use `color_var_label` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if style_var is not None:
+            warnings.warn(
+                "`style_var` is deprecated and will be removed in version 0.12. "
+                "Use `linestyle_var` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if style_var_label is not None:
+            warnings.warn(
+                "`style_var_label` is deprecated and will be removed in version 0.12. "
+                "Use `linestyle_var_label` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         return plot_plume_after_calculating_quantiles_func(
             self._df,
             ax=ax,
@@ -614,12 +735,12 @@ class PandasDataFrameOpenSCMAccessor:
             quantiles_plumes=quantiles_plumes,
             quantile_var_label=quantile_var_label,
             quantile_legend_round=quantile_legend_round,
-            hue_var=hue_var,
-            hue_var_label=hue_var_label,
+            color_var=color_var,
+            color_var_label=color_var_label,
             palette=palette,
             warn_on_palette_value_missing=warn_on_palette_value_missing,
-            style_var=style_var,
-            style_var_label=style_var_label,
+            linestyle_var=linestyle_var,
+            linestyle_var_label=linestyle_var_label,
             dashes=dashes,
             warn_on_dashes_value_missing=warn_on_dashes_value_missing,
             linewidth=linewidth,
