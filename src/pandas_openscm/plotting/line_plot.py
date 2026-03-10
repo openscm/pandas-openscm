@@ -10,7 +10,6 @@ provide much more flexibility than this API.
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
@@ -23,7 +22,9 @@ import pandas as pd
 from attrs import define, field
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
-from pandas_openscm.plotting.axis_labels import infer_axis_label_from_unit_information
+from pandas_openscm.plotting.axis_labels import (
+    handle_axis_label_inference_from_unit_information,
+)
 from pandas_openscm.plotting.from_pandas_helpers import (
     fill_out_dashes,
     fill_out_palette,
@@ -180,7 +181,7 @@ class SeabornLikeLinePlotter:
     """Label to apply to the y-axis (if `None`, no label is applied)"""
 
     @classmethod
-    def from_df(  # noqa: PLR0912, PLR0913 # object creation code is the worst
+    def from_df(  # noqa: PLR0913 # object creation code is the worst
         cls,
         df: pd.DataFrame,
         *,
@@ -292,10 +293,6 @@ class SeabornLikeLinePlotter:
         if linestyle_var is not None and linestyle_var_label is None:
             linestyle_var_label = get_default_linestyle_var_label(linestyle_var)
 
-        infer_y_label = infer_axis_label_from_unit_information(
-            unit_aware=unit_aware, y_label=y_label, unit_index_level=unit_var
-        )
-
         palette_complete = fill_out_palette(
             df,
             color_index_level=color_var,
@@ -317,7 +314,6 @@ class SeabornLikeLinePlotter:
             dashes_complete = None
 
         lines: list[SingleLinePlotter] = []
-        values_units: list[str] = []
         for info, gdf in df.groupby(group_cols, observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
 
@@ -346,45 +342,13 @@ class SeabornLikeLinePlotter:
             )
             lines.append(line_plotter)
 
-            if infer_y_label and unit_var in gdf.index.names:
-                values_units.extend(gdf.index.get_level_values(unit_var).unique())
-
-        # TODO: refactor out this logic
-        if unit_aware and isinstance(y_label, bool) and y_label:
-            # Let unit-aware plotting do its thing
-            y_label = None
-
-        elif unit_var is None:
-            y_label = None
-
-        elif infer_y_label:
-            if unit_var not in df.index.names:
-                warnings.warn(
-                    "Not auto-setting the y_label "
-                    f"because {unit_var=} is not in {df.index.names=}"
-                )
-                y_label = None
-
-            else:
-                # Try to infer the y-label
-                units_s = set(values_units)
-                if len(units_s) == 1:
-                    y_label = values_units[0]
-                else:
-                    # More than one unit plotted, don't infer a y-label
-                    if warn_infer_y_label_with_multi_unit:
-                        warnings.warn(
-                            "Not auto-setting the y_label "
-                            "because the plotted data has more than one unit: "
-                            f"data units {units_s}"
-                        )
-
-                    y_label = None
-
-        # TODO: split out the y_label handling and test what happens if y_label is False
-        if isinstance(y_label, bool):
-            msg = "y_label should have been converted before getting here"
-            raise TypeError(msg)
+        y_label = handle_axis_label_inference_from_unit_information(
+            label=y_label,
+            unit_aware=unit_aware,
+            pandas_obj=df,
+            unit_index_level=unit_var,
+            warn_infer_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
+        )
 
         res = SeabornLikeLinePlotter(
             lines=lines,
