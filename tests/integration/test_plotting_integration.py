@@ -19,15 +19,19 @@ import pytest
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.plotting import (
     PlumePlotter,
-    SeabornLineLikePlotter,
+    SeabornLikeLinePlotter,
     SingleLinePlotter,
-    extract_single_unit,
-    get_default_colour_cycler,
-    get_quantiles,
-    get_values_line,
-    get_values_plume,
     plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
+)
+from pandas_openscm.plotting.from_pandas_helpers import (
+    extract_single_unit,
+    get_default_colour_cycler,
+    get_values_line,
+)
+from pandas_openscm.plotting.plume_plot import (
+    get_quantiles,
+    get_values_plume,
 )
 from pandas_openscm.testing import create_test_df
 
@@ -1036,7 +1040,7 @@ def test_plot_line_default(
         rng=np.random.default_rng(seed=19487),
     )
 
-    plotter = SeabornLineLikePlotter.from_df(
+    plotter = SeabornLikeLinePlotter.from_df(
         df,
         linestyle_var="variable",
     )

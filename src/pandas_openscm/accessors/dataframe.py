@@ -34,10 +34,7 @@ if TYPE_CHECKING:
     import pandas_indexing as pix
     import pint
 
-    from pandas_openscm.plotting import (
-        PALETTE_LIKE,
-        QUANTILES_PLUMES_LIKE,
-    )
+    from pandas_openscm.plotting.typing import PALETTE_LIKE, QUANTILES_PLUMES_LIKE
 
 
 class PandasDataFrameOpenSCMAccessor:
