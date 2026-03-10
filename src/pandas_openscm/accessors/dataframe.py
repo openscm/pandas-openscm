@@ -301,6 +301,8 @@ class PandasDataFrameOpenSCMAccessor:
         """
         return mi_loc(self._df, locator)
 
+    # TODO: def plot_line
+    # TODO: def plot_scatter
     def plot_plume(  # noqa: PLR0913
         self,
         quantiles_plumes: QUANTILES_PLUMES_LIKE,
