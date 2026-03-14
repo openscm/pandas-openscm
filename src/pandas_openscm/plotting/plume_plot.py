@@ -418,6 +418,20 @@ class QuantilePlumePlotter:
 class PlumePlotter:
     """
     Object which is able to plot (quantile) plume plots
+
+    This is really just a data holder,
+    which allows us to split the logic for preparing data
+    from the logic of actually making plots.
+    This is useful because we don't want all the individual lines and plumes
+    to appear in the legend, rather only summaries of the hue, alpha and dash
+    used for each plot element
+    (achieving such behaviour with the available matplotlib API is difficult).
+
+    If you use this class directly, be careful.
+    It is easy to create inconsistencies between the lines to be plotted
+    and the other information (which is used to create the legend entries).
+    For example, if you alter `self.palette` without altering `self.lines` accordingly,
+    you will get legend entries that don't correspond to any lines.
     """
 
     lines: Iterable[QuantileLinePlotter]

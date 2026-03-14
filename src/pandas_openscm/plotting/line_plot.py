@@ -144,8 +144,18 @@ class SeabornLikeLinePlotter:
     Seaborn-like plotter for line plots
 
     This is really just a data holder,
-    which helps split the logic for preparing data
+    which allows us to split the logic for preparing data
     from the logic of actually making plots.
+    This is useful because we don't want all the individual lines
+    to appear in the legend, rather only summaries of the hue and dash
+    used for each line
+    (achieving such behaviour with the available matplotlib API is difficult).
+
+    If you use this class directly, be careful.
+    It is easy to create inconsistencies between the lines to be plotted
+    and the other information (which is used to create the legend entries).
+    For example, if you alter `self.palette` without altering `self.lines` accordingly,
+    you will get legend entries that don't correspond to any lines.
 
     It's 'seaborn-like' because it is based on similar ideas to
     [seaborn](https://seaborn.pydata.org/),
