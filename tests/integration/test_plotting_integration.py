@@ -1029,35 +1029,6 @@ def test_single_line_plotter_wrong_shape_y_vals():
         )
 
 
-def test_plot_line_default(
-    tmp_path,
-    image_regression,
-    # setup_pandas_accessors,
-):
-    df = create_test_df(
-        variables=(("variable_1", "K"), ("variable_2", "K")),
-        n_scenarios=5,
-        n_runs=1,
-        timepoints=np.arange(1950.0, 1965.0),
-        rng=np.random.default_rng(seed=19487),
-    )
-
-    plotter = SeabornLikeLinePlotter.from_df(
-        df,
-        linestyle_var="variable",
-    )
-
-    fig, ax = plt.subplots()
-    plotter.plot(ax=ax)
-
-    out_file = tmp_path / "fig.png"
-    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
-
-    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
-
-    plt.close()
-
-
 @pytest.mark.parametrize(
     "should_be_deprecated,tvalue",
     (
@@ -1135,5 +1106,79 @@ def test_removal_plot_plume_after_calculating_quantiles(
                 quantiles_plumes=((0.5, 0.8), ((0.05, 0.95), 0.3)),
                 **call_kwargs,
             )
+
+    plt.close()
+
+
+def test_plot_line_default(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessors,
+):
+    df = create_test_df(
+        variables=(("variable_1", "K"), ("variable_2", "K")),
+        n_scenarios=5,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=19487),
+    )
+
+    plotter = SeabornLikeLinePlotter.from_df(
+        df,
+        linestyle_var="variable",
+    )
+
+    fig, ax = plt.subplots()
+    plotter.plot(ax=ax)
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+def test_plot_scatter_default(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessors,
+):
+    df = create_test_df(
+        variables=(("co2", "GtC / yr"), ("co2", "GtCO2 / yr"), ("ch4", "Mt CH4/yr")),
+        n_scenarios=5,
+        n_runs=1,
+        timepoints=np.arange(1950.0, 1965.0),
+        rng=np.random.default_rng(seed=19487),
+    )
+    df[1955].unstack("variable")
+    df[1955].unstack("variable").reset_index("unit", drop=True)
+    df.index.droplevel(df.index.names.difference(["variable", "unit"]))
+    unit_variable_combos = (
+        df.index.droplevel(df.index.names.difference(["variable", "unit"]))
+        .drop_duplicates()
+        .to_frame(index=False)
+    )
+    n_units_per_variable = unit_variable_combos["variable"].value_counts()
+    if (n_units_per_variable > 1).any():
+        # More than one unit for the given value of stack_index_level.
+        multi_unit_info = unit_variable_combos.set_index("variable").loc[
+            n_units_per_variable[n_units_per_variable > 1].index
+        ]
+        # # if warn
+        # msg = f"{{variable}} has more than one unit: {multi_unit_info}"
+        # warnings.warn(msg)
+
+    plotter = SeabornLikeScatterPlotter.from_df(
+        df,
+    )
+
+    fig, ax = plt.subplots()
+    plotter.plot(ax=ax)
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
     plt.close()
