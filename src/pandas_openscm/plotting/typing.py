@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import (
     TYPE_CHECKING,
     Generic,
+    Protocol,
     TypeVar,
     Union,
 )
@@ -39,3 +40,9 @@ if TYPE_CHECKING:
         Union[tuple[float, float], tuple[tuple[float, float], float]], ...
     ]
     """Type that quantiles and the alpha to use for plotting their line/plume"""
+
+    class HasXVals(Protocol):
+        """Object that has x-values"""
+
+        x_vals: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY
+        """x-values to plot"""

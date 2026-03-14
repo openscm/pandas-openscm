@@ -1,5 +1,5 @@
 """
-Generation of line plots
+Generation of scatter plots
 
 This reimplements seaborn in many ways,
 but has been adjusted to suit the style of data we have.
@@ -26,29 +26,26 @@ from pandas_openscm.plotting.axis_labels import (
 )
 from pandas_openscm.plotting.data_validation import is_same_shape_as_x_vals
 from pandas_openscm.plotting.from_pandas_helpers import (
-    fill_out_dashes,
     fill_out_palette,
     get_default_color_var_label,
-    get_default_linestyle_var_label,
-    get_values_line,
 )
 from pandas_openscm.plotting.legend import create_legend_default
 
 if TYPE_CHECKING:
     import matplotlib
+    import matplotlib.markers
     import pint
 
     from pandas_openscm.plotting.typing import (
         COLOUR_VALUE_LIKE,
-        DASH_VALUE_LIKE,
         PALETTE_LIKE,
     )
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
 
 
 @define
-class SingleLinePlotter:
-    """Object which is able to plot single lines"""
+class SingleScatterPlotter:
+    """Object which is able to plot single scatters"""
 
     x_vals: NP_ARRAY_OF_FLOAT_OR_INT | PINT_NUMPY_ARRAY
     """x-values to plot"""
@@ -58,20 +55,20 @@ class SingleLinePlotter:
     )
     """y-values to plot"""
 
-    linewidth: float
-    """Linewidth to use when plotting the line"""
+    marker: str | matplotlib.markers.MarkerStyle
+    """Marker to use when plotting the scatter"""
 
-    linestyle: DASH_VALUE_LIKE
-    """Style to use when plotting the line"""
+    size: float
+    """Size of marker to use when plotting"""
 
     color: COLOUR_VALUE_LIKE
-    """Colour to use when plotting the line"""
+    """Colour to use when plotting"""
 
     alpha: float
-    """Alpha to use when plotting the line"""
+    """Alpha to use when plotting"""
 
     pkwargs: dict[str, Any] | None = None
-    """Other arguments to pass to [matplotlib.axes.Axes.plot][] when plotting"""
+    """Other arguments to pass to [matplotlib.axes.Axes.scatter][] when plotting"""
 
     def plot(self, ax: matplotlib.axes.Axes) -> matplotlib.axes.Axes:
         """
@@ -84,12 +81,12 @@ class SingleLinePlotter:
         """
         pkwargs = self.pkwargs if self.pkwargs is not None else {}
 
-        ax.plot(
+        ax.scatter(
             self.x_vals,
             self.y_vals,
-            linewidth=self.linewidth,
-            linestyle=self.linestyle,
-            color=self.color,
+            marker=self.marker,
+            s=self.size,
+            c=self.color,
             alpha=self.alpha,
             **pkwargs,
         )
@@ -98,22 +95,23 @@ class SingleLinePlotter:
 
 
 @define
-class SeabornLikeLinePlotter:
+class SeabornLikeScatterPlotter:
     """
-    Seaborn-like plotter for line plots
+    Seaborn-like plotter for scatter plots
 
     This is really just a data holder,
     which allows us to split the logic for preparing data
     from the logic of actually making plots.
-    This is useful because we don't want all the individual lines
-    to appear in the legend, rather only summaries of the hue and dash
-    used for each line
+    This is useful because we don't want all the individual scatters
+    to appear in the legend, rather only summaries of the hue and marker
+    used for each scatter
     (achieving such behaviour with the available matplotlib API is difficult).
 
     If you use this class directly, be careful.
-    It is easy to create inconsistencies between the lines to be plotted
+    It is easy to create inconsistencies between the scatters to be plotted
     and the other information (which is used to create the legend entries).
-    For example, if you alter `self.palette` without altering `self.lines` accordingly,
+    For example, if you alter `self.palette`
+    without altering `self.scatters` accordingly,
     you will get legend entries that don't correspond to any lines.
 
     It's 'seaborn-like' because it is based on similar ideas to
@@ -124,23 +122,25 @@ class SeabornLikeLinePlotter:
     provide much more flexibility than this API.
     """
 
-    lines: Iterable[SingleLinePlotter]
-    """Line plotters"""
+    scatters: Iterable[SingleScatterPlotter]
+    """Scatters plotters"""
 
     color_var_label: str
-    """Label for the variable by which lines are coloured in the legend"""
+    """Label for the variable by which scatters are coloured in the legend"""
 
-    linestyle_var_label: str | None
-    """Label for the variable by which lines are styled in the legend (if not `None`)"""
+    marker_var_label: str | None
+    """
+    Label for the variable by which scatters are styled in the legend (if not `None`)
+    """
 
     palette: PALETTE_LIKE[Any]
     """
-    Palette used for different values of the variable by which lines are coloured
+    Palette used for different values of the variable by which scatters are coloured
     """
 
-    dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None
+    markers: dict[Any, str | matplotlib.markers.MarkerStyle] | None
     """
-    Dashes used for different values of the variable by which lines are styled
+    Markers used for different values of the variable by which scatters are styled
     """
 
     x_label: str | None
@@ -154,15 +154,32 @@ class SeabornLikeLinePlotter:
         cls,
         df: pd.DataFrame,
         *,
+        # Need something like
+        # stack_index_level: Any,
+        # which is the index level that you need to stack
+        # in order to get access to the columns that you want.
+        # Then also need
+        # x_stacked_column: Any,
+        # y_stacked_column: Any,
+        # for the columns to use once the data has been stacked.
+        # e.g. stack_index_level = "variable",
+        # x_stacked_column = "co2",
+        # y_stacked_column = "ch4",
+        # or stack_index_level = "region",
+        # x_stacked_column = "chn",
+        # y_stacked_column = "eu".
+        # Then the stacking handles the complication
+        # of stacking and figuring out what the unit
+        # of the stacked data is.
         color_var: str = "scenario",
         color_var_label: str | None = None,
         palette: PALETTE_LIKE[Any] | None = None,
         warn_on_palette_value_missing: bool = True,
-        linestyle_var: str | None = None,
-        linestyle_var_label: str | None = None,
-        dashes: dict[Any, str | tuple[float, tuple[float, ...]]] | None = None,
-        warn_on_dashes_value_missing: bool = True,
-        linewidth: float = 3.0,
+        marker_var: str | None = None,
+        marker_var_label: str | None = None,
+        markers: dict[Any, str | matplotlib.markers.MarkerStyle] | None = None,
+        warn_on_marker_value_missing: bool = True,
+        size: float = 30.0,
         alpha: float = 0.8,
         unit_var: str | None = "unit",
         unit_aware: bool | pint.facets.PlainRegistry = False,
@@ -171,7 +188,7 @@ class SeabornLikeLinePlotter:
         y_label: str | bool | None = True,
         warn_infer_y_label_with_multi_unit: bool = True,
         observed: bool = True,
-    ) -> SeabornLikeLinePlotter:
+    ) -> SeabornLikeScatterPlotter:
         """
         Initialise from a [pd.DataFrame][pandas.DataFrame]
 
@@ -195,26 +212,26 @@ class SeabornLikeLinePlotter:
         warn_on_palette_value_missing
             Should a warning be emitted if there are values missing from `palette`?
 
-        linestyle_var
-            Variable to use for grouping data into different linestyle groups
+        marker_var
+            Variable to use for grouping data into different marker groups
 
-        linestyle_var_label
-            Label to use as the header for the style section in the legend
+        marker_var_label
+            Label to use as the header for the marker section in the legend
 
-        dashes
-            Dash/linestyle to use for the different groups in the data.
+        markers
+            Markers to use for the different groups in the data.
 
-            If any groups are not included in `dashes`,
+            If any groups are not included in `markers`,
             they are auto-filled.
 
-        warn_on_dashes_value_missing
-            Should a warning be emitted if there are values missing from `dashes`?
+        warn_on_marker_value_missing
+            Should a warning be emitted if there are values missing from `markers`?
 
-        linewidth
-            Width to use for plotting lines.
+        size
+            Size of marker to use for plotting scatters.
 
         alpha
-            Alpha to use when plotting the line
+            Alpha to use when plotting the scatters
 
         unit_var
             Variable/column in the multi-index which stores information
@@ -235,7 +252,13 @@ class SeabornLikeLinePlotter:
         x_label
             Label to apply to the x-axis.
 
+            If `True`, we will try and infer the x-label based on the data's units.
+
             If `None`, no label will be applied.
+
+        warn_infer_x_label_with_multi_unit
+            Should a warning be raised if we try to infer the x-unit
+            but the data has more than one unit?
 
         y_label
             Label to apply to the y-axis.
@@ -259,8 +282,8 @@ class SeabornLikeLinePlotter:
         if color_var_label is None:
             color_var_label = get_default_color_var_label(color_var)
 
-        if linestyle_var is not None and linestyle_var_label is None:
-            linestyle_var_label = get_default_linestyle_var_label(linestyle_var)
+        if marker_var is not None and marker_var_label is None:
+            marker_var_label = get_default_marker_var_label(marker_var)
 
         palette_complete = fill_out_palette(
             df,
@@ -269,47 +292,55 @@ class SeabornLikeLinePlotter:
             warn_on_value_missing=warn_on_palette_value_missing,
         )
 
-        if linestyle_var is not None:
-            group_cols = [color_var, linestyle_var]
-            dashes_complete = fill_out_dashes(
+        if marker_var is not None:
+            group_cols = [color_var, marker_var]
+            markers_complete = fill_out_markers(
                 df,
-                linestyle_index_level=linestyle_var,
-                dashes_user_supplied=dashes,
-                warn_on_value_missing=warn_on_dashes_value_missing,
+                marker_index_level=marker_var,
+                markers_user_supplied=markers,
+                warn_on_value_missing=warn_on_marker_value_missing,
             )
 
         else:
             group_cols = [color_var]
-            dashes_complete = None
+            markers_complete = None
 
-        lines: list[SingleLinePlotter] = []
+        scatters: list[SingleScatterPlotter] = []
         for info, gdf in df.groupby(group_cols, observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
 
             colour = palette_complete[info_d[color_var]]
 
-            if linestyle_var is not None:
-                if dashes_complete is None:  # pragma: no cover
+            if marker_var is not None:
+                if markers_complete is None:  # pragma: no cover
                     # should be impossible to hit this
                     raise AssertionError
-                linestyle = dashes_complete[info_d[linestyle_var]]
+                marker = markers_complete[info_d[marker_var]]
 
             else:
-                linestyle = "-"
+                marker = "-"
 
-            line_plotter = SingleLinePlotter(
-                *get_values_line(
+            scatter_plotter = SingleScatterPlotter(
+                *get_values_scatter(
                     gdf,
                     unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
                     unit_var=unit_var,
-                    time_units=time_units,
+                    # some info about how to get the values has to go here
                 ),
-                linewidth=linewidth,
-                linestyle=linestyle,
+                marker=marker,
+                size=size,
                 color=colour,
                 alpha=alpha,
             )
-            lines.append(line_plotter)
+            scatters.append(scatter_plotter)
+
+        x_label = handle_axis_label_inference_from_unit_information(
+            label=x_label,
+            unit_aware=unit_aware,
+            pandas_obj=df,
+            unit_index_level=unit_var,
+            warn_infer_label_with_multi_unit=warn_infer_x_label_with_multi_unit,
+        )
 
         y_label = handle_axis_label_inference_from_unit_information(
             label=y_label,
@@ -319,12 +350,12 @@ class SeabornLikeLinePlotter:
             warn_infer_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
         )
 
-        res = SeabornLikeLinePlotter(
-            lines=lines,
+        res = SeabornLikeScatterPlotter(
+            scatters=scatters,
             color_var_label=color_var_label,
-            linestyle_var_label=linestyle_var_label,
+            linestyle_var_label=marker_var_label,
             palette=palette_complete,
-            dashes=dashes_complete,
+            markers=markers_complete,
             x_label=x_label,
             y_label=y_label,
         )
@@ -356,7 +387,8 @@ class SeabornLikeLinePlotter:
             mpatches.Patch(alpha=0, label=self.color_var_label),
             *color_items,
         ]
-        if self.dashes is not None:
+        if self.markers is not None:
+            raise NotImplementedError
             style_items = [
                 mlines.Line2D(
                     [],
@@ -408,8 +440,8 @@ class SeabornLikeLinePlotter:
 
             _, ax = plt.subplots()
 
-        for line in self.lines:
-            line.plot(ax=ax)
+        for scatter in self.scatters:
+            scatter.plot(ax=ax)
 
         create_legend(ax, self.generate_legend_handles())
 
