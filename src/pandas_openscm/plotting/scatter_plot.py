@@ -15,12 +15,15 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
+    overload,
 )
 
 import pandas as pd
 from attrs import define, field
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
+from pandas_openscm.indexing import mi_loc
 from pandas_openscm.plotting.axis_labels import (
     handle_axis_label_inference_from_unit_information,
 )
@@ -28,6 +31,7 @@ from pandas_openscm.plotting.data_validation import is_same_shape_as_x_vals
 from pandas_openscm.plotting.from_pandas_helpers import (
     fill_out_palette,
     get_default_color_var_label,
+    get_default_marker_var_label,
 )
 from pandas_openscm.plotting.legend import create_legend_default
 
@@ -41,6 +45,126 @@ if TYPE_CHECKING:
         PALETTE_LIKE,
     )
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
+
+
+@overload
+def get_values_scatter(
+    pseries: pd.Series,
+    *,
+    unit_aware: Literal[False],
+    unit_var: str | None,
+    stack_index_level: Any,
+    x_stacked_column: Any,
+    y_stacked_column: Any,
+) -> tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]: ...
+
+
+@overload
+def get_values_scatter(
+    pseries: pd.Series,
+    *,
+    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_var: str | None,
+    stack_index_level: Any,
+    x_stacked_column: Any,
+    y_stacked_column: Any,
+) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
+
+
+def get_values_scatter(  # noqa: PLR0913
+    pseries: pd.Series,
+    *,
+    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_var: str | None,
+    stack_index_level: Any,
+    x_stacked_column: Any,
+    y_stacked_column: Any,
+) -> (
+    tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
+    | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
+):
+    """
+    Get values for plotting a scatter
+
+    Parameters
+    ----------
+    pseries
+        [pd.Series][pandas.Series] from which to get the values
+
+    unit_aware
+        Should the values be unit-aware?
+
+        If `True`, we use the default application registry
+        (retrieved with [pint.get_application_registry][]).
+        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+
+    unit_var
+        Variable/column in the multi-index which stores information
+        about the unit of the data.
+
+    stack_index_level
+        Index level to stack
+
+    x_stacked_column
+        Column to use for x-values after stacking `stack_index_level`.
+
+    y_stacked_column
+        Column to use for y-values after stacking `stack_index_level`.
+
+    Returns
+    -------
+    x_values :
+        x-values (for a plot)
+
+    y_values :
+        y-values (for a plot)
+
+    Raises
+    ------
+    TypeError
+        `unit_aware` is not `False` and `unit_var`.
+
+    MissingOptionalDependencyError
+        `unit_aware` is `True`
+        and [pint](https://pint.readthedocs.io/) is not installed.
+    """
+    pseries_stacked = pseries.reset_index(unit_var, drop=True).unstack(
+        stack_index_level
+    )
+    res_no_units = (
+        pseries_stacked[x_stacked_column].values.squeeze(),
+        pseries_stacked[y_stacked_column].values.squeeze(),
+    )
+    if not unit_aware:
+        return res_no_units
+
+    if unit_var is None:
+        msg = "If `unit_aware` != False, then `unit_var` must not be `None`"
+        raise TypeError(msg)
+
+    if time_units is None:
+        msg = "If `unit_aware` != False, then `time_units` must not be `None`"
+        raise TypeError(msg)
+
+    if isinstance(unit_aware, bool):
+        try:
+            import pint
+        except ImportError as exc:
+            raise MissingOptionalDependencyError(  # noqa: TRY003
+                "get_values_scatter(..., unit_aware=True, ...)", requirement="pint"
+            ) from exc
+
+        ur = pint.get_application_registry()  # type: ignore
+
+    else:
+        ur = unit_aware
+
+    res = (
+        res_no_units[0] * ur(time_units),
+        res_no_units[1] * ur(extract_single_unit(pdf, unit_var)),
+    )
+
+    return res
 
 
 @define
@@ -150,27 +274,13 @@ class SeabornLikeScatterPlotter:
     """Label to apply to the y-axis (if `None`, no label is applied)"""
 
     @classmethod
-    def from_df(  # noqa: PLR0913 # object creation code is the worst
+    def from_series(  # noqa: PLR0913 # object creation code is the worst
         cls,
-        df: pd.DataFrame,
+        series: pd.Series,
         *,
-        # Need something like
-        # stack_index_level: Any,
-        # which is the index level that you need to stack
-        # in order to get access to the columns that you want.
-        # Then also need
-        # x_stacked_column: Any,
-        # y_stacked_column: Any,
-        # for the columns to use once the data has been stacked.
-        # e.g. stack_index_level = "variable",
-        # x_stacked_column = "co2",
-        # y_stacked_column = "ch4",
-        # or stack_index_level = "region",
-        # x_stacked_column = "chn",
-        # y_stacked_column = "eu".
-        # Then the stacking handles the complication
-        # of stacking and figuring out what the unit
-        # of the stacked data is.
+        stack_index_level: Any,
+        x_stacked_column: Any,
+        y_stacked_column: Any,
         color_var: str = "scenario",
         color_var_label: str | None = None,
         palette: PALETTE_LIKE[Any] | None = None,
@@ -184,7 +294,8 @@ class SeabornLikeScatterPlotter:
         unit_var: str | None = "unit",
         unit_aware: bool | pint.facets.PlainRegistry = False,
         time_units: str | None = None,
-        x_label: str | None = "time",
+        x_label: str | bool | None = True,
+        warn_infer_x_label_with_multi_unit: bool = True,
         y_label: str | bool | None = True,
         warn_infer_y_label_with_multi_unit: bool = True,
         observed: bool = True,
@@ -194,8 +305,23 @@ class SeabornLikeScatterPlotter:
 
         Parameters
         ----------
-        df
-            [pd.DataFrame][pandas.DataFrame] from which to initialise
+        series
+            [pd.Series][pandas.Series] from which to initialise
+
+        stack_index_level
+            Index level to stack
+
+        x_stacked_column
+            Column to use as the x-axis
+
+            This value should be a value from `stack_index_level`
+            (so will be a column name once `series` is unstacked).
+
+        y_stacked_column
+            Column to use as the y-axis
+
+            This value should be a value from `stack_index_level`
+            (so will be a column name once `series` is unstacked).
 
         color_var
             Variable to use for grouping data into different colour groups
@@ -286,7 +412,7 @@ class SeabornLikeScatterPlotter:
             marker_var_label = get_default_marker_var_label(marker_var)
 
         palette_complete = fill_out_palette(
-            df,
+            series,
             color_index_level=color_var,
             palette_user_supplied=palette,
             warn_on_value_missing=warn_on_palette_value_missing,
@@ -295,7 +421,7 @@ class SeabornLikeScatterPlotter:
         if marker_var is not None:
             group_cols = [color_var, marker_var]
             markers_complete = fill_out_markers(
-                df,
+                series,
                 marker_index_level=marker_var,
                 markers_user_supplied=markers,
                 warn_on_value_missing=warn_on_marker_value_missing,
@@ -306,7 +432,7 @@ class SeabornLikeScatterPlotter:
             markers_complete = None
 
         scatters: list[SingleScatterPlotter] = []
-        for info, gdf in df.groupby(group_cols, observed=observed):
+        for info, gseries in series.groupby(group_cols, observed=observed):
             info_d = {k: v for k, v in zip(group_cols, info)}
 
             colour = palette_complete[info_d[color_var]]
@@ -318,14 +444,16 @@ class SeabornLikeScatterPlotter:
                 marker = markers_complete[info_d[marker_var]]
 
             else:
-                marker = "-"
+                marker = "x"
 
             scatter_plotter = SingleScatterPlotter(
                 *get_values_scatter(
-                    gdf,
+                    gseries,
                     unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
                     unit_var=unit_var,
-                    # some info about how to get the values has to go here
+                    stack_index_level=stack_index_level,
+                    x_stacked_column=x_stacked_column,
+                    y_stacked_column=y_stacked_column,
                 ),
                 marker=marker,
                 size=size,
@@ -334,18 +462,89 @@ class SeabornLikeScatterPlotter:
             )
             scatters.append(scatter_plotter)
 
-        x_label = handle_axis_label_inference_from_unit_information(
-            label=x_label,
-            unit_aware=unit_aware,
-            pandas_obj=df,
-            unit_index_level=unit_var,
-            warn_infer_label_with_multi_unit=warn_infer_x_label_with_multi_unit,
+        series_x_relevant = mi_loc(
+            series, pd.Index([x_stacked_column], name=stack_index_level)
+        )
+        series_y_relevant = mi_loc(
+            series, pd.Index([y_stacked_column], name=stack_index_level)
         )
 
-        y_label = handle_axis_label_inference_from_unit_information(
+        # TODO: split this back out
+        # Logic applies to label, not unit label generation (?)
+        # if isinstance(x_label, str) or x_label is None:
+        #     # Don't add units to labels
+        #     # TODO: consider giving option for units to be formatted
+        #     # by some input function
+        #     # (so user controls label, but units are injected)
+        #     x_label_units = None
+        #
+        # if isinstance(x_label, bool) and not x_label:
+        #     # No label to be generated, convert to None
+        #     x_label_units = None
+
+        if unit_var is None:
+            # Nothing to generate from
+            x_label_units = None
+
+        if not isinstance(x_label, bool):
+            msg = f"{type(x_label)} are not supported. {x_label=}"
+            raise TypeError(msg)
+
+        # No unit-aware plotting for scatter plots,
+        # always want x_stacked_column and y_stacked_column in axis labels
+        # by default.
+        # # label is `True` from here on
+        # if unit_aware:
+        #     # Let unit-aware plotting do its thing
+        #     x_label = None
+
+        # Try to infer label
+        if unit_var not in series.index.names:
+            warnings.warn(
+                "Not auto-generating the label "
+                f"because {unit_var=} is not in {series.index.names=}",
+                stacklevel=3,
+            )
+            return None
+
+        values_units = series_x_relevant.index.get_level_values(unit_var)
+        units_s = set(values_units)
+        if len(units_s) == 1:
+            x_label_units = values_units[0]
+        else:
+            # More than one unit plotted, don't infer a label
+            if warn_infer_x_label_with_multi_unit:
+                warnings.warn(
+                    "Not auto-generating the label "
+                    "because the data has more than one unit: "
+                    f"data units {sorted(units_s)}",
+                    stacklevel=3,
+                )
+
+            x_label_units = None
+
+        if isinstance(x_label, str) or x_label is None:
+            x_label = x_label
+        elif isinstance(x_label, bool) and not x_label:
+            x_label = None
+        elif not isinstance(x_label, bool):
+            msg = f"{type(x_label)} are not supported. {x_label=}"
+            raise TypeError(msg)
+        else:
+            x_label = f"{x_stacked_column} [{x_label_units}]"
+
+        # x_label_units = handle_axis_label_inference_from_unit_information(
+        #     label=x_label,
+        #     unit_aware=unit_aware,
+        #     pandas_obj=series_x_relevant,
+        #     unit_index_level=unit_var,
+        #     warn_infer_label_with_multi_unit=warn_infer_x_label_with_multi_unit,
+        # )
+
+        y_label_units = handle_axis_label_inference_from_unit_information(
             label=y_label,
             unit_aware=unit_aware,
-            pandas_obj=df,
+            pandas_obj=series_y_relevant,
             unit_index_level=unit_var,
             warn_infer_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
         )
@@ -353,7 +552,7 @@ class SeabornLikeScatterPlotter:
         res = SeabornLikeScatterPlotter(
             scatters=scatters,
             color_var_label=color_var_label,
-            linestyle_var_label=marker_var_label,
+            marker_var_label=marker_var_label,
             palette=palette_complete,
             markers=markers_complete,
             x_label=x_label,

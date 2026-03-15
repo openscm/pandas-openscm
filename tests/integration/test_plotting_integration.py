@@ -25,6 +25,7 @@ from pandas_openscm.index_manipulation import (
 from pandas_openscm.plotting import (
     PlumePlotter,
     SeabornLikeLinePlotter,
+    SeabornLikeScatterPlotter,
     SingleLinePlotter,
     plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
@@ -1142,6 +1143,12 @@ def test_plot_line_default(
     plt.close()
 
 
+# Tests:
+# - series: region
+# - series: variable
+# - dataframe
+# - dataframe stacked without naming
+#   (should error if you try to use hue="year" but there is no "year")
 def test_plot_scatter_default(
     tmp_path,
     image_regression,
@@ -1153,44 +1160,44 @@ def test_plot_scatter_default(
                 create_test_df(
                     variables=(("co2", "GtC / yr"),),
                     n_scenarios=5,
-                    n_runs=1,
+                    n_runs=5,
                     timepoints=np.arange(1950.0, 1965.0),
                     rng=np.random.default_rng(seed=19487),
                 ),
-                {"region": region},
+                {"region": region, "unit": unit},
             )
-            for region in ["chn", "eu", "can"]
+            for region, unit in zip(
+                ["chn", "eu", "can"], ["GtC / yr", "GtC/yr", "GtCO2 / yr"]
+            )
         ]
     )
-    # breakpoint()
-    # Tests:
-    # - series
-    # - dataframe
-    # - dataframe stacked without naming
-    #   (should error if you try to use hue="year" but there is no "year")
-    df[[1954, 1955]].rename_axis(columns="year").stack()
 
-    df[1955].unstack("variable")
-    df[1955].unstack("variable").reset_index("unit", drop=True)
-    df.index.droplevel(df.index.names.difference(["variable", "unit"]))
-    unit_variable_combos = (
-        df.index.droplevel(df.index.names.difference(["variable", "unit"]))
-        .drop_duplicates()
-        .to_frame(index=False)
+    plotter = SeabornLikeScatterPlotter.from_series(
+        series=df[1955],
+        stack_index_level="region",
+        x_stacked_column="chn",
+        y_stacked_column="eu",
     )
-    n_units_per_variable = unit_variable_combos["variable"].value_counts()
-    if (n_units_per_variable > 1).any():
-        # More than one unit for the given value of stack_index_level.
-        multi_unit_info = unit_variable_combos.set_index("variable").loc[
-            n_units_per_variable[n_units_per_variable > 1].index
-        ]
-        # # if warn
-        # msg = f"{{variable}} has more than one unit: {multi_unit_info}"
-        # warnings.warn(msg)
 
-    plotter = SeabornLikeScatterPlotter.from_df(
-        df,
-    )
+    # df[[1954, 1955]].rename_axis(columns="year").stack()
+    #
+    # df[1955].unstack("variable")
+    # df[1955].unstack("variable").reset_index("unit", drop=True)
+    # df.index.droplevel(df.index.names.difference(["variable", "unit"]))
+    # unit_variable_combos = (
+    #     df.index.droplevel(df.index.names.difference(["variable", "unit"]))
+    #     .drop_duplicates()
+    #     .to_frame(index=False)
+    # )
+    # n_units_per_variable = unit_variable_combos["variable"].value_counts()
+    # if (n_units_per_variable > 1).any():
+    #     # More than one unit for the given value of stack_index_level.
+    #     multi_unit_info = unit_variable_combos.set_index("variable").loc[
+    #         n_units_per_variable[n_units_per_variable > 1].index
+    #     ]
+    #     # # if warn
+    #     # msg = f"{{variable}} has more than one unit: {multi_unit_info}"
+    #     # warnings.warn(msg)
 
     fig, ax = plt.subplots()
     plotter.plot(ax=ax)
@@ -1209,32 +1216,17 @@ def test_plot_scatter_variable_stack(
     setup_pandas_accessors,
 ):
     df = create_test_df(
-        variables=(("co2", "GtC / yr"), ("co2", "GtCO2 / yr"), ("ch4", "Mt CH4/yr")),
+        variables=(("co2", "GtC / yr"), ("n2o", "MtN2O / yr"), ("ch4", "Mt CH4/yr")),
         n_scenarios=5,
         n_runs=1,
         timepoints=np.arange(1950.0, 1965.0),
         rng=np.random.default_rng(seed=19487),
     )
-    df[1955].unstack("variable")
-    df[1955].unstack("variable").reset_index("unit", drop=True)
-    df.index.droplevel(df.index.names.difference(["variable", "unit"]))
-    unit_variable_combos = (
-        df.index.droplevel(df.index.names.difference(["variable", "unit"]))
-        .drop_duplicates()
-        .to_frame(index=False)
-    )
-    n_units_per_variable = unit_variable_combos["variable"].value_counts()
-    if (n_units_per_variable > 1).any():
-        # More than one unit for the given value of stack_index_level.
-        multi_unit_info = unit_variable_combos.set_index("variable").loc[
-            n_units_per_variable[n_units_per_variable > 1].index
-        ]
-        # # if warn
-        # msg = f"{{variable}} has more than one unit: {multi_unit_info}"
-        # warnings.warn(msg)
-
-    plotter = SeabornLikeScatterPlotter.from_df(
-        df,
+    plotter = SeabornLikeScatterPlotter.from_series(
+        series=df[1955],
+        stack_index_level="variable",
+        x_stacked_column="co2",
+        y_stacked_column="ch4",
     )
 
     fig, ax = plt.subplots()

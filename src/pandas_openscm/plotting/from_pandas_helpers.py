@@ -295,6 +295,25 @@ def get_default_linestyle_var_label(linestyle_var: str) -> str:
     return linestyle_var_label
 
 
+def get_default_marker_var_label(marker_var: str) -> str:
+    """
+    Get default marker variable label
+
+    Parameters
+    ----------
+    marker_var
+        Marker variable
+
+    Returns
+    -------
+    :
+        Default marker variable label
+    """
+    marker_var_label = marker_var.capitalize()
+
+    return marker_var_label
+
+
 def get_default_quantile_var_label(quantile_var: str) -> str:
     """
     Get default quantile variable label

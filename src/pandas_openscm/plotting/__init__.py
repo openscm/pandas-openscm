@@ -11,10 +11,12 @@ from pandas_openscm.plotting.plume_plot import (
     plot_plume_after_calculating_quantiles_func,
     plot_plume_func,
 )
+from pandas_openscm.plotting.scatter_plot import SeabornLikeScatterPlotter
 
 __all__ = [
     "PlumePlotter",
     "SeabornLikeLinePlotter",
+    "SeabornLikeScatterPlotter",
     "SingleLinePlotter",
     "create_legend_default",
     "plot_plume_after_calculating_quantiles_func",
