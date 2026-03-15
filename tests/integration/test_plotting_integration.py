@@ -19,6 +19,9 @@ from packaging.version import parse
 
 import pandas_openscm
 from pandas_openscm.exceptions import MissingOptionalDependencyError
+from pandas_openscm.index_manipulation import (
+    set_index_levels_func,
+)
 from pandas_openscm.plotting import (
     PlumePlotter,
     SeabornLikeLinePlotter,
@@ -1140,6 +1143,67 @@ def test_plot_line_default(
 
 
 def test_plot_scatter_default(
+    tmp_path,
+    image_regression,
+    setup_pandas_accessors,
+):
+    df = pd.concat(
+        [
+            set_index_levels_func(
+                create_test_df(
+                    variables=(("co2", "GtC / yr"),),
+                    n_scenarios=5,
+                    n_runs=1,
+                    timepoints=np.arange(1950.0, 1965.0),
+                    rng=np.random.default_rng(seed=19487),
+                ),
+                {"region": region},
+            )
+            for region in ["chn", "eu", "can"]
+        ]
+    )
+    # breakpoint()
+    # Tests:
+    # - series
+    # - dataframe
+    # - dataframe stacked without naming
+    #   (should error if you try to use hue="year" but there is no "year")
+    df[[1954, 1955]].rename_axis(columns="year").stack()
+
+    df[1955].unstack("variable")
+    df[1955].unstack("variable").reset_index("unit", drop=True)
+    df.index.droplevel(df.index.names.difference(["variable", "unit"]))
+    unit_variable_combos = (
+        df.index.droplevel(df.index.names.difference(["variable", "unit"]))
+        .drop_duplicates()
+        .to_frame(index=False)
+    )
+    n_units_per_variable = unit_variable_combos["variable"].value_counts()
+    if (n_units_per_variable > 1).any():
+        # More than one unit for the given value of stack_index_level.
+        multi_unit_info = unit_variable_combos.set_index("variable").loc[
+            n_units_per_variable[n_units_per_variable > 1].index
+        ]
+        # # if warn
+        # msg = f"{{variable}} has more than one unit: {multi_unit_info}"
+        # warnings.warn(msg)
+
+    plotter = SeabornLikeScatterPlotter.from_df(
+        df,
+    )
+
+    fig, ax = plt.subplots()
+    plotter.plot(ax=ax)
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(out_file, bbox_extra_artists=(ax.get_legend(),), bbox_inches="tight")
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+
+def test_plot_scatter_variable_stack(
     tmp_path,
     image_regression,
     setup_pandas_accessors,
