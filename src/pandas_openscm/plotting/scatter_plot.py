@@ -25,7 +25,9 @@ from attrs import define, field
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 from pandas_openscm.indexing import mi_loc
 from pandas_openscm.plotting.axis_labels import (
-    handle_axis_label_inference_from_unit_information,
+    cast_label_false_to_none,
+    infer_label,
+    try_to_get_unit_label,
 )
 from pandas_openscm.plotting.data_validation import is_same_shape_as_x_vals
 from pandas_openscm.plotting.from_pandas_helpers import (
@@ -163,6 +165,69 @@ def get_values_scatter(  # noqa: PLR0913
         res_no_units[0] * ur(time_units),
         res_no_units[1] * ur(extract_single_unit(pdf, unit_var)),
     )
+
+    return res
+
+
+def get_axis_label(
+    stacked_column: Any,
+    label_in: str | bool | None,
+    pseries: pd.Series[Any],
+    unit_index_level: str,
+    warn_infer_label_with_multi_unit: bool,
+) -> str | None:
+    """
+    Get axis label
+
+    Parameters
+    ----------
+    stacked_column
+        Stacked column being plotted
+
+    label_in
+        Input value of the label.
+
+        If a `str`, `label_in` is simply returned.
+
+        If `True`, we will try and infer the label based on the data's units.
+        If we can get the units, the label will combine the column being plotted
+        and the units.
+        If we can't get the units, the label will simply be the column being plotted.
+
+        If `None` or `False`, `None` is returned.
+
+    pseries
+        [pd.Series][pandas.Series] being plotted
+
+    unit_index_level
+        Level in `pseries.index` which contains unit information
+
+    warn_infer_label_with_multi_unit
+        Should a warning be raised if we try to infer the unit
+        but the data has more than one unit?
+
+    Returns
+    -------
+    :
+        Derived label
+    """
+    if infer_label(label_in):
+        label_units = try_to_get_unit_label(
+            # No unit-aware plotting for scatter plots,
+            # always want x_stacked_column and y_stacked_column in axis labels
+            # by default.
+            unit_aware=False,
+            pandas_obj=pseries,
+            unit_index_level=unit_index_level,
+            warn_infer_label_with_multi_unit=warn_infer_label_with_multi_unit,
+        )
+        if label_units is not None:
+            res = f"{stacked_column} [{label_units}]"
+        else:
+            res = stacked_column
+
+    else:
+        res = cast_label_false_to_none(label_in)
 
     return res
 
@@ -380,7 +445,7 @@ class SeabornLikeScatterPlotter:
 
             If `True`, we will try and infer the x-label based on the data's units.
 
-            If `None`, no label will be applied.
+            If `None` or `False`, no label will be applied.
 
         warn_infer_x_label_with_multi_unit
             Should a warning be raised if we try to infer the x-unit
@@ -391,7 +456,7 @@ class SeabornLikeScatterPlotter:
 
             If `True`, we will try and infer the y-label based on the data's units.
 
-            If `None`, no label will be applied.
+            If `None` or `False`, no label will be applied.
 
         warn_infer_y_label_with_multi_unit
             Should a warning be raised if we try to infer the y-unit
@@ -469,82 +534,18 @@ class SeabornLikeScatterPlotter:
             series, pd.Index([y_stacked_column], name=stack_index_level)
         )
 
-        # TODO: split this back out
-        # Logic applies to label, not unit label generation (?)
-        # if isinstance(x_label, str) or x_label is None:
-        #     # Don't add units to labels
-        #     # TODO: consider giving option for units to be formatted
-        #     # by some input function
-        #     # (so user controls label, but units are injected)
-        #     x_label_units = None
-        #
-        # if isinstance(x_label, bool) and not x_label:
-        #     # No label to be generated, convert to None
-        #     x_label_units = None
+        x_label = get_axis_label(
+            stacked_column=x_stacked_column,
+            label_in=x_label,
+            pseries=series_x_relevant,
+            unit_index_level=unit_var,
+            warn_infer_label_with_multi_unit=warn_infer_x_label_with_multi_unit,
+        )
 
-        if unit_var is None:
-            # Nothing to generate from
-            x_label_units = None
-
-        if not isinstance(x_label, bool):
-            msg = f"{type(x_label)} are not supported. {x_label=}"
-            raise TypeError(msg)
-
-        # No unit-aware plotting for scatter plots,
-        # always want x_stacked_column and y_stacked_column in axis labels
-        # by default.
-        # # label is `True` from here on
-        # if unit_aware:
-        #     # Let unit-aware plotting do its thing
-        #     x_label = None
-
-        # Try to infer label
-        if unit_var not in series.index.names:
-            warnings.warn(
-                "Not auto-generating the label "
-                f"because {unit_var=} is not in {series.index.names=}",
-                stacklevel=3,
-            )
-            return None
-
-        values_units = series_x_relevant.index.get_level_values(unit_var)
-        units_s = set(values_units)
-        if len(units_s) == 1:
-            x_label_units = values_units[0]
-        else:
-            # More than one unit plotted, don't infer a label
-            if warn_infer_x_label_with_multi_unit:
-                warnings.warn(
-                    "Not auto-generating the label "
-                    "because the data has more than one unit: "
-                    f"data units {sorted(units_s)}",
-                    stacklevel=3,
-                )
-
-            x_label_units = None
-
-        if isinstance(x_label, str) or x_label is None:
-            x_label = x_label
-        elif isinstance(x_label, bool) and not x_label:
-            x_label = None
-        elif not isinstance(x_label, bool):
-            msg = f"{type(x_label)} are not supported. {x_label=}"
-            raise TypeError(msg)
-        else:
-            x_label = f"{x_stacked_column} [{x_label_units}]"
-
-        # x_label_units = handle_axis_label_inference_from_unit_information(
-        #     label=x_label,
-        #     unit_aware=unit_aware,
-        #     pandas_obj=series_x_relevant,
-        #     unit_index_level=unit_var,
-        #     warn_infer_label_with_multi_unit=warn_infer_x_label_with_multi_unit,
-        # )
-
-        y_label_units = handle_axis_label_inference_from_unit_information(
-            label=y_label,
-            unit_aware=unit_aware,
-            pandas_obj=series_y_relevant,
+        y_label = get_axis_label(
+            stacked_column=y_stacked_column,
+            label_in=y_label,
+            pseries=series_y_relevant,
             unit_index_level=unit_var,
             warn_infer_label_with_multi_unit=warn_infer_y_label_with_multi_unit,
         )
