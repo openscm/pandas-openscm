@@ -171,5 +171,5 @@ def test_handle_axis_label_inference_from_unit_information(  # noqa: PLR0913
             warn_infer_label_with_multi_unit=warn_infer_label_with_multi_unit,
         )
 
-    if exp is not None:
+    if isinstance(exp_warn_error, does_not_raise):
         assert res == exp

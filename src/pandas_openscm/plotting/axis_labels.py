@@ -60,9 +60,13 @@ def handle_axis_label_inference_from_unit_information(
     :
         Axis label to use when plotting.
     """
-    if isinstance(label, str) or label is None or not label:
+    if isinstance(label, str) or label is None:
         # Use user-supplied value
         return label
+
+    if isinstance(label, bool) and not label:
+        # No label to be generated, convert to None
+        return None
 
     if unit_index_level is None:
         # Nothing to generate from
@@ -72,12 +76,13 @@ def handle_axis_label_inference_from_unit_information(
         msg = f"{type(label)} are not supported. {label=}"
         raise TypeError(msg)
 
-    # y_label is `True` from here on
+    # label is `True` from here on
     if unit_aware:
         # Let unit-aware plotting do its thing
         return None
 
-    # Try to infer y-label
+    # TODO: split here so the unit inference stuff can be re-used for scatter plots
+    # Try to infer label
     if unit_index_level not in pandas_obj.index.names:
         warnings.warn(
             "Not auto-generating the label "
@@ -91,7 +96,7 @@ def handle_axis_label_inference_from_unit_information(
     if len(units_s) == 1:
         label = values_units[0]
     else:
-        # More than one unit plotted, don't infer a y-label
+        # More than one unit plotted, don't infer a label
         if warn_infer_label_with_multi_unit:
             warnings.warn(
                 "Not auto-generating the label "
