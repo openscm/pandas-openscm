@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from pandas_openscm.plotting.typing import (
         COLOUR_VALUE_LIKE,
         DASH_VALUE_LIKE,
+        MARKER_VALUE_LIKE,
         PALETTE_LIKE,
     )
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
@@ -174,6 +175,83 @@ def fill_out_dashes(
         )
 
     return dashes_out
+
+
+def fill_out_markers(
+    pandas_obj: P,
+    marker_index_level: str,
+    markers_user_supplied: dict[T, MARKER_VALUE_LIKE] | None,
+    warn_on_value_missing: bool,
+) -> dict[T, MARKER_VALUE_LIKE]:
+    """
+    Fill out markers
+
+    Parameters
+    ----------
+    pandas_obj
+        Pandas object for which to fill out the markers
+
+    marker_index_level
+        Index level in `pandas_obj` from which to get the values
+        which require a value in the output markers
+
+    markers_user_supplied
+        User-supplied markers
+
+    warn_on_value_missing
+        Should a warning be emitted if `markers_user_supplied` is not `None`
+        but there are values missing from `markers_user_supplied`?
+
+    Returns
+    -------
+    :
+        markers with values for all values of `marker_index_level`
+
+    Warns
+    -----
+    UserWarning
+        `warn_on_value_missing` is `True`,
+        `markers_user_supplied` is not `None`
+        and there are values in `marker_index_level`
+        which are not in `markers_user_supplied`.
+    """
+    marker_values = pandas_obj.index.get_level_values(marker_index_level).unique()
+
+    if markers_user_supplied is None:
+        # Make it all ourselves.
+        # Don't warn as the user didn't set any values
+        # so it is clear they want us to fill in everything.
+        marker_cycler = get_default_marker_cycler()
+        markers_out = {v: next(marker_cycler) for v in marker_values}
+
+        return markers_out
+
+    # User-supplied markers
+    missing_from_user_supplied = [
+        v for v in marker_values if v not in markers_user_supplied
+    ]
+    if not missing_from_user_supplied:
+        # Just return the values we need
+        return {v: markers_user_supplied[v] for v in marker_values}
+
+    if warn_on_value_missing:
+        msg = (
+            f"Some marker values are not in the user-supplied markers, "
+            "they will be filled from the default marker cycler instead. "
+            f"{missing_from_user_supplied=} {markers_user_supplied=}"
+        )
+        warnings.warn(msg)
+
+    markers_out = {}
+    marker_cycler = get_default_marker_cycler()
+    for v in marker_values:
+        markers_out[v] = (
+            markers_user_supplied[v]
+            if v in markers_user_supplied
+            else next(marker_cycler)
+        )
+
+    return markers_out
 
 
 def fill_out_palette(

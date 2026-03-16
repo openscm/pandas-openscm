@@ -31,6 +31,7 @@ from pandas_openscm.plotting.axis_labels import (
 )
 from pandas_openscm.plotting.data_validation import is_same_shape_as_x_vals
 from pandas_openscm.plotting.from_pandas_helpers import (
+    fill_out_markers,
     fill_out_palette,
     get_default_color_var_label,
     get_default_marker_var_label,
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
 
     from pandas_openscm.plotting.typing import (
         COLOUR_VALUE_LIKE,
+        MARKER_VALUE_LIKE,
         PALETTE_LIKE,
     )
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
@@ -244,7 +246,7 @@ class SingleScatterPlotter:
     )
     """y-values to plot"""
 
-    marker: str | matplotlib.markers.MarkerStyle
+    marker: MARKER_VALUE_LIKE
     """Marker to use when plotting the scatter"""
 
     size: float
@@ -327,7 +329,7 @@ class SeabornLikeScatterPlotter:
     Palette used for different values of the variable by which scatters are coloured
     """
 
-    markers: dict[Any, str | matplotlib.markers.MarkerStyle] | None
+    markers: dict[Any, MARKER_VALUE_LIKE] | None
     """
     Markers used for different values of the variable by which scatters are styled
     """
@@ -352,13 +354,12 @@ class SeabornLikeScatterPlotter:
         warn_on_palette_value_missing: bool = True,
         marker_var: str | None = None,
         marker_var_label: str | None = None,
-        markers: dict[Any, str | matplotlib.markers.MarkerStyle] | None = None,
+        markers: dict[Any, MARKER_VALUE_LIKE] | None = None,
         warn_on_marker_value_missing: bool = True,
         size: float = 30.0,
         alpha: float = 0.8,
         unit_var: str | None = "unit",
         unit_aware: bool | pint.facets.PlainRegistry = False,
-        time_units: str | None = None,
         x_label: str | bool | None = True,
         warn_infer_x_label_with_multi_unit: bool = True,
         y_label: str | bool | None = True,
@@ -434,11 +435,6 @@ class SeabornLikeScatterPlotter:
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
             Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
-
-        time_units
-            Units of the time axis of the data.
-
-            These are required if `unit_aware` is not `False`.
 
         x_label
             Label to apply to the x-axis.

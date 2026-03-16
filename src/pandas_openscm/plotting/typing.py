@@ -12,7 +12,10 @@ from typing import (
 )
 
 if TYPE_CHECKING:
+    import matplotlib.markers
     from typing_extensions import TypeAlias
+
+    from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
 
     T = TypeVar("T")
 
@@ -29,6 +32,9 @@ if TYPE_CHECKING:
 
     DASH_VALUE_LIKE: TypeAlias = Union[str, tuple[float, tuple[float, ...]]]
     """Types that allow a dash to be specified in matplotlib"""
+
+    MARKER_VALUE_LIKE: TypeAlias = Union[str, matplotlib.markers.MarkerStyle]
+    """Types that allow a marker to be specified in matplotlib"""
 
     class PALETTE_LIKE(
         Generic[T],

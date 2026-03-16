@@ -736,7 +736,7 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
     openscm_units.unit_registry.setup_matplotlib(enable=False)
 
 
-@pytest.mark.parametrize(
+unit_aware_variables = pytest.mark.parametrize(
     "unit_aware, variables",
     (
         pytest.param(
@@ -754,11 +754,14 @@ def test_plot_plume_after_calculating_quantiles_option_passing(
         ),
     ),
 )
+
+
+@unit_aware_variables
 def test_plot_plume_unit_aware(
     unit_aware, variables, setup_pandas_accessors, image_regression, tmp_path
 ):
     """
-    Make sure that we can do unit-aware plots
+    Make sure that we can do unit-aware plume plots
 
     In other words, even if the units are different,
     if they're compatible, they're plotted with the same units.
@@ -1141,6 +1144,64 @@ def test_plot_line_default(
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
     plt.close()
+
+
+@unit_aware_variables
+def test_plot_scatter_unit_aware(
+    unit_aware, variables, setup_pandas_accessors, image_regression, tmp_path
+):
+    """
+    Make sure that we can do unit-aware scatter plots
+
+    In other words, even if the units are different,
+    if they're compatible, they're plotted with the same units.
+    """
+    if isinstance(unit_aware, bool):
+        pint = pytest.importorskip("pint")
+        ur = pint.get_application_registry()
+    else:
+        ur = unit_aware
+
+    ur.setup_matplotlib(enable=True)
+
+    fig, ax = plt.subplots()
+
+    indf = create_test_df(
+        variables=variables,
+        n_scenarios=3,
+        n_runs=2,
+        timepoints=np.arange(2022, 2023, 1),
+        rng=np.random.default_rng(seed=8888),
+    )
+
+    plotter = SeabornLikeScatterPlotter.from_series(
+        series=indf[2022],
+        stack_index_level="run",
+        x_stacked_column=0,
+        y_stacked_column=1,
+        color_var="scenario",
+        marker_var="variable",
+        unit_aware=True,
+    )
+
+    fig, ax = plt.subplots()
+    res = plotter.plot(ax=ax)
+
+    assert res == ax
+
+    out_file = tmp_path / "fig.png"
+    plt.savefig(
+        out_file,
+        bbox_extra_artists=(ax.get_legend(),),
+        bbox_inches="tight",
+    )
+
+    image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
+
+    plt.close()
+
+    # Teardown
+    ur.setup_matplotlib(enable=False)
 
 
 # Tests:
