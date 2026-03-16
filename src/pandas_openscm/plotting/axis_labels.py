@@ -95,7 +95,19 @@ def infer_label(label: str | bool | None) -> bool:
     -------
     :
         Whether a label should be inferred or not.
+
+    Raises
+    ------
+    TypeError
+        `label` is not an instance of `str` or `bool` or `None`.
     """
+    if not (isinstance(label, (str, bool)) or label is None):
+        msg = (
+            f"{type(label)} is not a supported type for `label`. "
+            f"`label` should be a `str` or `bool` or `None`. {label=}"
+        )
+        raise TypeError(msg)
+
     if isinstance(label, bool) and label:
         return True
 

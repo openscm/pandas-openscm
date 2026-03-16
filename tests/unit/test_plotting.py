@@ -71,7 +71,9 @@ from pandas_openscm.testing import create_test_df
             pytest.raises(
                 TypeError,
                 match=re.escape(
-                    "<class 'list'> are not supported. label=['list', 'of', 'values']"
+                    "<class 'list'> is not a supported type for `label`. "
+                    "`label` should be a `str` or `bool` or `None`. "
+                    "label=['list', 'of', 'values']"
                 ),
             ),
         ),
