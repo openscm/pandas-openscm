@@ -103,6 +103,20 @@ def get_default_dash_cycler() -> Iterator[DASH_VALUE_LIKE]:
     return dash_cycler
 
 
+def get_default_marker_cycler() -> Iterator[MARKER_VALUE_LIKE]:
+    """
+    Get the default marker cycler
+
+    Returns
+    -------
+    :
+        Default marker cycler
+    """
+    marker_cycler = cycle(["o", "+", "x", "*", ".", "P"])
+
+    return marker_cycler
+
+
 def fill_out_dashes(
     pandas_obj: P,
     linestyle_index_level: str,

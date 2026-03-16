@@ -1181,7 +1181,7 @@ def test_plot_scatter_unit_aware(
         y_stacked_column=1,
         color_var="scenario",
         marker_var="variable",
-        unit_aware=True,
+        unit_aware=unit_aware,
     )
 
     fig, ax = plt.subplots()

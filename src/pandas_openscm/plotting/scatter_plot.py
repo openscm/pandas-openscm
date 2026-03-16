@@ -146,10 +146,6 @@ def get_values_scatter(  # noqa: PLR0913
         msg = "If `unit_aware` != False, then `unit_var` must not be `None`"
         raise TypeError(msg)
 
-    if time_units is None:
-        msg = "If `unit_aware` != False, then `time_units` must not be `None`"
-        raise TypeError(msg)
-
     if isinstance(unit_aware, bool):
         try:
             import pint
@@ -163,9 +159,31 @@ def get_values_scatter(  # noqa: PLR0913
     else:
         ur = unit_aware
 
+    x_units = (
+        mi_loc(pseries, pd.Index([x_stacked_column], name=stack_index_level))
+        .index.get_level_values(unit_var)
+        .unique()
+    )
+    if len(x_units) == 1:
+        x_unit = x_units[0]
+    else:
+        msg = "more than one unit for the x-values"
+        raise NotImplementedError(msg)
+
+    y_units = (
+        mi_loc(pseries, pd.Index([y_stacked_column], name=stack_index_level))
+        .index.get_level_values(unit_var)
+        .unique()
+    )
+    if len(y_units) == 1:
+        y_unit = y_units[0]
+    else:
+        msg = "more than one unit for the y-values"
+        raise NotImplementedError(msg)
+
     res = (
-        res_no_units[0] * ur(time_units),
-        res_no_units[1] * ur(extract_single_unit(pdf, unit_var)),
+        res_no_units[0] * ur(x_unit),
+        res_no_units[1] * ur(y_unit),
     )
 
     return res
@@ -221,6 +239,7 @@ def get_axis_label(
             unit_aware=False,
             pandas_obj=pseries,
             unit_index_level=unit_index_level,
+            # TODO: think about how to handle this warning better
             warn_infer_label_with_multi_unit=warn_infer_label_with_multi_unit,
         )
         if label_units is not None:
@@ -584,19 +603,22 @@ class SeabornLikeScatterPlotter:
             *color_items,
         ]
         if self.markers is not None:
-            raise NotImplementedError
-            style_items = [
+            marker_items = [
                 mlines.Line2D(
                     [],
                     [],
-                    linestyle=linestyle,
-                    label=style_value,
-                    color="gray",
+                    color="w",
+                    marker=marker,
+                    label=marker_value,
+                    markerfacecolor="gray",
+                    markeredgecolor="gray",
+                    markeredgewidth=1.0,
+                    # markersize=30,
                 )
-                for style_value, linestyle in self.dashes.items()
+                for marker_value, marker in self.markers.items()
             ]
-            legend_items.append(mpatches.Patch(alpha=0, label=self.linestyle_var_label))
-            legend_items.extend(style_items)
+            legend_items.append(mpatches.Patch(alpha=0, label=self.marker_var_label))
+            legend_items.extend(marker_items)
 
         return legend_items
 
