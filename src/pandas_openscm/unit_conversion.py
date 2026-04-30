@@ -45,7 +45,7 @@ def convert_unit_from_target_series(
     pobj: P,
     desired_units: pd.Series[str],
     unit_level: str = "unit",
-    ur: pint.facets.PlainRegistry | None = None,
+    ur: pint.UnitRegistry | None = None,
 ) -> P:
     """
     Convert `pobj`'s units based on a [pd.Series][pandas.Series]
@@ -185,7 +185,7 @@ def convert_unit(
     pobj: P,
     desired_units: str | Mapping[str, str] | pd.Series[str],
     unit_level: str = "unit",
-    ur: pint.facets.PlainRegistry | None = None,
+    ur: pint.UnitRegistry | None = None,
 ) -> P:
     """
     Convert a supported [pandas][] object's units
@@ -368,7 +368,7 @@ def convert_unit_like(
     target: pd.DataFrame | pd.Series[Any],
     unit_level: str = "unit",
     target_unit_level: str | None = None,
-    ur: pint.facets.PlainRegistry | None = None,
+    ur: pint.UnitRegistry | None = None,
 ) -> P:
     """
     Convert units to match another [pd.DataFrame][pandas.DataFrame]

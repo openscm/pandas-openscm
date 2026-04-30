@@ -210,7 +210,7 @@ def get_values_line(
 def get_values_line(
     pdf: pd.DataFrame,
     *,
-    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_aware: Literal[True] | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
@@ -219,7 +219,7 @@ def get_values_line(
 def get_values_line(
     pdf: pd.DataFrame,
     *,
-    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_aware: bool | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> (
@@ -239,7 +239,7 @@ def get_values_line(
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
     unit_var
         Variable/column in the multi-index which stores information
@@ -318,7 +318,7 @@ def get_values_plume(
     *,
     quantiles: tuple[float, float],
     quantile_var: str,
-    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_aware: Literal[True] | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
@@ -329,7 +329,7 @@ def get_values_plume(  # noqa: PLR0913
     *,
     quantiles: tuple[float, float],
     quantile_var: str,
-    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_aware: bool | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> (
@@ -356,7 +356,7 @@ def get_values_plume(  # noqa: PLR0913
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
     unit_var
         Variable/column in the multi-index which stores information
@@ -860,7 +860,7 @@ class PlumePlotter:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_var: str | None = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry = False,
+        unit_aware: bool | pint.UnitRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -935,7 +935,7 @@ class PlumePlotter:
 
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
-            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+            Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
         time_units
             Units of the time axis of the data.
@@ -1280,7 +1280,7 @@ def plot_plume_func(  # noqa: PLR0913
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 2.0,
     unit_var: str = "unit",
-    unit_aware: bool | pint.facets.PlainRegistry = False,
+    unit_aware: bool | pint.UnitRegistry = False,
     time_units: str | None = None,
     x_label: str | None = "time",
     y_label: str | bool | None = True,
@@ -1367,7 +1367,7 @@ def plot_plume_func(  # noqa: PLR0913
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
         For details, see matplotlib and pint support plotting with units
         ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
@@ -1459,7 +1459,7 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
     unit_var: str = "unit",
-    unit_aware: bool | pint.facets.PlainRegistry = False,
+    unit_aware: bool | pint.UnitRegistry = False,
     time_units: str | None = None,
     x_label: str | None = "time",
     y_label: str | bool | None = True,
@@ -1548,7 +1548,7 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
         For details, see matplotlib and pint support plotting with units
         ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),

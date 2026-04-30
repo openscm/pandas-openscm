@@ -65,7 +65,7 @@ class PandasDataFrameOpenSCMAccessor:
         self,
         desired_units: str | Mapping[str, str] | pd.Series[str],
         unit_level: str = "unit",
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> pd.DataFrame:
         """
         Convert units
@@ -125,7 +125,7 @@ class PandasDataFrameOpenSCMAccessor:
         target: pd.DataFrame | pd.Series[Any],
         unit_level: str = "unit",
         target_unit_level: str | None = None,
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> pd.DataFrame:
         """
         Convert units to match another [pd.DataFrame][pandas.DataFrame]
@@ -321,7 +321,7 @@ class PandasDataFrameOpenSCMAccessor:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 2.0,
         unit_var: str = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry = False,
+        unit_aware: bool | pint.UnitRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -401,7 +401,7 @@ class PandasDataFrameOpenSCMAccessor:
 
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
-            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+            Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
             For details, see matplotlib and pint support plotting with units
             ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
@@ -488,7 +488,7 @@ class PandasDataFrameOpenSCMAccessor:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_var: str = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry = False,
+        unit_aware: bool | pint.UnitRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -570,7 +570,7 @@ class PandasDataFrameOpenSCMAccessor:
 
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
-            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+            Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
             For details, see matplotlib and pint support plotting with units
             ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),

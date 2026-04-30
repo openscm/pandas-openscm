@@ -60,7 +60,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         self,
         desired_units: str | Mapping[str, str] | pd.Series[str],
         unit_level: str = "unit",
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> S:
         """
         Convert units
@@ -131,7 +131,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         target: pd.DataFrame | pd.Series[Any],
         unit_level: str = "unit",
         target_unit_level: str | None = None,
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> S:
         """
         Convert units to match another supported pandas object
