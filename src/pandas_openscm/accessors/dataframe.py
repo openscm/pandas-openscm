@@ -702,9 +702,12 @@ class PandasDataFrameOpenSCMAccessor:
         Examples
         --------
         >>> import numpy as np
-        >>> import pandas as pd
         >>>
         >>> from pandas_openscm.accessors import register_pandas_accessors
+        >>>
+        >>> # pandas<3 has different representations,
+        >>> # so skip if we have that version.
+        >>> pd = pytest.importorskip("pandas", minversion="3.0")
         >>>
         >>> register_pandas_accessors()
         >>>
