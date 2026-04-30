@@ -295,6 +295,8 @@ authorized_licenses = [
     "bsd license",
     "BSD 3-Clause",
     "BSD-3-Clause",
+    # numpy special case
+    "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
     "CC0",
     "apache",
     "apache 2.0",
