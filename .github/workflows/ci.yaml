@@ -73,18 +73,15 @@ jobs:
       matrix:
         os: [ "ubuntu-latest" ]
         # Test against all security and bugfix versions: https://devguide.python.org/versions/
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
         include:
           # Include other OS for latest Python
           # because these seem to be the flakiest from experience
           # so are worth the extra testing
           - os: "windows-latest"
-            # Python 3.13 seems to be flaky because of issues with tkinter
-            # and python 3.13 and uv.
-            # Downgrade for now.
-            python-version: "3.12"
+            python-version: "3.14"
           - os: "macos-latest"
-            python-version: "3.13"
+            python-version: "3.14"
 
     runs-on: "${{ matrix.os }}"
     defaults:
@@ -241,7 +238,7 @@ jobs:
       matrix:
         os: [ "ubuntu-latest" ]
         # Test against all security and bugfix versions: https://devguide.python.org/versions/
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Check out repository
