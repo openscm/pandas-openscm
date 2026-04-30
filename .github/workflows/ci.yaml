@@ -108,7 +108,7 @@ jobs:
         run: |
           # Warm up the speed tests, allowing failure
           uv run pytest tests/integration/database/test_integration_speed.py || true
-          uv run pytest -r a -v src tests --doctest-modules --cov=src --cov-report=term-missing --cov-report=xml
+          uv run pytest -r a -v src tests --doctest-modules --cov=pandas_openscm --cov-report=term-missing --cov-report=xml
           uv run coverage report
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v4.2.0

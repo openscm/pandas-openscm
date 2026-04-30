@@ -164,9 +164,7 @@ source-include = [
 ]
 
 [tool.coverage.run]
-source = [
-    "src",
-]
+source = ["pandas_openscm"]
 branch = true
 
 [tool.coverage.report]
