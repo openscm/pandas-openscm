@@ -6,11 +6,10 @@ authors = [
     { name = "Zebedee Nicholls", email = "zebedee.nicholls@climate-energy-college.org" },
 ]
 license = { text = "3-Clause BSD License" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "attrs>=22.1.0",
-    "numpy>=1.26.0; python_version < '3.13'",
-    "numpy>=2.1.0; python_version >= '3.13'",
+    "numpy>=2.1.0",
     "pandas>=2.2.0",
 ]
 readme = "README.md"
