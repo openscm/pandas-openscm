@@ -707,6 +707,7 @@ class PandasDataFrameOpenSCMAccessor:
         >>>
         >>> # pandas<3 has different representations,
         >>> # so skip if we have that version.
+        >>> import pytest
         >>> pd = pytest.importorskip("pandas", minversion="3.0")
         >>>
         >>> register_pandas_accessors()

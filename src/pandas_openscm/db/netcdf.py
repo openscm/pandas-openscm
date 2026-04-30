@@ -420,6 +420,7 @@ def metadata_xr_to_df(
     --------
     >>> # pandas<3 has different representations,
     >>> # so skip if we have that version.
+    >>> import pytest
     >>> pytest.importorskip("pandas", minversion="3.0")
     >>>
     >>> import xarray as xr
