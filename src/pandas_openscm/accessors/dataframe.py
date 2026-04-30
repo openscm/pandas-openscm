@@ -731,8 +731,8 @@ class PandasDataFrameOpenSCMAccessor:
         >>> df
                                 2010.0  2015.0  2025.0
         scenario variable unit
-        sa       NaN      K        1.1     0.8     1.2
-        sb       v1       NaN      2.1     NaN     8.4
+        sa       nan      K        1.1     0.8     1.2
+        sb       v1       nan      2.1     NaN     8.4
         sa       v2       W        2.3     3.2     3.0
         sb       v2       W        1.2     2.8     NaN
         >>>

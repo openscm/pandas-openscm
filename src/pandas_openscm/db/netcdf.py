@@ -457,9 +457,9 @@ def metadata_xr_to_df(
     >>>
     >>> # Compared to
     >>> res.dtypes
-    scenario    object
-    model       object
-    variable    object
+    scenario    str
+    model       str
+    variable    str
     dtype: object
     """
     metadata_columns = [
