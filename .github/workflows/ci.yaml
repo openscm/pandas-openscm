@@ -16,7 +16,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -34,7 +34,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -59,7 +59,7 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: check-urls-are-valid
         uses: lycheeverse/lychee-action@v2
         with:
@@ -93,7 +93,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -143,10 +143,10 @@ jobs:
         shell: bash
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v8.1.0
         with:
           version: "0.8.8"
           python-version: ${{ matrix.python-version }}
@@ -183,7 +183,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python "${{ matrix.python-version }}"
         id: setup-python
         uses: actions/setup-python@v4
@@ -217,7 +217,7 @@ jobs:
         shell: bash
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -242,7 +242,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Python "${{ matrix.python-version }}"
         id: setup-python
         uses: actions/setup-python@v4
@@ -263,10 +263,10 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup uv
         id: setup-uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v8.1.0
         with:
           version: "0.8.8"
           python-version: ${{ matrix.python-version }}
@@ -290,7 +290,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
