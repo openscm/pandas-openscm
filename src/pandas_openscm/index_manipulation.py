@@ -261,7 +261,7 @@ def unify_index_levels(
     left_unified = pd.MultiIndex(  # type: ignore # pandas-stubs missing reorder_levels
         levels=[
             *left.levels,
-            *[np.array([], dtype=right.get_level_values(c).dtype) for c in left_to_add],  # type: ignore # pandas-stubs confused
+            *[pd.Index([], dtype=right.get_level_values(c).dtype) for c in left_to_add],  # type: ignore # pandas-stubs confused
         ],
         codes=[
             *left.codes,
@@ -275,7 +275,7 @@ def unify_index_levels(
 
     right_unified = pd.MultiIndex(  # type: ignore # pandas-stubs missing reorder_levels
         levels=[
-            *[np.array([], dtype=left.get_level_values(c).dtype) for c in right_to_add],  # type: ignore # pandas-stubs confused
+            *[pd.Index([], dtype=left.get_level_values(c).dtype) for c in right_to_add],  # type: ignore # pandas-stubs confused
             *right.levels,
         ],
         codes=[
