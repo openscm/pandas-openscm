@@ -105,6 +105,9 @@ jobs:
           # We don't have that right now, because we're not sure this pain point exists.
           uv-dependency-install-flags: "--all-extras --group tests"
       - name: Run tests
+        env:
+          # Don't need interactive plots
+          MPLBACKEND: Agg
         run: |
           # Warm up the speed tests, allowing failure
           uv run pytest tests/integration/database/test_integration_speed.py || true
@@ -159,6 +162,9 @@ jobs:
           uv pip compile --python ${{ matrix.python-version }} --resolution ${{ matrix.resolution-strategy }} --all-extras pyproject.toml -o requirements-tmp.txt
           uv pip install --requirements requirements-tmp.txt .
       - name: Run tests
+        env:
+          # Don't need interactive plots
+          MPLBACKEND: Agg
         run: |
           uv run --no-sync pytest tests -r a -v
 
@@ -196,6 +202,9 @@ jobs:
           pip install -r requirements-locked.txt
           pip install -r requirements-only-tests-min-locked.txt
       - name: Run tests
+        env:
+          # Don't need interactive plots
+          MPLBACKEND: Agg
         run: |
           pytest tests -r a -vv tests
 
@@ -229,6 +238,9 @@ jobs:
           # We don't have that right now, because we're not sure this pain point exists.
           uv-dependency-install-flags: "--all-extras --group tests"
       - name: Run tests
+        env:
+          # Don't need interactive plots
+          MPLBACKEND: Agg
         run: |
           uv run pytest -r a -v tests -m "superslow"
 

@@ -70,6 +70,9 @@ jobs:
       run: |
         pip install -r requirements-only-tests-min-locked.txt
     - name: Run tests
+      env:
+        # Don't need interactive plots
+        MPLBACKEND: Agg
       run: |
         # Can't run doctests here because the paths are different.
         # This only runs with minimum test dependencies installed.
@@ -82,6 +85,9 @@ jobs:
       run: |
         pip install -r requirements-only-tests-locked.txt
     - name: Run tests with extra test dependencies installed
+      env:
+        # Don't need interactive plots
+        MPLBACKEND: Agg
       run: |
         # Can't run doctests here because the paths are different.
         pytest tests -r a -vv tests

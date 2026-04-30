@@ -62,6 +62,9 @@ jobs:
         # micromamba install pytest pytest-regressions
     - name: Run tests
       shell: bash -leo pipefail {0}
+      env:
+        # Don't need interactive plots
+        MPLBACKEND: Agg
       run: |
         # Can't run doctests here because the paths are different.
         # This only runs with minimum test dependencies installed.
@@ -76,6 +79,9 @@ jobs:
         pip install -r requirements-only-tests-locked.txt
     - name: Run tests
       shell: bash -leo pipefail {0}
+      env:
+        # Don't need interactive plots
+        MPLBACKEND: Agg
       run: |
         # Can't run doctests here because the paths are different.
         pytest tests -r a -vv tests

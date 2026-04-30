@@ -57,5 +57,8 @@ jobs:
           uv pip install --requirements pyproject.toml --all-extras .
           uv pip install --requirements requirements-upstream-dev.txt
       - name: Run tests
+        env:
+          # Don't need interactive plots
+          MPLBACKEND: Agg
         run: |
           uv run --no-sync pytest tests -r a -v
