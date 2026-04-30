@@ -18,4 +18,4 @@ build:
       - python -m pip list
     build:
       html:
-        - properdocs build --strict --site-dir "$READTHEDOCS_OUTPUT/html"
+        - python -m properdocs build --strict --site-dir "$READTHEDOCS_OUTPUT/html"
