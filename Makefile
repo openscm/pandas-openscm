@@ -26,6 +26,7 @@ help:  ## print short description of each target
 checks:  ## run all the linting checks of the codebase
 	@echo "=== pre-commit ==="; uv run pre-commit run --all-files || echo "--- pre-commit failed ---" >&2; \
 		echo "=== mypy ==="; MYPYPATH=stubs uv run mypy src || echo "--- mypy failed ---" >&2; \
+		echo "=== ty ==="; uv run ty check src || echo "--- ty failed ---" >&2; \
 		echo "======"
 
 .PHONY: ruff-fixes

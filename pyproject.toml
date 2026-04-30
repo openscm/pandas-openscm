@@ -87,6 +87,7 @@ dev = [
     "towncrier==24.8.0",
     "tabulate>=0.9.0",
     "types-tqdm>=4.67.0.20241221",
+    "ty>=0.0.33",
     "tomli>=2.2.1",
     "typer>=0.15.2",
     "tomli-w>=1.2.0",
@@ -186,6 +187,27 @@ show_error_codes = true
 show_error_context = true
 warn_unreachable = true
 follow_imports = "normal"
+
+[tool.ty.environment]
+extra-paths = ["stubs"]
+python-version = "3.10"
+
+[tool.ty.rules]
+call-non-callable = "warn"
+invalid-argument-type = "warn"
+invalid-assignment = "warn"
+invalid-return-type = "warn"
+missing-argument = "warn"
+no-matching-overload = "warn"
+not-iterable = "warn"
+unresolved-attribute = "warn"
+unused-type-ignore-comment = "ignore"
+
+[tool.ty.src]
+include = ["src"]
+
+[tool.ty.terminal]
+output-format = "github"
 
 [tool.jupytext]
 formats = "ipynb,py:percent"
