@@ -93,7 +93,7 @@ def ensure_index_is_multiindex(pandas_obj: P, copy: bool = True) -> P:
         this is a no-op (although the value of copy is respected).
     """
     if copy:
-        pandas_obj = pandas_obj.copy()
+        pandas_obj = pandas_obj.copy()  # ty: ignore
 
     if isinstance(pandas_obj.index, pd.MultiIndex):
         return pandas_obj
@@ -390,13 +390,13 @@ def create_new_level_and_codes_by_mapping(
         New codes
     """
     level_to_map_from_idx = ini.names.index(level_to_create_from)
-    new_level = ini.levels[level_to_map_from_idx].map(mapper)
+    new_level = ini.levels[level_to_map_from_idx].map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
         return new_level, ini.codes[level_to_map_from_idx]
 
     # Slow route: have to update the codes
-    dup_level = ini.get_level_values(level_to_create_from).map(mapper)
+    dup_level = ini.get_level_values(level_to_create_from).map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
     new_level = new_level.unique()
     new_codes = new_level.get_indexer(dup_level)
 
@@ -483,7 +483,7 @@ def update_index_levels_func(
         `pobj` with updates applied to its index
     """
     if copy:
-        pobj = pobj.copy()
+        pobj = pobj.copy()  # ty: ignore[invalid-argument-type, invalid-assignment]
 
     if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
@@ -672,7 +672,7 @@ def update_index_levels_from_other_func(
         `pobj` with updates applied to its index
     """
     if copy:
-        pobj = pobj.copy()
+        pobj = pobj.copy()  # ty: ignore[invalid-argument-type, invalid-assignment]
 
     if not isinstance(pobj.index, pd.MultiIndex):
         msg = (
@@ -1080,8 +1080,8 @@ def set_index_levels_func(
         raise TypeError(msg)
 
     if copy:
-        pobj = pobj.copy()
+        pobj = pobj.copy()  # ty: ignore[invalid-argument-type, invalid-assignment]
 
-    pobj.index = set_levels(pobj.index, levels_to_set=levels_to_set)  # type: ignore
+    pobj.index = set_levels(pobj.index, levels_to_set=levels_to_set)  # type: ignore[arg-type] # pandas-stubs confused
 
     return pobj
