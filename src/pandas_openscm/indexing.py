@@ -104,7 +104,7 @@ def multi_index_match(
     array([False, False, False,  True])
     """
     try:
-        idx_reordered: pd.MultiIndex = idx.reorder_levels(  # type: ignore # reorder_levels untyped
+        idx_reordered: pd.MultiIndex = idx.reorder_levels(
             [*locator.names, *idx.names.difference(locator.names)]  # type: ignore # pandas-stubs confused about difference
         )
     except KeyError as exc:

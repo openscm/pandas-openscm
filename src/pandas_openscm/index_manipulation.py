@@ -251,14 +251,14 @@ def unify_index_levels(
     if (not left.names.difference(right.names)) and (  # type: ignore # pandas-stubs confused
         not right.names.difference(left.names)  # type: ignore # pandas-stubs confused
     ):
-        return left, right.reorder_levels(left.names)  # type: ignore # pandas-stubs missing reorder_levels
+        return left, right.reorder_levels(left.names)
 
     out_names = [*left.names, *[v for v in right.names if v not in left.names]]
     out_names_s = set(out_names)
     left_to_add = out_names_s.difference(left.names)
     right_to_add = out_names_s.difference(right.names)
 
-    left_unified = pd.MultiIndex(  # type: ignore # pandas-stubs missing reorder_levels
+    left_unified = pd.MultiIndex(
         levels=[
             *left.levels,
             *[pd.Index([], dtype=right.get_level_values(c).dtype) for c in left_to_add],  # type: ignore # pandas-stubs confused
@@ -273,7 +273,7 @@ def unify_index_levels(
         ],
     ).reorder_levels(out_names)
 
-    right_unified = pd.MultiIndex(  # type: ignore # pandas-stubs missing reorder_levels
+    right_unified = pd.MultiIndex(
         levels=[
             *[pd.Index([], dtype=left.get_level_values(c).dtype) for c in right_to_add],  # type: ignore # pandas-stubs confused
             *right.levels,
@@ -400,7 +400,7 @@ def create_new_level_and_codes_by_mapping(
     # Slow route: have to update the codes
     dup_level = ini.get_level_values(level_to_create_from).map(mapper)
     new_level = new_level.unique()
-    new_codes = new_level.get_indexer(dup_level)  # type: ignore
+    new_codes = new_level.get_indexer(dup_level)
 
     return new_level, new_codes
 
@@ -577,7 +577,7 @@ def update_levels(
                names=['scenario', 'model', 'variable', 'unit'])
     """
     if remove_unused_levels:
-        ini = ini.remove_unused_levels()  # type: ignore
+        ini = ini.remove_unused_levels()
 
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
@@ -856,7 +856,7 @@ def update_levels_from_other(
                names=['scenario', 'model', 'variable', 'unit', 'y-label', 'title', 'Source'])
     """  # noqa: E501
     if remove_unused_levels:
-        ini = ini.remove_unused_levels()  # type: ignore
+        ini = ini.remove_unused_levels()
 
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)

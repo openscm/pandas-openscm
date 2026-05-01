@@ -193,21 +193,9 @@ extra-paths = ["stubs"]
 python-version = "3.10"
 
 [tool.ty.rules]
-# call-non-callable = "warn"
-# invalid-argument-type = "warn"
-# invalid-assignment = "warn"
-# invalid-return-type = "warn"
-# missing-argument = "warn"
-# no-matching-overload = "warn"
-# not-iterable = "warn"
-# unresolved-attribute = "warn"
-# unused-type-ignore-comment = "ignore"
 
 [tool.ty.src]
 include = ["src"]
-
-[tool.ty.terminal]
-# output-format = "github"
 
 [tool.jupytext]
 formats = "ipynb,py:percent"

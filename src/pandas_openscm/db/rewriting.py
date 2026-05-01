@@ -78,7 +78,7 @@ def rewrite_file(
     data_all = backend.load_data(rewrite_action.from_file)
     if not backend.preserves_index:
         rewrite_action_names: pandas.core.indexes.frozen.FrozenList = (
-            rewrite_action.locator.names  # type: ignore # pandas type hints wrong
+            rewrite_action.locator.names
         )
         data_all = update_index_from_candidates(
             data_all,
@@ -213,7 +213,7 @@ def make_move_plan(
         unify_index_levels_check_index_types(index_start.index, data_to_write.index)
     )
     in_data_to_write = pd.Series(
-        multi_index_match(index_start_index_unified, data_to_write_index_unified),  # type: ignore # pandas type hints confused
+        multi_index_match(index_start_index_unified, data_to_write_index_unified),
         index=index_start.set_index("file_id", append=True).index,
     )
 

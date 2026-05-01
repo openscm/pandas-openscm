@@ -126,7 +126,7 @@ def convert_unit_from_target_series(
     desired_units = ensure_index_is_multiindex(desired_units)
 
     pobj_rows_checker = ensure_is_multiindex(pobj.index.droplevel(unit_level))
-    missing_rows = pobj_rows_checker.difference(  # type: ignore # pandas-stubs missing API
+    missing_rows = pobj_rows_checker.difference(
         desired_units.index.reorder_levels(pobj_rows_checker.names)  # type: ignore # pandas-stubs missing API
     )
     if not missing_rows.empty:
@@ -323,7 +323,7 @@ def convert_unit(
         )
 
     elif isinstance(desired_units, Mapping):
-        desired_units_s = pobj_units_s.replace(desired_units)  # type: ignore # pandas-stubs missing Mapping option
+        desired_units_s = pobj_units_s.replace(desired_units)
 
     elif isinstance(desired_units, pd.Series):
         desired_units = ensure_index_is_multiindex(desired_units)

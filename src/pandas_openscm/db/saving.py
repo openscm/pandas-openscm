@@ -225,7 +225,7 @@ def save_data(  # noqa: PLR0913
         index_out = pd.concat([index_non_data_unified_index, *index_data_out_l])
 
     if file_map_non_data is not None:
-        file_map_out = pd.concat([file_map_non_data, file_map_out])  # type: ignore # pandas-stubs confused
+        file_map_out = pd.concat([file_map_non_data, file_map_out])
 
     # Write the index first as it can be slow if very big
     write_groups_l.insert(
