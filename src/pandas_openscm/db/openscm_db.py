@@ -119,7 +119,7 @@ class OpenSCMDB:
     # That was super confusing as, if the reference to the created lock wasn't kept,
     # the lock would immediately be released.
 
-    @index_file_lock.default
+    @index_file_lock.default  # ty: ignore[call-non-callable]
     def default_index_file_lock(self) -> filelock.BaseFileLock:
         """Get default lock for the back-end's index file"""
         try:

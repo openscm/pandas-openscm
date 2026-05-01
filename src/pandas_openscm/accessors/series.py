@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     # Figuring it out is a job for another day
     S = TypeVar("S", bound=pd.Series[Any])
 
+    import pandas.core.groupby.generic
     import pandas_indexing as pix
     import pint
 
@@ -268,7 +269,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
 
     def groupby_except(
         self, non_groupers: str | list[str], observed: bool = True
-    ) -> pd.core.groupby.generic.SeriesGroupBy[Any, Any]:
+    ) -> pandas.core.groupby.generic.SeriesGroupBy[Any, Any]:
         """
         Group by all index levels except specified levels
 

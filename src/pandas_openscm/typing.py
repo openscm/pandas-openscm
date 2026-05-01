@@ -12,7 +12,7 @@ import numpy.typing as npt
 if TYPE_CHECKING:
     from typing import TypeAlias
 
-    import pint
+    import pint.facets.numpy.quantity
 
 NP_FLOAT_OR_INT: TypeAlias = Union[np.floating[Any], np.integer[Any]]
 """

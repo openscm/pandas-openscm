@@ -4,7 +4,7 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
@@ -13,8 +13,6 @@ import pandas as pd
 
 if TYPE_CHECKING:
     P = TypeVar("P", pd.DataFrame, pd.Series[Any])
-
-    import pandas.core.indexes.frozen
 
 
 def convert_index_to_category_index(pandas_obj: P) -> P:
@@ -245,46 +243,46 @@ def unify_index_levels(
                 (5, 4, 6)],
                names=['b', 'a', 'c'])
     """
-    if left.names == right.names:
+    left_names = list(left.names)
+    right_names = list(right.names)
+
+    if left_names == right_names:
         return left, right
 
-    if (not left.names.difference(right.names)) and (  # type: ignore # pandas-stubs confused
-        not right.names.difference(left.names)  # type: ignore # pandas-stubs confused
-    ):
-        return left, right.reorder_levels(left.names)
+    if set(left_names) == set(right_names):
+        return left, right.reorder_levels(left_names)
 
-    out_names = [*left.names, *[v for v in right.names if v not in left.names]]
-    out_names_s = set(out_names)
-    left_to_add = out_names_s.difference(left.names)
-    right_to_add = out_names_s.difference(right.names)
+    out_names = [*left_names, *[v for v in right_names if v not in left_names]]
+    left_to_add = [v for v in out_names if v not in left_names]
+    right_to_add = [v for v in out_names if v not in right_names]
 
     left_unified = pd.MultiIndex(
-        levels=[
-            *left.levels,
+        levels=[  # ty: ignore[invalid-argument-type]
+            *left.levels,  # type: ignore[list-item] # pandas-stubs confused
             *[pd.Index([], dtype=right.get_level_values(c).dtype) for c in left_to_add],  # type: ignore # pandas-stubs confused
         ],
-        codes=[
-            *left.codes,
-            *([np.full(left.shape[0], -1)] * len(left_to_add)),
+        codes=[  # ty: ignore[invalid-argument-type]
+            *left.codes,  # type: ignore[list-item] # pandas-stubs confused
+            *([np.full(left.shape[0], -1)] * len(left_to_add)),  # type: ignore[list-item] # pandas-stubs confused
         ],
         names=[
-            *left.names,
+            *left_names,
             *left_to_add,
         ],
     ).reorder_levels(out_names)
 
     right_unified = pd.MultiIndex(
-        levels=[
+        levels=[  # ty: ignore[invalid-argument-type]
             *[pd.Index([], dtype=left.get_level_values(c).dtype) for c in right_to_add],  # type: ignore # pandas-stubs confused
-            *right.levels,
+            *right.levels,  # type: ignore[list-item] # pandas-stubs confused
         ],
-        codes=[
-            *([np.full(right.shape[0], -1)] * len(right_to_add)),
-            *right.codes,
+        codes=[  # ty: ignore[invalid-argument-type]
+            *([np.full(right.shape[0], -1)] * len(right_to_add)),  # type: ignore[list-item] # pandas-stubs confused
+            *right.codes,  # type: ignore[list-item] # pandas-stubs confused
         ],
         names=[
             *right_to_add,
-            *right.names,
+            *right_names,
         ],
     ).reorder_levels(out_names)
 
@@ -327,7 +325,7 @@ def unify_index_levels_check_index_types(
 
 
 def update_index_from_candidates(
-    indf: pd.DataFrame, candidates: pandas.core.indexes.frozen.FrozenList
+    indf: pd.DataFrame, candidates: Iterable[Hashable]
 ) -> pd.DataFrame:
     """
     Update the index of data to align with the candidate columns as much as possible
@@ -441,9 +439,8 @@ def create_new_level_and_codes_by_mapping_multiple(
     # then only applies the mapping to those unique combos
     # to reduce the number of evaluations of mapper.
     # That feels tricky to get right, so just doing the brute force way for now.
-    dup_level = ini.droplevel(
-        ini.names.difference(list(levels_to_create_from))  # type: ignore # pandas-stubs confused
-    ).map(mapper)
+    levels_to_drop = [v for v in ini.names if v not in levels_to_create_from]
+    dup_level = ini.droplevel(levels_to_drop).map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
 
     # Brute force: get codes from new levels
     new_level = dup_level.unique()
@@ -600,8 +597,8 @@ def update_levels(
         codes[level_idx] = new_codes
 
     res = pd.MultiIndex(
-        levels=levels,
-        codes=codes,
+        levels=levels,  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
+        codes=codes,  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
         names=ini.names,
     )
 
@@ -860,7 +857,7 @@ def update_levels_from_other(
 
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
-    names: list[str] = list(ini.names)
+    names: list[str] = list(ini.names)  # type: ignore[arg-type] # ty: ignore[invalid-assignment] # pandas-stubs confused
 
     for level, (source, updater) in update_sources.items():
         if isinstance(source, tuple):
@@ -903,14 +900,14 @@ def update_levels_from_other(
             codes.append(new_codes)
             names.append(level)
 
-    res = pd.MultiIndex(levels=levels, codes=codes, names=names)
+    res = pd.MultiIndex(levels=levels, codes=codes, names=names)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
 
     return res
 
 
 def create_level_from_collection(
     level: str, value: Collection[Any]
-) -> tuple[pandas.Index[Any], npt.NDArray[np.integer[Any]]]:
+) -> tuple[pd.Index[Any], npt.NDArray[np.integer[Any]]]:
     """
     Create new level and corresponding codes.
 
@@ -927,14 +924,14 @@ def create_level_from_collection(
     :
         New level and corresponding codes
     """
-    new_level: pandas.Index[Any] = pd.Index(value, name=level)
+    new_level: pd.Index[Any] = pd.Index(value, name=level)
     if not new_level.has_duplicates:
         # Fast route, can just return new level and codes from level we mapped from
         return new_level, np.arange(len(value))
 
     # Slow route, have to update the codes
     new_level = new_level.unique()
-    new_codes = new_level.get_indexer(value)  # type: ignore
+    new_codes = new_level.get_indexer(value)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
 
     return new_level, new_codes
 
@@ -1021,7 +1018,7 @@ def set_levels(
     """
     levels: list[pd.Index[Any]] = list(ini.levels)
     codes: list[npt.NDArray[np.integer[Any]]] = list(ini.codes)
-    names: list[str] = list(ini.names)
+    names: list[str] = list(ini.names)  # type: ignore[arg-type] # ty: ignore[invalid-assignment] # pandas-stubs confused
 
     for level, value in levels_to_set.items():
         if isinstance(value, Collection) and not isinstance(value, str):
@@ -1045,7 +1042,7 @@ def set_levels(
             codes.append(new_codes)
             names.append(level)
 
-    res = pd.MultiIndex(levels=levels, codes=codes, names=names)
+    res = pd.MultiIndex(levels=levels, codes=codes, names=names)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
 
     return res
 

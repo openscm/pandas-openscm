@@ -30,7 +30,9 @@ from pandas_openscm.reshaping import ts_to_long_data
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 if TYPE_CHECKING:
-    import matplotlib
+    import matplotlib.artist
+    import matplotlib.axes
+    import pandas.core.groupby.generic
     import pandas_indexing as pix
     import pint
 
@@ -244,7 +246,7 @@ class PandasDataFrameOpenSCMAccessor:
 
     def groupby_except(
         self, non_groupers: str | list[str], observed: bool = True
-    ) -> pd.core.groupby.generic.DataFrameGroupBy[Any]:
+    ) -> pandas.core.groupby.generic.DataFrameGroupBy[Any, Any]:
         """
         Group by all index levels except specified levels
 

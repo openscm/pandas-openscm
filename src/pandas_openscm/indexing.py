@@ -103,12 +103,14 @@ def multi_index_match(
     >>> multi_index_match(base, loc_first_level)
     array([False, False, False,  True])
     """
+    idx_names = list(idx.names)
+    locator_names = list(locator.names)
     try:
         idx_reordered: pd.MultiIndex = idx.reorder_levels(
-            [*locator.names, *idx.names.difference(locator.names)]  # type: ignore # pandas-stubs confused about difference
+            [*locator_names, *[v for v in idx_names if v not in locator_names]]
         )
     except KeyError as exc:
-        unusable = locator.names.difference(idx.names)  # type: ignore # pandas-stubs confused about difference
+        unusable = [v for v in locator_names if v not in idx_names]
         if unusable:
             msg = (
                 f"The following levels in `locator` are not in `idx`: {unusable}. "

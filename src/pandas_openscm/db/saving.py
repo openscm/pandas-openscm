@@ -8,7 +8,7 @@ import concurrent.futures
 from collections.abc import Callable, Iterable
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -28,7 +28,6 @@ from pandas_openscm.parallelisation import (
 
 if TYPE_CHECKING:
     import pandas.core.groupby.generic
-    import pandas.core.indexes.frozen
 
 
 class DBFileType(Enum):
@@ -154,10 +153,7 @@ def save_data(  # noqa: PLR0913
         grouper: (
             Iterable[tuple[tuple[Any, ...], pd.DataFrame]]
             | pandas.core.groupby.generic.DataFrameGroupBy[
-                # Switch to the below
-                # when we switch mypy checks to using python > 3.9
-                # tuple[Any, ...], Literal[True]
-                tuple[Any, ...]
+                tuple[Any, ...], Literal[True]
             ]
         ) = [((None,), data)]
     else:

@@ -33,7 +33,8 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
     import attr
-    import matplotlib
+    import matplotlib.artist
+    import matplotlib.axes
     import pint
 
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
@@ -1069,7 +1070,11 @@ class PlumePlotter:
                     )
                     plumes.append(plume_plotter)
 
-                if infer_y_label and unit_var in pdf.index.names:
+                if (
+                    infer_y_label
+                    and unit_var is not None
+                    and unit_var in pdf.index.names
+                ):
                     values_units.extend(pdf.index.get_level_values(unit_var).unique())
 
         if unit_aware and isinstance(y_label, bool) and y_label:

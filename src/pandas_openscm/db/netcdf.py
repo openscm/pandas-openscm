@@ -99,7 +99,7 @@ class netCDFDataBackend:
         if data.columns.name is None:
             time_dim = "time"
         else:
-            time_dim = data.columns.name
+            time_dim = str(data.columns.name)
 
         time_coord_info = {time_dim: data.columns.values}
 

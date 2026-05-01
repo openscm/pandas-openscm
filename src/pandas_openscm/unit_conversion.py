@@ -333,7 +333,10 @@ def convert_unit(
             desired_units_s = desired_units
         else:
             desired_units_s = pd.concat(
-                [desired_units, multi_index_lookup(pobj_units_s, missing)]
+                [
+                    desired_units,
+                    multi_index_lookup(pobj_units_s, ensure_is_multiindex(missing)),
+                ]
             )
 
     else:
@@ -461,9 +464,10 @@ def convert_unit_like(
         )
     )
 
-    extra_index_levels_target = target.index.names.difference(  # type: ignore # pandas-stubs API out of date
-        [*pobj.index.names, target_unit_level_use]
-    )
+    pobj_index_names = [*pobj.index.names, target_unit_level_use]
+    extra_index_levels_target = [
+        v for v in target.index.names if v not in pobj_index_names
+    ]
     if extra_index_levels_target:
         # Drop out the extra levels and duplicates,
         # then create the target units Series

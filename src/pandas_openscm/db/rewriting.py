@@ -10,7 +10,6 @@ from __future__ import annotations
 import concurrent.futures
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -19,14 +18,12 @@ from attrs import define
 from pandas_openscm.db.interfaces import OpenSCMDBDataBackend
 from pandas_openscm.db.path_handling import DBPath
 from pandas_openscm.index_manipulation import (
+    ensure_is_multiindex,
     unify_index_levels_check_index_types,
     update_index_from_candidates,
 )
 from pandas_openscm.indexing import mi_loc, multi_index_match
 from pandas_openscm.parallelisation import ParallelOpConfig, apply_op_parallel_progress
-
-if TYPE_CHECKING:
-    import pandas.core.indexes.frozen
 
 
 @define
@@ -77,9 +74,7 @@ def rewrite_file(
     """
     data_all = backend.load_data(rewrite_action.from_file)
     if not backend.preserves_index:
-        rewrite_action_names: pandas.core.indexes.frozen.FrozenList = (
-            rewrite_action.locator.names
-        )
+        rewrite_action_names = list(rewrite_action.locator.names)
         data_all = update_index_from_candidates(
             data_all,
             rewrite_action_names,
@@ -274,7 +269,7 @@ def make_move_plan(
             ReWriteAction(
                 from_file=db_dir / file_map_start.loc[file_id_old],
                 to_file=new_db_path.abs,
-                locator=fiddf.index.droplevel("file_id"),
+                locator=ensure_is_multiindex(fiddf.index.droplevel("file_id")),
             )
         )
         file_id_map[file_id_old] = new_file_id

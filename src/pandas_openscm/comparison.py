@@ -142,9 +142,17 @@ def compare_close(
     True
     """
     left_stacked = left.stack()
+    if not isinstance(left_stacked, pd.Series):
+        msg = "left is not a `pd.Series` after stacking, this will not work"
+        raise TypeError(msg)
+
     left_stacked.name = left_name
 
     right_stacked = right.stack()
+    if not isinstance(right_stacked, pd.Series):
+        msg = "right is not a `pd.Series` after stacking, this will not work"
+        raise TypeError(msg)
+
     right_stacked.name = right_name
 
     left_stacked_aligned, right_stacked_aligned = left_stacked.align(right_stacked)
