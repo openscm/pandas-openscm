@@ -4,8 +4,8 @@ Accessor for [pd.DataFrame][pandas.DataFrame]
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable, Collection, Mapping
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 

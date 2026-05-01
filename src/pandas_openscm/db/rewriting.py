@@ -8,9 +8,9 @@ or to overwrite old data
 from __future__ import annotations
 
 import concurrent.futures
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd

@@ -4,8 +4,8 @@ Manipulation of the index of data
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from collections.abc import Callable, Collection, Mapping
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 import numpy.typing as npt

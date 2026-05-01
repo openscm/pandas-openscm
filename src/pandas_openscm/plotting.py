@@ -5,13 +5,12 @@ Plotting
 from __future__ import annotations
 
 import warnings
-from collections.abc import Collection, Iterable, Iterator, Mapping
+from collections.abc import Callable, Collection, Iterable, Iterator, Mapping
 from functools import partial
 from itertools import cycle
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -31,10 +30,11 @@ from pandas_openscm.grouping import (
 )
 
 if TYPE_CHECKING:
+    from typing import TypeAlias
+
     import attr
     import matplotlib
     import pint
-    from typing_extensions import TypeAlias
 
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
 

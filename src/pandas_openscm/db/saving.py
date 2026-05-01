@@ -5,10 +5,10 @@ Functionality for saving data
 from __future__ import annotations
 
 import concurrent.futures
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
