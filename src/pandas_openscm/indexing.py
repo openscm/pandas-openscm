@@ -335,6 +335,6 @@ def mi_loc(
         res = index_name_aware_lookup(pandas_obj, locator)
 
     else:
-        res = pandas_obj.loc[locator]  # type: ignore
+        res = pandas_obj.loc[locator]
 
     return res
