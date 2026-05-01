@@ -160,11 +160,26 @@ def check_result(res: P, exp: P) -> None:
 
     exp
         Expected
+
+    Raises
+    ------
+    TypeError
+        Type of `res` is not the same as the type of `exp`
     """
     if isinstance(res, pd.DataFrame):
+        if not isinstance(exp, pd.DataFrame):
+            msg = f"{type(res)=} while {type(exp)=}"
+            raise TypeError(msg)
+
         assert_frame_alike(res, exp)
+
     elif isinstance(res, pd.Series):
+        if not isinstance(exp, pd.Series):
+            msg = f"{type(res)=} while {type(exp)=}"
+            raise TypeError(msg)
+
         pd.testing.assert_series_equal(res, exp)
+
     else:  # pragma: no cover
         raise NotImplementedError(type(res))
 
