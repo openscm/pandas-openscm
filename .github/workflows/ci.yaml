@@ -41,7 +41,7 @@ jobs:
           uv-dependency-install-flags: "--all-extras --group dev"
       - name: ty
         run: |
-          uv run ty check src
+          uv run ty check src --output-format github
 
   docs:
     if: ${{ !github.event.pull_request.draft }}
