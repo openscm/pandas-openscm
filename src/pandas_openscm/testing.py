@@ -92,7 +92,7 @@ def assert_frame_alike(
         Passed to [assert_frame_equal][pandas.testing.assert_frame_equal]
     """
     pd.testing.assert_frame_equal(
-        res.reorder_levels(exp.index.names),
+        res.reorder_levels(exp.index.names),  # type: ignore # pandas-stubs confused
         exp,
         check_like=check_like,
         **kwargs,
