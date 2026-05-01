@@ -9,7 +9,7 @@ long-term, but they're ok here for now.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
     import pandas_indexing as pix
+
+else:
+    P = TypeVar("P", pd.DataFrame, pd.Series)
 
 
 def multi_index_match(
@@ -335,6 +338,6 @@ def mi_loc(
         res = index_name_aware_lookup(pandas_obj, locator)
 
     else:
-        res = pandas_obj.loc[locator]
+        res = cast(P, pandas_obj.loc[cast(Any, locator)])
 
     return res

@@ -23,7 +23,7 @@ from __future__ import annotations
 import concurrent.futures
 from collections.abc import Callable, Iterable, Iterator
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 from attrs import define
 
@@ -89,7 +89,7 @@ def get_tqdm_auto(**kwargs: Any) -> ProgressLike:
             "get_tqdm_auto", requirement="tqdm"
         ) from exc
 
-    return partial(tqdm.auto.tqdm, **kwargs)
+    return cast(ProgressLike, partial(tqdm.auto.tqdm, **kwargs))
 
 
 @define

@@ -7,6 +7,7 @@ This is just a shortcut/convenience module
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from attrs import frozen
 
@@ -95,17 +96,21 @@ class DataBackendOptions:
 
 
 DATA_BACKENDS = DataBackendOptions(
-    (
-        ("csv", CSVDataBackend),
-        ("feather", FeatherDataBackend),
-        ("in_memory", InMemoryDataBackend),
-        ("netCDF", netCDFDataBackend),
-        # Other options to consider:
-        #
-        # - pretty netCDF, where we try and save the data with dimensions where possible
-        #
-        # - HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-        # - sqllite
+    cast(
+        tuple[tuple[str, type[OpenSCMDBDataBackend]], ...],
+        (
+            ("csv", CSVDataBackend),
+            ("feather", FeatherDataBackend),
+            ("in_memory", InMemoryDataBackend),
+            ("netCDF", netCDFDataBackend),
+            # Other options to consider:
+            #
+            # - pretty netCDF, where we try and save the data with dimensions
+            #   where possible
+            #
+            # - HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
+            # - sqllite
+        ),
     )
 )
 """Inbuilt data back-ends"""
@@ -187,15 +192,18 @@ class IndexBackendOptions:
 
 
 INDEX_BACKENDS = IndexBackendOptions(
-    (
-        ("csv", CSVIndexBackend),
-        ("feather", FeatherIndexBackend),
-        ("in_memory", InMemoryIndexBackend),
-        ("netCDF", netCDFIndexBackend),
-        # Other options to consider:
-        #
-        # - HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
-        # - sqllite
+    cast(
+        tuple[tuple[str, type[OpenSCMDBIndexBackend]], ...],
+        (
+            ("csv", CSVIndexBackend),
+            ("feather", FeatherIndexBackend),
+            ("in_memory", InMemoryIndexBackend),
+            ("netCDF", netCDFIndexBackend),
+            # Other options to consider:
+            #
+            # - HDF5: https://pandas.pydata.org/docs/user_guide/io.html#hdf5-pytables
+            # - sqllite
+        ),
     )
 )
 """Inbuilt index back-ends"""

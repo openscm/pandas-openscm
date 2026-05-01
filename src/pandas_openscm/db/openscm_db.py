@@ -347,7 +347,9 @@ class OpenSCMDB:
             # Should be impossible to get here
             raise TypeError(backend_index)
 
-        res = cls(backend_data=backend_data, backend_index=backend_index, db_dir=db_dir)
+        res = cls(  # ty: ignore[missing-argument]
+            backend_data=backend_data, backend_index=backend_index, db_dir=db_dir
+        )
 
         return res
 
