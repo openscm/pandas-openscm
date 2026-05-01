@@ -91,11 +91,11 @@ def fix_index_name_after_groupby_quantile(
         Object, with the last level in its index renamed to `new_name`.
     """
     if copy:
-        res = pandas_obj.copy()
+        res = pandas_obj.copy()  # ty: ignore[invalid-argument-type]
     else:
         res = pandas_obj
 
     new_names = [v if v is not None else new_name for v in res.index.names]
     res.index = res.index.set_names(new_names)
 
-    return res
+    return res  # ty: ignore[invalid-return-type]

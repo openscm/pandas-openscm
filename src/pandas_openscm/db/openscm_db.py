@@ -7,7 +7,7 @@ from __future__ import annotations
 import tarfile
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 from attrs import define, field
@@ -785,7 +785,11 @@ class OpenSCMDB:
                     max_workers=max_workers,
                 )
 
-    def to_gzipped_tar_archive(self, out_file: Path, mode: str = "w:gz") -> Path:
+    def to_gzipped_tar_archive(
+        self,
+        out_file: Path,
+        mode: Literal["w:gz"] = "w:gz",
+    ) -> Path:
         """
         Convert to a gzipped tar archive
 

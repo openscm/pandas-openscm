@@ -95,7 +95,7 @@ class DataBackendOptions:
 
 
 DATA_BACKENDS = DataBackendOptions(
-    (  # type: ignore # using class with protocol doesn't work properly
+    (
         ("csv", CSVDataBackend),
         ("feather", FeatherDataBackend),
         ("in_memory", InMemoryDataBackend),
@@ -187,7 +187,7 @@ class IndexBackendOptions:
 
 
 INDEX_BACKENDS = IndexBackendOptions(
-    (  # type: ignore # using class with protocol doesn't work properly
+    (
         ("csv", CSVIndexBackend),
         ("feather", FeatherIndexBackend),
         ("in_memory", InMemoryIndexBackend),
