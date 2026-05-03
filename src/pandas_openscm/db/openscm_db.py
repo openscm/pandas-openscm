@@ -790,7 +790,7 @@ class OpenSCMDB:
     def to_gzipped_tar_archive(
         self,
         out_file: Path,
-        mode: Literal["w:gz"] = "w:gz",
+        mode: Literal["w:gz", "x:gz"] = "w:gz",
     ) -> Path:
         """
         Convert to a gzipped tar archive
