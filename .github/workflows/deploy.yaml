@@ -36,7 +36,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Publish to PyPI
         run: |
-          uv run python scripts/add-locked-targets-to-pyproject-toml.py
+          uv run --group dev python scripts/add-locked-targets-to-pyproject-toml.py
           uv build
           uv publish
           # Just in case, undo the changes to `pyproject.toml`

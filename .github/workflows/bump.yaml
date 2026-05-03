@@ -56,7 +56,7 @@ jobs:
           echo "Bumping to version $NEW_VERSION"
 
           # Build CHANGELOG
-          uv run towncrier build --yes --version v$NEW_VERSION
+          uv run --group dev towncrier build --yes --version v$NEW_VERSION
 
           # Commit, tag and push
           git commit -a -m "bump: version $BASE_VERSION -> $NEW_VERSION"

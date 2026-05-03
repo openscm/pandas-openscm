@@ -23,7 +23,7 @@ jobs:
           uv-dependency-install-flags: "--all-extras --group dev"
       - name: mypy
         run: |
-          MYPYPATH=stubs uv run mypy src
+          MYPYPATH=stubs uv run --group dev mypy src
 
   ty:
     if: ${{ !github.event.pull_request.draft }}
@@ -41,7 +41,7 @@ jobs:
           uv-dependency-install-flags: "--all-extras --group dev"
       - name: ty
         run: |
-          uv run ty check src --output-format github
+          uv run --group dev ty check src --output-format github
 
   docs:
     if: ${{ !github.event.pull_request.draft }}
@@ -59,7 +59,7 @@ jobs:
           uv-dependency-install-flags: "--all-extras --group docs"
       - name: docs
         run: |
-          uv run properdocs build --strict
+          uv run --group docs properdocs build --strict
       - uses: ./.github/actions/setup
         with:
           python-version: "3.11"
@@ -67,8 +67,8 @@ jobs:
       - name: docs-with-changelog
         run: |
           # Check CHANGELOG will build too
-          uv run towncrier build --yes
-          uv run properdocs build --strict
+          uv run --group dev towncrier build --yes
+          uv run --group docs properdocs build --strict
           # Just in case, undo the staged changes
           git restore --staged . && git restore .
 
@@ -128,9 +128,9 @@ jobs:
           MPLBACKEND: Agg
         run: |
           # Warm up the speed tests, allowing failure
-          uv run pytest tests/integration/database/test_integration_speed.py || true
-          uv run pytest -r a -v src tests --doctest-modules --cov=pandas_openscm --cov-report=term-missing --cov-report=xml
-          uv run coverage report
+          uv run --group tests pytest tests/integration/database/test_integration_speed.py || true
+          uv run --group tests pytest -r a -v src tests --doctest-modules --cov=pandas_openscm --cov-report=term-missing --cov-report=xml
+          uv run --group tests coverage report
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v4.2.0
         env:
@@ -260,7 +260,7 @@ jobs:
           # Don't need interactive plots
           MPLBACKEND: Agg
         run: |
-          uv run pytest -r a -v tests -m "superslow"
+          uv run --group tests pytest -r a -v tests -m "superslow"
 
   imports-without-extras:
     strategy:
@@ -302,7 +302,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Build package
         run: |
-          uv run python scripts/add-locked-targets-to-pyproject-toml.py
+          uv run --group dev python scripts/add-locked-targets-to-pyproject-toml.py
           cat pyproject.toml
           uv build
           # Just in case, undo the changes to `pyproject.toml`
@@ -330,5 +330,5 @@ jobs:
         run: |
           TEMP_FILE=$(mktemp)
           uv export --no-dev > $TEMP_FILE
-          uv run liccheck -r $TEMP_FILE -R licence-check.txt
+          uv run --group dev liccheck -r $TEMP_FILE -R licence-check.txt
           cat licence-check.txt

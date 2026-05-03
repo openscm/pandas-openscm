@@ -33,7 +33,7 @@ jobs:
           echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
       - name: Build package for PyPI
         run: |
-          uv run python scripts/add-locked-targets-to-pyproject-toml.py
+          uv run --group dev python scripts/add-locked-targets-to-pyproject-toml.py
           uv build
           # Just in case, undo the changes to `pyproject.toml`
           git restore --staged . && git restore .
@@ -43,7 +43,7 @@ jobs:
           echo "## Changelog" >> ".github/release_template.md"
           echo "" >> ".github/release_template.md"
           uv add typer
-          uv run python scripts/changelog-to-release-template.py >> ".github/release_template.md"
+          uv run --group dev python scripts/changelog-to-release-template.py >> ".github/release_template.md"
           echo "" >> ".github/release_template.md"
           echo "## Changes" >> ".github/release_template.md"
           echo "" >> ".github/release_template.md"
