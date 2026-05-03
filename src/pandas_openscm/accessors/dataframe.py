@@ -4,8 +4,8 @@ Accessor for [pd.DataFrame][pandas.DataFrame]
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable, Collection, Mapping
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -30,7 +30,9 @@ from pandas_openscm.reshaping import ts_to_long_data
 from pandas_openscm.unit_conversion import convert_unit, convert_unit_like
 
 if TYPE_CHECKING:
-    import matplotlib
+    import matplotlib.artist
+    import matplotlib.axes
+    import pandas.core.groupby.generic
     import pandas_indexing as pix
     import pint
 
@@ -65,7 +67,7 @@ class PandasDataFrameOpenSCMAccessor:
         self,
         desired_units: str | Mapping[str, str] | pd.Series[str],
         unit_level: str = "unit",
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> pd.DataFrame:
         """
         Convert units
@@ -125,7 +127,7 @@ class PandasDataFrameOpenSCMAccessor:
         target: pd.DataFrame | pd.Series[Any],
         unit_level: str = "unit",
         target_unit_level: str | None = None,
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> pd.DataFrame:
         """
         Convert units to match another [pd.DataFrame][pandas.DataFrame]
@@ -244,7 +246,7 @@ class PandasDataFrameOpenSCMAccessor:
 
     def groupby_except(
         self, non_groupers: str | list[str], observed: bool = True
-    ) -> pd.core.groupby.generic.DataFrameGroupBy[Any]:
+    ) -> pandas.core.groupby.generic.DataFrameGroupBy[Any, Any]:
         """
         Group by all index levels except specified levels
 
@@ -321,7 +323,7 @@ class PandasDataFrameOpenSCMAccessor:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 2.0,
         unit_var: str = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry = False,
+        unit_aware: bool | pint.UnitRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -401,7 +403,7 @@ class PandasDataFrameOpenSCMAccessor:
 
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
-            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+            Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
             For details, see matplotlib and pint support plotting with units
             ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
@@ -488,7 +490,7 @@ class PandasDataFrameOpenSCMAccessor:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_var: str = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry = False,
+        unit_aware: bool | pint.UnitRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -570,7 +572,7 @@ class PandasDataFrameOpenSCMAccessor:
 
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
-            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+            Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
             For details, see matplotlib and pint support plotting with units
             ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
@@ -702,9 +704,13 @@ class PandasDataFrameOpenSCMAccessor:
         Examples
         --------
         >>> import numpy as np
-        >>> import pandas as pd
         >>>
         >>> from pandas_openscm.accessors import register_pandas_accessors
+        >>>
+        >>> # pandas<3 has different representations,
+        >>> # so skip if we have that version.
+        >>> import pytest
+        >>> pd = pytest.importorskip("pandas", minversion="3.0")
         >>>
         >>> register_pandas_accessors()
         >>>
@@ -731,8 +737,8 @@ class PandasDataFrameOpenSCMAccessor:
         >>> df
                                 2010.0  2015.0  2025.0
         scenario variable unit
-        sa       NaN      K        1.1     0.8     1.2
-        sb       v1       NaN      2.1     NaN     8.4
+        sa       nan      K        1.1     0.8     1.2
+        sb       v1       nan      2.1     NaN     8.4
         sa       v2       W        2.3     3.2     3.0
         sb       v2       W        1.2     2.8     NaN
         >>>

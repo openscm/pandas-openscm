@@ -99,7 +99,7 @@ class netCDFDataBackend:
         if data.columns.name is None:
             time_dim = "time"
         else:
-            time_dim = data.columns.name
+            time_dim = str(data.columns.name)
 
         time_coord_info = {time_dim: data.columns.values}
 
@@ -418,6 +418,11 @@ def metadata_xr_to_df(
 
     Examples
     --------
+    >>> # pandas<3 has different representations,
+    >>> # so skip if we have that version.
+    >>> import pytest
+    >>> _ = pytest.importorskip("pandas", minversion="3.0")
+    >>>
     >>> import xarray as xr
     >>>
     >>> # You'd almost never write this by hand.
@@ -457,9 +462,9 @@ def metadata_xr_to_df(
     >>>
     >>> # Compared to
     >>> res.dtypes
-    scenario    object
-    model       object
-    variable    object
+    scenario    str
+    model       str
+    variable    str
     dtype: object
     """
     metadata_columns = [

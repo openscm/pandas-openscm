@@ -5,14 +5,12 @@ Plotting
 from __future__ import annotations
 
 import warnings
-from collections.abc import Collection, Iterable, Iterator, Mapping
+from collections.abc import Callable, Collection, Iterable, Iterator, Mapping
 from functools import partial
 from itertools import cycle
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Generic,
     Literal,
     TypeVar,
     Union,
@@ -31,10 +29,12 @@ from pandas_openscm.grouping import (
 )
 
 if TYPE_CHECKING:
+    from typing import TypeAlias
+
     import attr
-    import matplotlib
+    import matplotlib.artist
+    import matplotlib.axes
     import pint
-    from typing_extensions import TypeAlias
 
     from pandas_openscm.typing import NP_ARRAY_OF_FLOAT_OR_INT, PINT_NUMPY_ARRAY
 
@@ -51,11 +51,8 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
 
-    class PALETTE_LIKE(
-        Generic[T],
-        Mapping[T, COLOUR_VALUE_LIKE],
-    ):
-        """Palette-like type"""
+    PALETTE_LIKE: TypeAlias = Mapping[T, COLOUR_VALUE_LIKE]
+    """Palette-like type"""
 
     DASH_VALUE_LIKE: TypeAlias = Union[str, tuple[float, tuple[float, ...]]]
     """Types that allow a dash to be specified in matplotlib"""
@@ -110,16 +107,16 @@ def get_quantiles(
     :
         Quantiles to be used in plotting
     """
-    quantiles_l = []
+    quantiles_l: list[float] = []
     for quantile_plot_def in quantiles_plumes:
         q_def = quantile_plot_def[0]
-        if isinstance(q_def, float):
-            quantiles_l.append(q_def)
-        else:
+        if isinstance(q_def, tuple):
             for q in q_def:
                 quantiles_l.append(q)
+        else:
+            quantiles_l.append(q_def)
 
-    return np.unique(np.array(quantiles_l))  # type: ignore # numpy and mypy not playing nice
+    return cast(np.typing.NDArray[np.floating[Any]], np.unique(np.asarray(quantiles_l)))
 
 
 def get_pdf_from_pre_calculated(
@@ -210,16 +207,29 @@ def get_values_line(
 def get_values_line(
     pdf: pd.DataFrame,
     *,
-    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_aware: Literal[True] | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
 
 
+@overload
 def get_values_line(
     pdf: pd.DataFrame,
     *,
-    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_aware: bool | pint.UnitRegistry,
+    unit_var: str | None,
+    time_units: str | None,
+) -> (
+    tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
+    | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
+): ...
+
+
+def get_values_line(
+    pdf: pd.DataFrame,
+    *,
+    unit_aware: bool | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> (
@@ -239,7 +249,7 @@ def get_values_line(
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
     unit_var
         Variable/column in the multi-index which stores information
@@ -285,7 +295,7 @@ def get_values_line(
                 "get_values_line(..., unit_aware=True, ...)", requirement="pint"
             ) from exc
 
-        ur = pint.get_application_registry()  # type: ignore
+        ur = pint.get_application_registry()  # type: ignore[no-untyped-call] # pint typing limited
 
     else:
         ur = unit_aware
@@ -318,10 +328,25 @@ def get_values_plume(
     *,
     quantiles: tuple[float, float],
     quantile_var: str,
-    unit_aware: Literal[True] | pint.facets.PlainRegistry,
+    unit_aware: Literal[True] | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]: ...
+
+
+@overload
+def get_values_plume(
+    pdf: pd.DataFrame,
+    *,
+    quantiles: tuple[float, float],
+    quantile_var: str,
+    unit_aware: bool | pint.UnitRegistry,
+    unit_var: str | None,
+    time_units: str | None,
+) -> (
+    tuple[NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT]
+    | tuple[PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY, PINT_NUMPY_ARRAY]
+): ...
 
 
 def get_values_plume(  # noqa: PLR0913
@@ -329,7 +354,7 @@ def get_values_plume(  # noqa: PLR0913
     *,
     quantiles: tuple[float, float],
     quantile_var: str,
-    unit_aware: bool | pint.facets.PlainRegistry,
+    unit_aware: bool | pint.UnitRegistry,
     unit_var: str | None,
     time_units: str | None,
 ) -> (
@@ -356,7 +381,7 @@ def get_values_plume(  # noqa: PLR0913
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
     unit_var
         Variable/column in the multi-index which stores information
@@ -413,7 +438,7 @@ def get_values_plume(  # noqa: PLR0913
                 "get_values_plume(..., unit_aware=True, ...)", requirement="pint"
             ) from exc
 
-        ur = pint.get_application_registry()  # type: ignore
+        ur = pint.get_application_registry()  # type: ignore[no-untyped-call] # pint typing limited
 
     else:
         ur = unit_aware
@@ -510,9 +535,7 @@ def fill_out_palette(
         # Don't warn as the user didn't set any values
         # so it is clear they want us to fill in everything.
         colour_cycler = get_default_colour_cycler()
-        palette_out: PALETTE_LIKE[T] = {  # type: ignore # not sure what I've done wrong
-            v: next(colour_cycler) for v in hue_values
-        }
+        palette_out: PALETTE_LIKE[T] = {v: next(colour_cycler) for v in hue_values}
 
         return palette_out
 
@@ -522,7 +545,7 @@ def fill_out_palette(
     ]
     if not missing_from_user_supplied:
         # Just return the values we need
-        return {v: palette_user_supplied[v] for v in hue_values}  # type: ignore # not sure what mypy doesn't like
+        return {v: palette_user_supplied[v] for v in hue_values}
 
     if warn_on_value_missing:
         msg = (
@@ -533,7 +556,7 @@ def fill_out_palette(
         warnings.warn(msg)
 
     colour_cycler = get_default_colour_cycler()
-    palette_out = {  # type: ignore # not sure what I've done wrong
+    palette_out = {
         k: (
             palette_user_supplied[k]
             if k in palette_user_supplied
@@ -860,7 +883,7 @@ class PlumePlotter:
         warn_on_dashes_value_missing: bool = True,
         linewidth: float = 3.0,
         unit_var: str | None = "unit",
-        unit_aware: bool | pint.facets.PlainRegistry = False,
+        unit_aware: bool | pint.UnitRegistry = False,
         time_units: str | None = None,
         x_label: str | None = "time",
         y_label: str | bool | None = True,
@@ -935,7 +958,7 @@ class PlumePlotter:
 
             If `True`, we use the default application registry
             (retrieved with [pint.get_application_registry][]).
-            Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+            Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
         time_units
             Units of the time axis of the data.
@@ -1016,7 +1039,8 @@ class PlumePlotter:
                 )
 
             for q, alpha in quantiles_plumes:
-                if isinstance(q, float):
+                if not isinstance(q, tuple):
+                    quantile = float(q)
                     if style_var is not None:
                         if dashes_complete is None:  # pragma: no cover
                             # should be impossible to hit this
@@ -1026,20 +1050,22 @@ class PlumePlotter:
                         linestyle = "-"
 
                     try:
-                        quantiles = (q,)
-                        pdf = gpdf(quantiles=quantiles)
+                        line_quantiles = (quantile,)
+                        pdf = gpdf(quantiles=line_quantiles)
                     except MissingQuantileError as exc:
                         warn_about_missing_quantile(exc=exc)
                         continue
 
+                    x_vals, y_vals = get_values_line(
+                        pdf,
+                        unit_aware=unit_aware,
+                        unit_var=unit_var,
+                        time_units=time_units,
+                    )
                     line_plotter = SingleLinePlotter(
-                        *get_values_line(
-                            pdf,
-                            unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
-                            unit_var=unit_var,
-                            time_units=time_units,
-                        ),
-                        quantile=q,
+                        x_vals=x_vals,
+                        y_vals=y_vals,
+                        quantile=quantile,
                         linewidth=linewidth,
                         linestyle=linestyle,
                         color=colour,
@@ -1048,28 +1074,36 @@ class PlumePlotter:
                     lines.append(line_plotter)
 
                 else:
+                    plume_quantiles = (float(q[0]), float(q[1]))
                     try:
-                        pdf = gpdf(quantiles=q)
+                        pdf = gpdf(quantiles=plume_quantiles)
                     except MissingQuantileError as exc:
                         warn_about_missing_quantile(exc=exc)
                         continue
 
+                    x_vals, y_vals_lower, y_vals_upper = get_values_plume(
+                        pdf,
+                        quantiles=plume_quantiles,
+                        quantile_var=quantile_var,
+                        unit_aware=unit_aware,
+                        unit_var=unit_var,
+                        time_units=time_units,
+                    )
                     plume_plotter = SinglePlumePlotter(
-                        *get_values_plume(
-                            pdf,
-                            quantiles=q,
-                            quantile_var=quantile_var,
-                            unit_aware=unit_aware,  # type: ignore # not sure why mypy is complaining
-                            unit_var=unit_var,
-                            time_units=time_units,
-                        ),
-                        quantiles=q,
+                        x_vals=x_vals,
+                        y_vals_lower=y_vals_lower,
+                        y_vals_upper=y_vals_upper,
+                        quantiles=plume_quantiles,
                         color=colour,
                         alpha=alpha,
                     )
                     plumes.append(plume_plotter)
 
-                if infer_y_label and unit_var in pdf.index.names:
+                if (
+                    infer_y_label
+                    and unit_var is not None
+                    and unit_var in pdf.index.names
+                ):
                     values_units.extend(pdf.index.get_level_values(unit_var).unique())
 
         if unit_aware and isinstance(y_label, bool) and y_label:
@@ -1280,7 +1314,7 @@ def plot_plume_func(  # noqa: PLR0913
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 2.0,
     unit_var: str = "unit",
-    unit_aware: bool | pint.facets.PlainRegistry = False,
+    unit_aware: bool | pint.UnitRegistry = False,
     time_units: str | None = None,
     x_label: str | None = "time",
     y_label: str | bool | None = True,
@@ -1367,7 +1401,7 @@ def plot_plume_func(  # noqa: PLR0913
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
         For details, see matplotlib and pint support plotting with units
         ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),
@@ -1459,7 +1493,7 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
     warn_on_dashes_value_missing: bool = True,
     linewidth: float = 3.0,
     unit_var: str = "unit",
-    unit_aware: bool | pint.facets.PlainRegistry = False,
+    unit_aware: bool | pint.UnitRegistry = False,
     time_units: str | None = None,
     x_label: str | None = "time",
     y_label: str | bool | None = True,
@@ -1548,7 +1582,7 @@ def plot_plume_after_calculating_quantiles_func(  # noqa: PLR0913
 
         If `True`, we use the default application registry
         (retrieved with [pint.get_application_registry][]).
-        Otherwise, a [pint.facets.PlainRegistry][] can be supplied and will be used.
+        Otherwise, a [pint.UnitRegistry][] can be supplied and will be used.
 
         For details, see matplotlib and pint support plotting with units
         ([stable docs](https://pint.readthedocs.io/en/stable/user/plotting.html),

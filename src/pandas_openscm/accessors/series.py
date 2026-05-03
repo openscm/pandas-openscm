@@ -4,8 +4,8 @@ Accessor for [pd.Series][pandas.Series]
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
+from collections.abc import Callable, Collection, Mapping
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
 
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     # Figuring it out is a job for another day
     S = TypeVar("S", bound=pd.Series[Any])
 
+    import pandas.core.groupby.generic
     import pandas_indexing as pix
     import pint
 
@@ -60,7 +61,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         self,
         desired_units: str | Mapping[str, str] | pd.Series[str],
         unit_level: str = "unit",
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> S:
         """
         Convert units
@@ -131,7 +132,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
         target: pd.DataFrame | pd.Series[Any],
         unit_level: str = "unit",
         target_unit_level: str | None = None,
-        ur: pint.facets.PlainRegistry | None = None,
+        ur: pint.UnitRegistry | None = None,
     ) -> S:
         """
         Convert units to match another supported pandas object
@@ -268,7 +269,7 @@ class PandasSeriesOpenSCMAccessor(Generic[S]):
 
     def groupby_except(
         self, non_groupers: str | list[str], observed: bool = True
-    ) -> pd.core.groupby.generic.SeriesGroupBy[Any, Any]:
+    ) -> pandas.core.groupby.generic.SeriesGroupBy[Any, Any]:
         """
         Group by all index levels except specified levels
 

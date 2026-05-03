@@ -7,7 +7,7 @@ from __future__ import annotations
 import tarfile
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 from attrs import define, field
@@ -119,7 +119,7 @@ class OpenSCMDB:
     # That was super confusing as, if the reference to the created lock wasn't kept,
     # the lock would immediately be released.
 
-    @index_file_lock.default
+    @index_file_lock.default  # ty: ignore[call-non-callable]
     def default_index_file_lock(self) -> filelock.BaseFileLock:
         """Get default lock for the back-end's index file"""
         try:
@@ -347,7 +347,9 @@ class OpenSCMDB:
             # Should be impossible to get here
             raise TypeError(backend_index)
 
-        res = cls(backend_data=backend_data, backend_index=backend_index, db_dir=db_dir)
+        res = cls(  # ty: ignore[missing-argument]
+            backend_data=backend_data, backend_index=backend_index, db_dir=db_dir
+        )
 
         return res
 
@@ -785,7 +787,11 @@ class OpenSCMDB:
                     max_workers=max_workers,
                 )
 
-    def to_gzipped_tar_archive(self, out_file: Path, mode: str = "w:gz") -> Path:
+    def to_gzipped_tar_archive(
+        self,
+        out_file: Path,
+        mode: Literal["w:gz", "x:gz"] = "w:gz",
+    ) -> Path:
         """
         Convert to a gzipped tar archive
 

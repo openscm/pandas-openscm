@@ -10,8 +10,9 @@ import numpy as np
 import numpy.typing as npt
 
 if TYPE_CHECKING:
-    import pint
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
+
+    import pint.facets.numpy.quantity
 
 NP_FLOAT_OR_INT: TypeAlias = Union[np.floating[Any], np.integer[Any]]
 """

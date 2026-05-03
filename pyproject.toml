@@ -6,11 +6,10 @@ authors = [
     { name = "Zebedee Nicholls", email = "zebedee.nicholls@climate-energy-college.org" },
 ]
 license = { text = "3-Clause BSD License" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "attrs>=22.1.0",
-    "numpy>=1.26.0; python_version < '3.13'",
-    "numpy>=2.1.0; python_version >= '3.13'",
+    "numpy>=2.1.0",
     "pandas>=2.2.0",
 ]
 readme = "README.md"
@@ -24,11 +23,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
 
@@ -88,6 +87,7 @@ dev = [
     "towncrier==24.8.0",
     "tabulate>=0.9.0",
     "types-tqdm>=4.67.0.20241221",
+    "ty>=0.0.33",
     "tomli>=2.2.1",
     "typer>=0.15.2",
     "tomli-w>=1.2.0",
@@ -101,7 +101,6 @@ docs = [
     "mkdocs-literate-nav>=0.6.1",
     "mkdocs-material>=9.5.49",
     "mkdocs-section-index>=0.3.9",
-    "mkdocs>=1.6.1",
     "mkdocstrings-python-xref>=1.6.2",
     "mkdocstrings-python>=1.13.0",
     "pymdown-extensions>=10.13",
@@ -116,6 +115,7 @@ docs = [
     "openscm-units>=0.6.3",
     "pandas-indexing>=0.6.2",
     "pint>=0.24.4",
+    "properdocs>=1.6.7",
 ]
 # For minimum test dependencies.
 # These are used when running our minimum PyPI install tests.
@@ -165,9 +165,7 @@ source-include = [
 ]
 
 [tool.coverage.run]
-source = [
-    "src",
-]
+source = ["pandas_openscm"]
 branch = true
 
 [tool.coverage.report]
@@ -190,6 +188,15 @@ show_error_context = true
 warn_unreachable = true
 follow_imports = "normal"
 
+[tool.ty.environment]
+extra-paths = ["stubs"]
+python-version = "3.10"
+
+[tool.ty.rules]
+
+[tool.ty.src]
+include = ["src"]
+
 [tool.jupytext]
 formats = "ipynb,py:percent"
 
@@ -210,7 +217,7 @@ markers = [
 src = [
     "src",
 ]
-target-version = "py39"
+target-version = "py310"
 line-length = 88
 
 [tool.ruff.lint]
@@ -296,6 +303,8 @@ authorized_licenses = [
     "bsd license",
     "BSD 3-Clause",
     "BSD-3-Clause",
+    # numpy special case
+    "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
     "CC0",
     "apache",
     "apache 2.0",

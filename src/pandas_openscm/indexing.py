@@ -9,7 +9,7 @@ long-term, but they're ok here for now.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
     import pandas_indexing as pix
+
+else:
+    P = TypeVar("P", pd.DataFrame, pd.Series)
 
 
 def multi_index_match(
@@ -103,12 +106,14 @@ def multi_index_match(
     >>> multi_index_match(base, loc_first_level)
     array([False, False, False,  True])
     """
+    idx_names = list(idx.names)
+    locator_names = list(locator.names)
     try:
-        idx_reordered: pd.MultiIndex = idx.reorder_levels(  # type: ignore # reorder_levels untyped
-            [*locator.names, *idx.names.difference(locator.names)]  # type: ignore # pandas-stubs confused about difference
+        idx_reordered: pd.MultiIndex = idx.reorder_levels(
+            [*locator_names, *[v for v in idx_names if v not in locator_names]]
         )
     except KeyError as exc:
-        unusable = locator.names.difference(idx.names)  # type: ignore # pandas-stubs confused about difference
+        unusable = [v for v in locator_names if v not in idx_names]
         if unusable:
             msg = (
                 f"The following levels in `locator` are not in `idx`: {unusable}. "
@@ -333,6 +338,6 @@ def mi_loc(
         res = index_name_aware_lookup(pandas_obj, locator)
 
     else:
-        res = pandas_obj.loc[locator]  # type: ignore
+        res = cast(P, pandas_obj.loc[cast(Any, locator)])
 
     return res
