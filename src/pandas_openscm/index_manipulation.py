@@ -395,13 +395,29 @@ def create_new_level_and_codes_by_mapping(
     level_to_map_from_idx = ini.names.index(level_to_create_from)
     new_level = ini.levels[level_to_map_from_idx].map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
     if not new_level.has_duplicates:
-        # Fast route, can just return new level and codes from level we mapped from
+        # Fast route,
+        # can just return new level and codes based on the simple mapping alone
         return new_level, ini.codes[level_to_map_from_idx]
 
     # Slow route: have to update the codes
-    dup_level = ini.get_level_values(level_to_create_from).map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
+    # because the mapping isn't 1:1
+    # (it is many:1).
+    #
+    # Step 1: use the result from above
+    # to get the new level we actually want i.e. a level that only has unique entries
     new_level = new_level.unique()
-    new_codes = new_level.get_indexer(dup_level)
+
+    # Step 2: get the new i.e. mapped values.
+    # This seems to be the easiest (maybe fastest too?) way to do the final step.
+    mapped_values = ini.get_level_values(level_to_create_from).map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
+
+    # Step 3: use pandas' inbuilt functionality to get the new codes
+    # by getting the indexer we need based on the new level
+    # and the mapped values from the above.
+    # There might be a faster way to do this,
+    # but this is the simplest and given it uses pandas' internals,
+    # it's probably already quite fast.
+    new_codes = new_level.get_indexer(mapped_values)
 
     return new_level, new_codes
 
