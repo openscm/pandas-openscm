@@ -7,3 +7,4 @@
 attrs@git+https://github.com/python-attrs/attrs
 numpy@git+https://github.com/numpy/numpy
 pandas@git+https://github.com/pandas-dev/pandas
+xarray@git+https://github.com/pydata/xarray

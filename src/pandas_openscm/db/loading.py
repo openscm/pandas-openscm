@@ -24,7 +24,6 @@ from pandas_openscm.parallelisation import (
 
 if TYPE_CHECKING:
     import pandas.core.groupby.generic
-    import pandas.core.indexes.frozen
     import pandas_indexing as pix
 
 
@@ -134,8 +133,8 @@ def load_data(  # noqa: PLR0913
     res = pd.concat(loaded_l)
 
     if not backend_data.preserves_index:
-        index_names: pandas.core.indexes.frozen.FrozenList = index_to_load.index.names  # type: ignore # pandas type hints wrong
-        res = update_index_from_candidates(res, index_names.difference({"file_id"}))
+        index_names = [v for v in index_to_load.index.names if v != "file_id"]
+        res = update_index_from_candidates(res, index_names)
 
     # Look up only the indexes we want
     # just in case the data we loaded had more than we asked for

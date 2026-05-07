@@ -8,6 +8,7 @@ These aren't perfect, but they're better than zero
 for catching obvious mistakes.
 """
 
+import platform
 import time
 from pathlib import Path
 
@@ -81,8 +82,13 @@ def test_overhead(groupby, tmpdir):
     # These tolerances are ok, particularly given how few files we're dealing with.
     # This is mainly about avoiding a factor of 10
     # (which was the difference we were getting in earlier implemenations).
-    tol_save = 2.0
-    tol_load = 2.0
+    if platform.system() == "Windows":
+        # Single file performance particularly bad on windows
+        tol_save = 3.0
+        tol_load = 3.0
+    else:
+        tol_save = 2.0
+        tol_load = 2.0
 
     overhead = (time_db_save - time_pandas_save) / time_pandas_save
     assert overhead <= tol_save, f"Overhead is more than {tol_save*100}%"

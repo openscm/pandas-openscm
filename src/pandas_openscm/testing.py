@@ -92,7 +92,7 @@ def assert_frame_alike(
         Passed to [assert_frame_equal][pandas.testing.assert_frame_equal]
     """
     pd.testing.assert_frame_equal(
-        res.reorder_levels(exp.index.names),
+        res.reorder_levels(exp.index.names),  # type: ignore # pandas-stubs confused
         exp,
         check_like=check_like,
         **kwargs,
@@ -160,11 +160,26 @@ def check_result(res: P, exp: P) -> None:
 
     exp
         Expected
+
+    Raises
+    ------
+    TypeError
+        Type of `res` is not the same as the type of `exp`
     """
     if isinstance(res, pd.DataFrame):
+        if not isinstance(exp, pd.DataFrame):
+            msg = f"{type(res)=} while {type(exp)=}"
+            raise TypeError(msg)
+
         assert_frame_alike(res, exp)
+
     elif isinstance(res, pd.Series):
+        if not isinstance(exp, pd.Series):
+            msg = f"{type(res)=} while {type(exp)=}"
+            raise TypeError(msg)
+
         pd.testing.assert_series_equal(res, exp)
+
     else:  # pragma: no cover
         raise NotImplementedError(type(res))
 
@@ -272,7 +287,7 @@ def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
     """
     # Check that the indexes are the same.
     # We convert to MultiIndex first as we don't care about the actual index values.
-    pd.testing.assert_index_equal(  # type: ignore # pandas-stubs out of date
+    pd.testing.assert_index_equal(
         pd.MultiIndex.from_frame(res.moved_index.reset_index()),
         pd.MultiIndex.from_frame(exp.moved_index.reset_index()),
         check_order=False,
@@ -297,7 +312,7 @@ def assert_move_plan_equal(res: MovePlan, exp: MovePlan) -> None:
                 msg = f"Did not find pair for\n{res_rwa=}\nin\n{exp.rewrite_actions=}"
                 raise AssertionError(msg)
 
-            pd.testing.assert_index_equal(  # type: ignore # pandas-stubs out of date
+            pd.testing.assert_index_equal(
                 res_rwa.locator, exp_rwa.locator, check_order=False
             )
             assert res_rwa.to_file == exp_rwa.to_file

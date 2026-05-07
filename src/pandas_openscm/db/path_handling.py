@@ -29,7 +29,7 @@ class DBPath:
     rel_db: Path = field()
     """The path relative to the database's directory"""
 
-    @rel_db.validator
+    @rel_db.validator  # ty: ignore[unresolved-attribute]
     def rel_db_validator(self, attribute: attr.Attribute[Any], value: Path) -> None:
         """
         Validate the value of `rel_db`

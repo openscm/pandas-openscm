@@ -45,7 +45,7 @@ def convert_unit_from_target_series(
     pobj: P,
     desired_units: pd.Series[str],
     unit_level: str = "unit",
-    ur: pint.facets.PlainRegistry | None = None,
+    ur: pint.UnitRegistry | None = None,
 ) -> P:
     """
     Convert `pobj`'s units based on a [pd.Series][pandas.Series]
@@ -126,7 +126,7 @@ def convert_unit_from_target_series(
     desired_units = ensure_index_is_multiindex(desired_units)
 
     pobj_rows_checker = ensure_is_multiindex(pobj.index.droplevel(unit_level))
-    missing_rows = pobj_rows_checker.difference(  # type: ignore # pandas-stubs missing API
+    missing_rows = pobj_rows_checker.difference(
         desired_units.index.reorder_levels(pobj_rows_checker.names)  # type: ignore # pandas-stubs missing API
     )
     if not missing_rows.empty:
@@ -154,38 +154,45 @@ def convert_unit_from_target_series(
         try:
             import pint
 
-            ur = pint.get_application_registry()  # type: ignore # pint typing limited
+            ur = pint.get_application_registry()  # type: ignore[no-untyped-call] # pint typing limited
         except ImportError:
             raise MissingOptionalDependencyError(  # noqa: TRY003
                 "convert_unit_from_target_series(..., ur=None, ...)", "pint"
             )
 
-    pobj_no_unit = ensure_index_is_multiindex(pobj.reset_index(unit_level, drop=True))
+    pobj_no_unit = ensure_index_is_multiindex(
+        pobj.reset_index(  # ty: ignore[invalid-argument-type, no-matching-overload]
+            unit_level, drop=True
+        )
+    )
     for (pobj_unit, target_unit), conversion_df in unit_map[unit_changes].groupby(
         ["pobj_unit", "target_unit"]
     ):
         to_alter_loc = multi_index_match(pobj_no_unit.index, conversion_df.index)  # type: ignore
         pobj_no_unit.loc[to_alter_loc, :] = (
-            ur.Quantity(pobj_no_unit.loc[to_alter_loc, :].values, pobj_unit)
-            .to(target_unit)
+            ur.Quantity(pobj_no_unit.loc[to_alter_loc, :].values, str(pobj_unit))
+            .to(str(target_unit))
             .m
         )
 
     new_units = (
-        unit_map.reorder_levels(pobj_no_unit.index.names).loc[pobj_no_unit.index]
+        unit_map.reorder_levels(pobj_no_unit.index.names).loc[pobj_no_unit.index]  # type: ignore # pandas-stubs confused
     )["target_unit"]
-    res = set_index_levels_func(pobj_no_unit, {unit_level: new_units}).reorder_levels(
-        pobj.index.names
+    res = set_index_levels_func(
+        pobj_no_unit,
+        {unit_level: new_units},
+    ).reorder_levels(
+        pobj.index.names  # type: ignore[arg-type] # pandas-stubs confused
     )
 
-    return res
+    return res  # ty: ignore[invalid-return-type]
 
 
 def convert_unit(
     pobj: P,
     desired_units: str | Mapping[str, str] | pd.Series[str],
     unit_level: str = "unit",
-    ur: pint.facets.PlainRegistry | None = None,
+    ur: pint.UnitRegistry | None = None,
 ) -> P:
     """
     Convert a supported [pandas][] object's units
@@ -323,7 +330,7 @@ def convert_unit(
         )
 
     elif isinstance(desired_units, Mapping):
-        desired_units_s = pobj_units_s.replace(desired_units)  # type: ignore # pandas-stubs missing Mapping option
+        desired_units_s = pobj_units_s.replace(desired_units)
 
     elif isinstance(desired_units, pd.Series):
         desired_units = ensure_index_is_multiindex(desired_units)
@@ -332,15 +339,21 @@ def convert_unit(
         if missing.empty:
             desired_units_s = desired_units
         else:
-            desired_units_s = pd.concat(
-                [desired_units, multi_index_lookup(pobj_units_s, missing)]
+            desired_units_s: pd.Series[str] = pd.concat(  # type: ignore # pandas-stubs confused
+                [
+                    desired_units,
+                    multi_index_lookup(pobj_units_s, ensure_is_multiindex(missing)),
+                ]
             )
 
     else:
         raise NotImplementedError(type(desired_units))
 
     res = convert_unit_from_target_series(
-        pobj=pobj, desired_units=desired_units_s, unit_level=unit_level, ur=ur
+        pobj=pobj,
+        desired_units=desired_units_s,  # ty: ignore[invalid-argument-type]
+        unit_level=unit_level,
+        ur=ur,
     )
 
     return res
@@ -368,7 +381,7 @@ def convert_unit_like(
     target: pd.DataFrame | pd.Series[Any],
     unit_level: str = "unit",
     target_unit_level: str | None = None,
-    ur: pint.facets.PlainRegistry | None = None,
+    ur: pint.UnitRegistry | None = None,
 ) -> P:
     """
     Convert units to match another [pd.DataFrame][pandas.DataFrame]
@@ -461,9 +474,10 @@ def convert_unit_like(
         )
     )
 
-    extra_index_levels_target = target.index.names.difference(  # type: ignore # pandas-stubs API out of date
-        [*pobj.index.names, target_unit_level_use]
-    )
+    pobj_index_names = [*pobj.index.names, target_unit_level_use]
+    extra_index_levels_target = [
+        v for v in target.index.names if v not in pobj_index_names
+    ]
     if extra_index_levels_target:
         # Drop out the extra levels and duplicates,
         # then create the target units Series
@@ -488,7 +502,7 @@ def convert_unit_like(
 
     ambiguous = target_units_s.index.duplicated(keep=False)
     if ambiguous.any():
-        ambiguous_idx = target_units_s[ambiguous].index.remove_unused_levels()
+        ambiguous_idx = target_units_s[ambiguous].index.remove_unused_levels()  # type: ignore # pandas-stubs confused
         if not isinstance(target.index, pd.MultiIndex):  # pragma: no cover
             # Should be unreachable, but just in case
             raise TypeError(type(target.index))
@@ -511,7 +525,7 @@ def convert_unit_like(
         raise AmbiguousTargetUnitError(msg)
 
     target_units_s, _ = target_units_s.align(pobj_units_s)
-    target_units_s = target_units_s.reorder_levels(pobj_units_s.index.names)
+    target_units_s = target_units_s.reorder_levels(pobj_units_s.index.names)  # type: ignore # pandas-stubs confused
     if target_units_s.isnull().any():
         # Fill rows that don't get a spec with their existing units
         target_units_s = multi_index_lookup(

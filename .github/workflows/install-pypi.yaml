@@ -23,7 +23,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "macos-latest", "windows-latest"]
         # Test against all security and bugfix versions: https://devguide.python.org/versions/
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
         # Check both 'library' install and the 'application' (i.e. locked) install
         install-target: ["pandas-openscm", "pandas-openscm[locked]"]
     runs-on: "${{ matrix.os }}"
@@ -59,7 +59,7 @@ jobs:
       run: |
         echo "${{ env.INSTALLED_VERSION }}"
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ env.INSTALLED_VERSION }}
     - name: Test installation
@@ -70,6 +70,9 @@ jobs:
       run: |
         pip install -r requirements-only-tests-min-locked.txt
     - name: Run tests
+      env:
+        # Don't need interactive plots
+        MPLBACKEND: Agg
       run: |
         # Can't run doctests here because the paths are different.
         # This only runs with minimum test dependencies installed.
@@ -82,6 +85,9 @@ jobs:
       run: |
         pip install -r requirements-only-tests-locked.txt
     - name: Run tests with extra test dependencies installed
+      env:
+        # Don't need interactive plots
+        MPLBACKEND: Agg
       run: |
         # Can't run doctests here because the paths are different.
         pytest tests -r a -vv tests

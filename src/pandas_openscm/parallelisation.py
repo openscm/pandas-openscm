@@ -21,16 +21,18 @@ the added complexity of the lower-level interfaces isn't worth it).
 from __future__ import annotations
 
 import concurrent.futures
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from functools import partial
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 from attrs import define
 
 from pandas_openscm.exceptions import MissingOptionalDependencyError
 
 if TYPE_CHECKING:
-    from typing_extensions import Concatenate, ParamSpec
+    from typing import Concatenate
+
+    from typing_extensions import ParamSpec
 
     P = ParamSpec("P")
     T = TypeVar("T")
@@ -87,7 +89,7 @@ def get_tqdm_auto(**kwargs: Any) -> ProgressLike:
             "get_tqdm_auto", requirement="tqdm"
         ) from exc
 
-    return partial(tqdm.auto.tqdm, **kwargs)  # type: ignore # can't get tqdm and mypy to play nice
+    return cast(ProgressLike, partial(tqdm.auto.tqdm, **kwargs))
 
 
 @define

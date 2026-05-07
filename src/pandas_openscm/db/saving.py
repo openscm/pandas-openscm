@@ -5,10 +5,10 @@ Functionality for saving data
 from __future__ import annotations
 
 import concurrent.futures
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from enum import Enum, auto
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -28,7 +28,6 @@ from pandas_openscm.parallelisation import (
 
 if TYPE_CHECKING:
     import pandas.core.groupby.generic
-    import pandas.core.indexes.frozen
 
 
 class DBFileType(Enum):
@@ -154,10 +153,7 @@ def save_data(  # noqa: PLR0913
         grouper: (
             Iterable[tuple[tuple[Any, ...], pd.DataFrame]]
             | pandas.core.groupby.generic.DataFrameGroupBy[
-                # Switch to the below
-                # when we switch mypy checks to using python > 3.9
-                # tuple[Any, ...], Literal[True]
-                tuple[Any, ...]
+                tuple[Any, ...], Literal[True]
             ]
         ) = [((None,), data)]
     else:
@@ -225,7 +221,7 @@ def save_data(  # noqa: PLR0913
         index_out = pd.concat([index_non_data_unified_index, *index_data_out_l])
 
     if file_map_non_data is not None:
-        file_map_out = pd.concat([file_map_non_data, file_map_out])  # type: ignore # pandas-stubs confused
+        file_map_out = pd.concat([file_map_non_data, file_map_out])
 
     # Write the index first as it can be slow if very big
     write_groups_l.insert(

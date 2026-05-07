@@ -4,7 +4,8 @@ Accessor for [pd.Index][pandas.Index] (and sub-classes)
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 import pandas as pd
 
