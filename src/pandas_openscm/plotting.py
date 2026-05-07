@@ -150,7 +150,7 @@ def get_pdf_from_pre_calculated(
         One of the quantiles in `quantiles` is not available in `in_df`.
     """
     missing_quantiles = []
-    available_quantiles = in_df.index.get_level_values(quantile_col).unique().tolist()
+    available_quantiles = in_df.index.unique(quantile_col).tolist()
     for qt in quantiles:
         if qt not in available_quantiles:
             missing_quantiles.append(qt)
@@ -186,7 +186,7 @@ def extract_single_unit(df: pd.DataFrame, unit_var: str) -> str:
     AssertionError
         The data has more than one unit
     """
-    units = df.index.get_level_values(unit_var).unique().tolist()
+    units = df.index.unique(unit_var).tolist()
     if len(units) != 1:
         raise AssertionError(units)
 
@@ -1006,7 +1006,7 @@ class PlumePlotter:
         )
 
         palette_complete = fill_out_palette(
-            df.index.get_level_values(hue_var).unique(),
+            df.index.unique(hue_var),
             palette_user_supplied=palette,
             warn_on_value_missing=warn_on_palette_value_missing,
         )
@@ -1014,7 +1014,7 @@ class PlumePlotter:
         if style_var is not None:
             group_cols = [hue_var, style_var]
             dashes_complete = fill_out_dashes(
-                df.index.get_level_values(style_var).unique(),
+                df.index.unique(style_var),
                 dashes_user_supplied=dashes,
                 warn_on_value_missing=warn_on_dashes_value_missing,
             )
@@ -1104,7 +1104,7 @@ class PlumePlotter:
                     and unit_var is not None
                     and unit_var in pdf.index.names
                 ):
-                    values_units.extend(pdf.index.get_level_values(unit_var).unique())
+                    values_units.extend(pdf.index.unique(unit_var))
 
         if unit_aware and isinstance(y_label, bool) and y_label:
             # Let unit-aware plotting do its thing

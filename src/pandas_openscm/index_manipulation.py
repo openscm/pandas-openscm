@@ -389,6 +389,9 @@ def create_new_level_and_codes_by_mapping(
     new_codes :
         New codes
     """
+    # There might be a faster way to do this if you work on the codes directly
+    # and only use the unique level values.
+    # However, it might still be slower than using pandas' compiled C stuff.
     level_to_map_from_idx = ini.names.index(level_to_create_from)
     new_level = ini.levels[level_to_map_from_idx].map(mapper)  # type: ignore[arg-type] # ty: ignore[invalid-argument-type] # pandas-stubs confused
     if not new_level.has_duplicates:
