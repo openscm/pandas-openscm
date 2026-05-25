@@ -34,7 +34,7 @@ ruff-fixes:  ## fix the code using ruff
     # format before and after checking so that the formatted stuff is checked and
     # the fixed stuff is formatted
 	uv run --group dev ruff format src tests scripts docs
-	uv run --group dev ruff --fix check src tests scripts docs
+	uv run --group dev --fix ruff check src tests scripts docs
 	uv run --group dev ruff format src tests scripts docs
 
 .PHONY: test
@@ -64,7 +64,7 @@ docs-strict:  ## build the docs strictly (e.g. raise an error on warnings, this 
 
 .PHONY: docs-serve
 docs-serve:  ## serve the docs locally
-	uv run --group docs mkdocs serve
+	uv run --group docs properdocs serve
 
 .PHONY: changelog-draft
 changelog-draft:  ## compile a draft of the next changelog

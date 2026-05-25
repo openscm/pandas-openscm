@@ -36,10 +36,7 @@ jobs:
         id: setup-uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
-          # TODO: update uv version we use too
-          # and ruff...
-          # and anything else...
-          version: "0.8.8"
+          version: "0.11.16"
           python-version: ${{ matrix.python-version }}
       # Often you need a step like this for e.g. numpy, scipy, pandas
       - name: Setup compilation dependencies

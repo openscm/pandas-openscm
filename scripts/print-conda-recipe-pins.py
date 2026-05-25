@@ -70,7 +70,7 @@ def main() -> None:
             min_pin = version
             max_pin = f"{vv.major}.{vv.minor}.{vv.micro + 1}"
         else:
-            print(f"Using range for {dependency}. " f"{package_version_lines=}.")
+            print(f"Using range for {dependency}. {package_version_lines=}.")
             versions = [
                 # Assume some split based on Python version
                 Version(v.split(";")[0].split("==")[-1].strip())

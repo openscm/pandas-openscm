@@ -20,7 +20,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
-          uv-dependency-install-flags: "--all-extras --group dev"
+          uv-dependency-install-flags: "--group dev --all-extras"
       - name: mypy
         run: |
           MYPYPATH=stubs uv run --group dev mypy src
@@ -38,7 +38,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
-          uv-dependency-install-flags: "--all-extras --group dev"
+          uv-dependency-install-flags: "--group dev --all-extras"
       - name: ty
         run: |
           uv run --group dev ty check src --output-format github
@@ -56,14 +56,14 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
-          uv-dependency-install-flags: "--all-extras --group docs"
+          uv-dependency-install-flags: "--group docs --all-extras"
       - name: docs
         run: |
           uv run --group docs properdocs build --strict
       - uses: ./.github/actions/setup
         with:
           python-version: "3.11"
-          uv-dependency-install-flags: "--all-extras --group docs --group dev"
+          uv-dependency-install-flags: "--group docs --group dev --all-extras"
       - name: docs-with-changelog
         run: |
           # Check CHANGELOG will build too
@@ -121,7 +121,7 @@ jobs:
           # when people try to run without installing optional dependencies,
           # we should add a CI step that runs the tests without optional dependencies too.
           # We don't have that right now, because we're not sure this pain point exists.
-          uv-dependency-install-flags: "--all-extras --group tests"
+          uv-dependency-install-flags: "--group tests --all-extras"
       - name: Run tests
         env:
           # Don't need interactive plots
@@ -129,10 +129,10 @@ jobs:
         run: |
           # Warm up the speed tests, allowing failure
           uv run --group tests pytest tests/integration/database/test_integration_speed.py || true
-          uv run --group tests pytest -r a -v src tests --doctest-modules --cov=pandas_openscm --cov-report=term-missing --cov-report=xml
-          uv run --group tests coverage report
+          uv run --group tests pytest -r a -v src tests --doctest-modules --doctest-report ndiff --cov=pandas_openscm --cov-report=term-missing --cov-report=xml
+          uv run --group dev coverage report
       - name: Upload coverage reports to Codecov with GitHub Action
-        uses: codecov/codecov-action@v4.2.0
+        uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -169,7 +169,7 @@ jobs:
         id: setup-uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
-          version: "0.8.8"
+          version: "0.11.16"
           python-version: ${{ matrix.python-version }}
       - name: Create venv
         run: |
@@ -210,7 +210,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Set up Python "${{ matrix.python-version }}"
         id: setup-python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "${{ matrix.python-version }}"
       - name: Install
@@ -275,7 +275,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Set up Python "${{ matrix.python-version }}"
         id: setup-python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "${{ matrix.python-version }}"
       - name: Install
@@ -298,7 +298,7 @@ jobs:
         id: setup-uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
-          version: "0.8.8"
+          version: "0.11.16"
           python-version: ${{ matrix.python-version }}
       - name: Build package
         run: |
