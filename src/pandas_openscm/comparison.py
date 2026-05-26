@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from pandas_openscm.typing import NP_ARRAY_OF_BOOL, NP_ARRAY_OF_FLOAT_OR_INT
 
 
-def compare_close(
+def compare_close(  # noqa: PLR0913
     left: pd.DataFrame,
     right: pd.DataFrame,
     left_name: str,
@@ -22,6 +22,7 @@ def compare_close(
     isclose: Callable[
         [NP_ARRAY_OF_FLOAT_OR_INT, NP_ARRAY_OF_FLOAT_OR_INT], NP_ARRAY_OF_BOOL
     ] = np.isclose,
+    future_stack: bool = True,
 ) -> pd.DataFrame:
     """
     Compare two [pd.DataFrame][pandas.DataFrame]'s
@@ -49,6 +50,9 @@ def compare_close(
 
         (Hint: use [functools.partial][] to specify a custom
         tolerance with [np.isclose][numpy.isclose].)
+
+    future_stack
+        Passed to the `stack` calls of `left` and `right`
 
     Returns
     -------
@@ -141,16 +145,22 @@ def compare_close(
     >>> loose_comparison.empty
     True
     """
-    left_stacked = left.stack()
+    left_stacked = left.stack(future_stack=future_stack)
     if not isinstance(left_stacked, pd.Series):
-        msg = "left is not a `pd.Series` after stacking, this will not work"
+        msg = (
+            f"left ({left_name=}) "
+            "is not a `pd.Series` after stacking, this will not work"
+        )
         raise TypeError(msg)
 
     left_stacked.name = left_name
 
-    right_stacked = right.stack()
+    right_stacked = right.stack(future_stack=future_stack)
     if not isinstance(right_stacked, pd.Series):
-        msg = "right is not a `pd.Series` after stacking, this will not work"
+        msg = (
+            f"right ({right_name=}) "
+            "is not a `pd.Series` after stacking, this will not work"
+        )
         raise TypeError(msg)
 
     right_stacked.name = right_name

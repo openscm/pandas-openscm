@@ -2,6 +2,7 @@
 Tests of `pandas_openscm.comparison`
 """
 
+import re
 from functools import partial
 
 import numpy as np
@@ -113,3 +114,43 @@ def test_compare_close(left, right, left_name, right_name, isclose, exp):  # noq
         check_index_type=False,
         check_dtype=False,
     )
+
+
+@pytest.mark.parametrize(
+    "left, right, exp_error",
+    (
+        (
+            create_test_df(
+                data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
+            ).unstack("variable"),
+            create_test_df(
+                data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
+            ),
+            pytest.raises(
+                TypeError,
+                match=re.escape(
+                    "left (left_name='ll') "
+                    "is not a `pd.Series` after stacking, this will not work"
+                ),
+            ),
+        ),
+        (
+            create_test_df(
+                data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
+            ),
+            create_test_df(
+                data=[[1.0, 2.0, 3.0], [1.1, 1.2, 1.3], [-1.1, 0.0, 0.5]],
+            ).unstack("variable"),
+            pytest.raises(
+                TypeError,
+                match=re.escape(
+                    "right (right_name='rr') "
+                    "is not a `pd.Series` after stacking, this will not work"
+                ),
+            ),
+        ),
+    ),
+)
+def test_compare_close_stack_failure(left, right, exp_error):
+    with exp_error:
+        compare_close(left, right, left_name="ll", right_name="rr")
