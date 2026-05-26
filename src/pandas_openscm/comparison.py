@@ -145,7 +145,7 @@ def compare_close(  # noqa: PLR0913
     >>> loose_comparison.empty
     True
     """
-    left_stacked = left.stack(future_stack=future_stack)
+    left_stacked = left.stack(future_stack=future_stack)  # type: ignore # pandas-stubs confused
     if not isinstance(left_stacked, pd.Series):
         msg = (
             f"left ({left_name=}) "
@@ -155,7 +155,7 @@ def compare_close(  # noqa: PLR0913
 
     left_stacked.name = left_name
 
-    right_stacked = right.stack(future_stack=future_stack)
+    right_stacked = right.stack(future_stack=future_stack)  # type: ignore # pandas-stubs confused
     if not isinstance(right_stacked, pd.Series):
         msg = (
             f"right ({right_name=}) "
