@@ -21,6 +21,17 @@ from the examples given in that link.
 
 <!-- towncrier release notes start -->
 
+## Pandas-OpenSCM v0.9.2 (2026-05-26)
+
+### 🆕 Features
+
+- Updated the implementation to support pandas>=3.0 ([#42](https://github.com/openscm/pandas-openscm/pull/42))
+
+### 🔧 Trivial/Internal Changes
+
+- [#42](https://github.com/openscm/pandas-openscm/pull/42), [#44](https://github.com/openscm/pandas-openscm/pull/44)
+
+
 ## Pandas-OpenSCM v0.9.1 (2026-03-05)
 
 ### 🎉 Improvements
