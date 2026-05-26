@@ -167,14 +167,14 @@ def check_result(res: P, exp: P) -> None:
         Type of `res` is not the same as the type of `exp`
     """
     if isinstance(res, pd.DataFrame):
-        if not isinstance(exp, pd.DataFrame):
+        if not isinstance(exp, pd.DataFrame):  # pragma: no cover
             msg = f"{type(res)=} while {type(exp)=}"
             raise TypeError(msg)
 
         assert_frame_alike(res, exp)
 
     elif isinstance(res, pd.Series):
-        if not isinstance(exp, pd.Series):
+        if not isinstance(exp, pd.Series):  # pragma: no cover
             msg = f"{type(res)=} while {type(exp)=}"
             raise TypeError(msg)
 
