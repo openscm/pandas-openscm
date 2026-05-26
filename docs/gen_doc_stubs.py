@@ -56,7 +56,7 @@ def write_subpackage_pages(subpackage: object) -> tuple[PackageInfo, ...]:
 def get_write_file(package_full_name: str) -> Path:
     """Get directory in which to write the doc file"""
     write_dir = ROOT_DIR
-    for sub_dir in package_full_name.rsplit(".", maxsplit=1)[:-1]:
+    for sub_dir in package_full_name.rsplit(".")[:-1]:
         write_dir = write_dir / sub_dir
 
     write_file = write_dir / package_full_name.rsplit(".", maxsplit=1)[-1] / "index.md"
