@@ -47,7 +47,7 @@ def check_plots(
     tmp_path: Path,
     exp: contextlib.AbstractContextManager = does_not_raise(),
 ) -> None:
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
 
     with exp:
         return_val = plot_plume_func(df, ax=ax, **plot_kwargs)
@@ -60,7 +60,7 @@ def check_plots(
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
     # Check this works via the accessor too
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     with exp:
         return_val = df.openscm.plot_plume(ax=ax, **plot_kwargs)
 
@@ -81,7 +81,7 @@ def check_plots_incl_quantile_calculation(
     tmp_path: Path,
     exp: contextlib.AbstractContextManager = does_not_raise(),
 ) -> None:
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
 
     with exp:
         return_val = plot_plume_after_calculating_quantiles_func(
@@ -96,7 +96,7 @@ def check_plots_incl_quantile_calculation(
     image_regression.check(out_file.read_bytes(), diff_threshold=0.01)
 
     # Check this works via the accessor too
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     with exp:
         return_val = df.openscm.plot_plume_after_calculating_quantiles(
             ax=ax, **method_kwargs
@@ -180,7 +180,7 @@ def test_plot_plume_no_labels(tmp_path, image_regression, setup_pandas_accessors
 def test_plot_plume_with_other_plot_calls(
     tmp_path, image_regression, setup_pandas_accessors
 ):
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
 
     before_handles = ax.plot(
         np.arange(1955.0, 1975.0, 2.5),
@@ -758,7 +758,7 @@ def test_plot_plume_unit_aware(
 
     ur.setup_matplotlib(enable=True)
 
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
 
     res = (
         create_test_df(

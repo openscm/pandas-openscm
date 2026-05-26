@@ -49,8 +49,7 @@ class DBPath:
         """
         if not str(self.abs).endswith(str(value)):
             msg = (
-                f"{attribute.name} value, {value!r}, "
-                f"is not a sub-path of {self.abs=!r}"
+                f"{attribute.name} value, {value!r}, is not a sub-path of {self.abs=!r}"
             )
             raise AssertionError(msg)
 

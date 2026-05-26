@@ -163,7 +163,7 @@ Parameterisation to use to check handling of both DataFrame and Series
                 names=["scenario", "variable", "unit", "run_id"],
             ),
             {
-                "vv": (("scenario", "variable"), lambda x: " - ".join(x)),
+                "vv": (("scenario", "variable"), " - ".join),
                 "sv": (
                     ("scenario", "variable"),
                     {

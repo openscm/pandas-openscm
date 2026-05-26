@@ -91,7 +91,7 @@ def test_overhead(groupby, tmpdir):
         tol_load = 2.0
 
     overhead = (time_db_save - time_pandas_save) / time_pandas_save
-    assert overhead <= tol_save, f"Overhead is more than {tol_save*100}%"
+    assert overhead <= tol_save, f"Overhead is more than {tol_save * 100}%"
 
     start_pandas_load = time.perf_counter()
 
@@ -108,4 +108,4 @@ def test_overhead(groupby, tmpdir):
     time_db_load = stop_db_load - start_db_load
 
     overhead = (time_db_load - time_pandas_load) / time_pandas_load
-    assert overhead <= tol_load, f"Overhead is more than {tol_load*100}%"
+    assert overhead <= tol_load, f"Overhead is more than {tol_load * 100}%"

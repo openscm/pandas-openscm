@@ -34,7 +34,7 @@ ruff-fixes:  ## fix the code using ruff
     # format before and after checking so that the formatted stuff is checked and
     # the fixed stuff is formatted
 	uv run --group dev ruff format src tests scripts docs
-	uv run --group dev --fix ruff check src tests scripts docs
+	uv run --group dev ruff check src tests scripts docs --fix
 	uv run --group dev ruff format src tests scripts docs
 
 .PHONY: test

@@ -56,7 +56,7 @@ class netCDFDataBackend:
             Loaded data
         """
         try:
-            import xarray as xr
+            import xarray as xr  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "netCDFBackend.load_data", requirement="xarray"
@@ -87,7 +87,7 @@ class netCDFDataBackend:
             File in which to save the data
         """
         try:
-            import xarray as xr
+            import xarray as xr  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "netCDFBackend.save_data", requirement="xarray"
@@ -156,7 +156,7 @@ class netCDFIndexBackend:
             Loaded file map
         """
         try:
-            import xarray as xr
+            import xarray as xr  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "netCDFBackend.load_file_map", requirement="xarray"
@@ -184,7 +184,7 @@ class netCDFIndexBackend:
             Loaded index
         """
         try:
-            import xarray as xr
+            import xarray as xr  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "netCDFBackend.load_index", requirement="xarray"
@@ -216,7 +216,7 @@ class netCDFIndexBackend:
             File in which to save the file map
         """
         try:
-            import xarray as xr
+            import xarray as xr  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "netCDFBackend.save_file_map", requirement="xarray"
@@ -341,7 +341,7 @@ def metadata_df_to_xr(
         variable_int  (ts_id) int64 24B 0 1 0
     """
     try:
-        import xarray as xr
+        import xarray as xr  # noqa: PLC0415
     except ImportError as exc:
         raise MissingOptionalDependencyError(
             "metadata_df_to_xr", requirement="xarray"

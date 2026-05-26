@@ -35,7 +35,7 @@ def get_db_index_backends() -> tuple[type[object], ...]:
 
 def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
     try:
-        import pytest
+        import pytest  # noqa: PLC0415
     except ImportError as exc:
         raise MissingOptionalDependencyError(
             "get_parametrized_db_data_backends", requirement="pytest"
@@ -52,7 +52,7 @@ def get_parametrized_db_data_backends() -> pytest.MarkDecorator:
 
 def get_parametrized_db_index_backends() -> pytest.MarkDecorator:
     try:
-        import pytest
+        import pytest  # noqa: PLC0415
     except ImportError as exc:
         raise MissingOptionalDependencyError(
             "get_parametrized_db_index_backends", requirement="pytest"

@@ -289,7 +289,7 @@ def get_values_line(
 
     if isinstance(unit_aware, bool):
         try:
-            import pint
+            import pint  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(  # noqa: TRY003
                 "get_values_line(..., unit_aware=True, ...)", requirement="pint"
@@ -432,7 +432,7 @@ def get_values_plume(  # noqa: PLR0913
 
     if isinstance(unit_aware, bool):
         try:
-            import pint
+            import pint  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(  # noqa: TRY003
                 "get_values_plume(..., unit_aware=True, ...)", requirement="pint"
@@ -487,7 +487,7 @@ def get_default_colour_cycler() -> Iterator[COLOUR_VALUE_LIKE]:
         [matplotlib][] is not installed
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: PLC0415
     except ImportError as exc:
         raise MissingOptionalDependencyError(
             "get_default_colour_cycler", requirement="matplotlib"
@@ -1172,8 +1172,8 @@ class PlumePlotter:
             Generated handles for the legend
         """
         try:
-            import matplotlib.lines as mlines
-            import matplotlib.patches as mpatches
+            import matplotlib.lines as mlines  # noqa: PLC0415
+            import matplotlib.patches as mpatches  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "generate_legend_handles", requirement="matplotlib"
@@ -1267,7 +1267,7 @@ class PlumePlotter:
         """
         if ax is None:
             try:
-                import matplotlib.pyplot as plt
+                import matplotlib.pyplot as plt  # noqa: PLC0415
             except ImportError as exc:
                 raise MissingOptionalDependencyError(  # noqa: TRY003
                     "plot(ax=None, ...)", requirement="matplotlib"

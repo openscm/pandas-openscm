@@ -152,7 +152,7 @@ def convert_unit_from_target_series(
 
     if ur is None:
         try:
-            import pint
+            import pint  # noqa: PLC0415
 
             ur = pint.get_application_registry()  # type: ignore[no-untyped-call] # pint typing limited
         except ImportError:

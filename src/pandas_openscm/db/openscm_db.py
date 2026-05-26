@@ -123,7 +123,7 @@ class OpenSCMDB:
     def default_index_file_lock(self) -> filelock.BaseFileLock:
         """Get default lock for the back-end's index file"""
         try:
-            import filelock
+            import filelock  # noqa: PLC0415
         except ImportError as exc:
             raise MissingOptionalDependencyError(
                 "default_index_file_lock", requirement="filelock"
@@ -210,7 +210,7 @@ class OpenSCMDB:
         if isinstance(lock, bool):
             if lock:
                 try:
-                    import filelock
+                    import filelock  # noqa: PLC0415
                 except ImportError as exc:
                     raise MissingOptionalDependencyError(  # noqa: TRY003
                         "create_reader(..., lock=True, ...)", requirement="filelock"

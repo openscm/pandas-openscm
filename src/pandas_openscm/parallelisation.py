@@ -83,7 +83,7 @@ def get_tqdm_auto(**kwargs: Any) -> ProgressLike:
     and also to only have to do the type hinting fix in one place.
     """
     try:
-        import tqdm.auto
+        import tqdm.auto  # noqa: PLC0415
     except ImportError as exc:
         raise MissingOptionalDependencyError(
             "get_tqdm_auto", requirement="tqdm"
