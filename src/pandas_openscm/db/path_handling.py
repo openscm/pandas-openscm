@@ -29,7 +29,7 @@ class DBPath:
     rel_db: Path = field()
     """The path relative to the database's directory"""
 
-    @rel_db.validator
+    @rel_db.validator  # ty: ignore[unresolved-attribute]
     def rel_db_validator(self, attribute: attr.Attribute[Any], value: Path) -> None:
         """
         Validate the value of `rel_db`
@@ -49,8 +49,7 @@ class DBPath:
         """
         if not str(self.abs).endswith(str(value)):
             msg = (
-                f"{attribute.name} value, {value!r}, "
-                f"is not a sub-path of {self.abs=!r}"
+                f"{attribute.name} value, {value!r}, is not a sub-path of {self.abs=!r}"
             )
             raise AssertionError(msg)
 

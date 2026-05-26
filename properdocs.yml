@@ -184,6 +184,8 @@ extra_javascript:
 extra_css:
   - https://unpkg.com/katex@0/dist/katex.min.css
 
+copyright: Copyright &copy; 2026, pandas-openscm contributors
+
 watch:
   - README.md
   # Auto-generate if `src` changes (because this changes API docs)

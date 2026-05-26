@@ -14,9 +14,9 @@ def run_checks(res, start):
     # Check that columns are now all category types
     for idx_lvl in res.index.names:
         # Check that we didn't start with categories or mangle the original DataFrame
-        assert (
-            str(start.index.get_level_values(idx_lvl).dtype) != "category"
-        ), "Testing nothing"
+        assert str(start.index.get_level_values(idx_lvl).dtype) != "category", (
+            "Testing nothing"
+        )
 
         assert str(res.index.get_level_values(idx_lvl).dtype) == "category"
 

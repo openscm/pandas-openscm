@@ -353,7 +353,7 @@ def test_unify_index_levels_overlap():
     exp_b = pd.MultiIndex(
         levels=[
             ["scenario_a", "scenario_b"],
-            [],
+            pd.Index([], dtype=idx_a.get_level_values("model").dtype),
             ["variable_1", "variable_2"],
         ],
         codes=[

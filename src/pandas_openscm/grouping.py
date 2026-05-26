@@ -11,17 +11,19 @@ import pandas as pd
 if TYPE_CHECKING:
     P = TypeVar("P", pd.DataFrame, pd.Series[Any])
 
+    import pandas.core.groupby.generic
+
 
 @overload
 def groupby_except(
     pandas_obj: pd.DataFrame, non_groupers: str | list[str], observed: bool = True
-) -> pd.core.groupby.generic.DataFrameGroupBy[Any]: ...
+) -> pandas.core.groupby.generic.DataFrameGroupBy[Any, Any]: ...
 
 
 @overload
 def groupby_except(
     pandas_obj: pd.Series[Any], non_groupers: str | list[str], observed: bool = True
-) -> pd.core.groupby.generic.SeriesGroupBy[Any, Any]: ...
+) -> pandas.core.groupby.generic.SeriesGroupBy[Any, Any]: ...
 
 
 def groupby_except(
@@ -29,8 +31,8 @@ def groupby_except(
     non_groupers: str | list[str],
     observed: bool = True,
 ) -> (
-    pd.core.groupby.generic.DataFrameGroupBy[Any]
-    | pd.core.groupby.generic.SeriesGroupBy[Any, Any]
+    pandas.core.groupby.generic.DataFrameGroupBy[Any, Any]
+    | pandas.core.groupby.generic.SeriesGroupBy[Any, Any]
 ):
     """
     Group by all index levels except specified levels
@@ -56,10 +58,9 @@ def groupby_except(
     if isinstance(non_groupers, str):
         non_groupers = [non_groupers]
 
-    return pandas_obj.groupby(
-        pandas_obj.index.names.difference(non_groupers),  # type: ignore # pandas-stubs confused
-        observed=observed,
-    )
+    groupers = [v for v in pandas_obj.index.names if v not in non_groupers]
+
+    return pandas_obj.groupby(groupers, observed=observed)
 
 
 def fix_index_name_after_groupby_quantile(
@@ -90,10 +91,11 @@ def fix_index_name_after_groupby_quantile(
         Object, with the last level in its index renamed to `new_name`.
     """
     if copy:
-        res = pandas_obj.copy()
+        res = pandas_obj.copy()  # ty: ignore[invalid-argument-type]
     else:
         res = pandas_obj
 
-    res.index = res.index.rename({None: new_name})
+    new_names = [v if v is not None else new_name for v in res.index.names]
+    res.index = res.index.set_names(new_names)
 
-    return res
+    return res  # ty: ignore[invalid-return-type]
