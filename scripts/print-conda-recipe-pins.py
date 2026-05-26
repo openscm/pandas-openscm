@@ -18,6 +18,7 @@ class VersionInfoHere:
     """Version info class for use in this script"""
 
     name: str
+    pin_library: str
     min_pin: str
     max_pin: str
 
@@ -80,13 +81,19 @@ def main() -> None:
             max_version = max(versions)
             max_pin = f"{max_version.major}.{max_version.minor}.{max_version.micro + 1}"
 
+        pin_library = dependency.replace(package_name, "")
         version_info_l.append(
-            VersionInfoHere(name=conda_name, min_pin=min_pin, max_pin=max_pin)
+            VersionInfoHere(
+                name=conda_name,
+                pin_library=pin_library,
+                min_pin=min_pin,
+                max_pin=max_pin,
+            )
         )
 
     print("Pins for library")
     for vi in version_info_l:
-        print(f"- {vi.name}")
+        print(f"- {vi.name} {vi.pin_library}")
 
     print("")
     print("Pins for application")
