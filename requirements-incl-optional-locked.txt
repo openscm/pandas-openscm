@@ -2,7 +2,7 @@
 #    uv export -o requirements-incl-optional-locked.txt --no-hashes --no-dev --no-emit-project --all-extras
 attrs==26.1.0
     # via pandas-openscm
-certifi==2026.4.22
+certifi==2026.5.20
     # via netcdf4
 cftime==1.6.5
     # via netcdf4
@@ -16,7 +16,7 @@ cycler==0.12.1
     # via matplotlib
 filelock==3.29.0
     # via pandas-openscm
-fonttools==4.62.1
+fonttools==4.63.0
     # via matplotlib
 kiwisolver==1.5.0
     # via matplotlib
@@ -35,7 +35,7 @@ numpy==2.2.6 ; python_full_version < '3.11'
     #   pandas
     #   pandas-openscm
     #   xarray
-numpy==2.4.4 ; python_full_version >= '3.11'
+numpy==2.4.6 ; python_full_version >= '3.11'
     # via
     #   cftime
     #   contourpy
@@ -44,15 +44,11 @@ numpy==2.4.4 ; python_full_version >= '3.11'
     #   pandas
     #   pandas-openscm
     #   xarray
-packaging==24.2
+packaging==26.2
     # via
     #   matplotlib
     #   xarray
-pandas==2.3.3 ; python_full_version < '3.11'
-    # via
-    #   pandas-openscm
-    #   xarray
-pandas==3.0.2 ; python_full_version >= '3.11'
+pandas==2.3.3
     # via
     #   pandas-openscm
     #   xarray
@@ -66,13 +62,13 @@ python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
-pytz==2026.1.post1 ; python_full_version < '3.11'
+pytz==2026.2
     # via pandas
 six==1.17.0
     # via python-dateutil
 tqdm==4.67.3
     # via pandas-openscm
-tzdata==2026.2 ; python_full_version < '3.11' or sys_platform == 'emscripten' or sys_platform == 'win32'
+tzdata==2026.2
     # via pandas
 xarray==2025.6.1 ; python_full_version < '3.11'
     # via pandas-openscm
